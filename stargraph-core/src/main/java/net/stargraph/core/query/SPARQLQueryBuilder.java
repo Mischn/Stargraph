@@ -30,6 +30,7 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.QueryPlanPatterns;
+import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 
@@ -43,6 +44,7 @@ public final class SPARQLQueryBuilder {
     private List<DataModelBinding> bindings;
     private Map<DataModelBinding, List<Score>> mappings;
     private Namespace namespace;
+    private int tmpVarCounter;
 
     public SPARQLQueryBuilder(QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
         this.queryType = Objects.requireNonNull(queryType);
@@ -115,8 +117,7 @@ public final class SPARQLQueryBuilder {
     }
 
     private String buildStatements() {
-        //TODO change this function to handle PropertyPaths (> 1) correctly
-
+        resetTmpVarCounter();
         StringJoiner tripleJoiner = new StringJoiner(" . \n", "{", "}");
 
         triplePatterns.forEach(triplePattern -> {
@@ -125,9 +126,9 @@ public final class SPARQLQueryBuilder {
 
 
             // TODO (?) The mappings for predicates may be retrieved by pivotedSearch, which returns bidirectional predicates (e.h. has-wife, wife-of). Here, this fact is not considered.
-            List<String> sURIs = placeHolder2URIs(components[0]);
-            List<String> pURIs = placeHolder2URIs(components[1]);
-            List<String> oURIs = placeHolder2URIs(components[2]);
+            List<String> sURIs = placeHolder2Pattern(components[0]);
+            List<String> pURIs = placeHolder2Pattern(components[1]);
+            List<String> oURIs = placeHolder2Pattern(components[2]);
 
             List<String> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
 
@@ -146,7 +147,7 @@ public final class SPARQLQueryBuilder {
         return xy;
     }
 
-    private List<String> placeHolder2URIs(String placeHolder) {
+    private List<String> placeHolder2Pattern(String placeHolder) {
         if (isVar(placeHolder)) {
             return Collections.singletonList(placeHolder);
         }
@@ -160,10 +161,42 @@ public final class SPARQLQueryBuilder {
         if (mappings.isEmpty()) {
             return Collections.singletonList(getURI(binding));
         }
-        return mappings.stream()
-                .map(Score::getRankableView)
-                .map(r -> String.format("<%s>", unmap(r.getId()))).collect(Collectors.toList());
+
+        return mappings.stream().map(m -> mappingToPattern(m)).collect(Collectors.toList());
     }
+
+    private void resetTmpVarCounter() {
+        tmpVarCounter = 0;
+    }
+
+    private String getNewTmpVar() {
+        tmpVarCounter += 1;
+        return "?TMP_" + tmpVarCounter;
+    }
+
+    private String mappingToPattern(Score mapping) {
+        if (mapping.getEntry() instanceof PropertyPath) {
+            PropertyPath path = (PropertyPath)mapping.getEntry();
+            List<String> properties = path.getProperties().stream().map(p -> String.format("<%s>", unmap(p.getId()))).collect(Collectors.toList());
+
+            if (properties.size() == 1) {
+                return properties.get(0);
+            } else {
+                StringBuilder strb = new StringBuilder();
+                strb.append(properties.get(0));
+                for (int i = 1; i < properties.size(); i++) {
+                    String tmpVar = getNewTmpVar();
+                    strb.append(String.format(" %s . %s %s", tmpVar, tmpVar, properties.get(i)));
+                }
+                return strb.toString();
+            }
+        } else {
+            return String.format("<%s>", unmap(mapping.getRankableView().getId()));
+        }
+    }
+
+
+
 
     private boolean isVar(String s) {
         return s.startsWith("?VAR");

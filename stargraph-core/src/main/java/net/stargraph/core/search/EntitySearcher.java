@@ -29,18 +29,14 @@ package net.stargraph.core.search;
 import net.stargraph.core.KBCore;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.model.BuiltInModel;
-import net.stargraph.model.Fact;
-import net.stargraph.model.PropertyEntity;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.*;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class EntitySearcher {
@@ -63,6 +59,7 @@ public class EntitySearcher {
         return null;
     }
 
+    // returns ResourceEntity-instances
     public List<ResourceEntity> getResourceEntities(String dbId, List<String> ids) {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.ENTITY);
         KBCore core = stargraph.getKBCore(dbId);
@@ -81,6 +78,7 @@ public class EntitySearcher {
         return scores.stream().map(s -> (ResourceEntity)s.getEntry()).collect(Collectors.toList());
     }
 
+    // returns ResourceEntity-instances
     public Scores classSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
         searchParams.model(BuiltInModel.FACT);
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
@@ -102,6 +100,7 @@ public class EntitySearcher {
         return Rankers.apply(new Scores(classes2Score), rankParams, searchParams.getSearchTerm());
     }
 
+    // returns ResourceEntity-instances
     public Scores resourceSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
         searchParams.model(BuiltInModel.ENTITY);
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
@@ -116,6 +115,7 @@ public class EntitySearcher {
         return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
     }
 
+    // returns PropertyEntity-instances
     public Scores propertySearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
         searchParams.model(BuiltInModel.PROPERTY);
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
@@ -134,27 +134,43 @@ public class EntitySearcher {
         return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
     }
 
+    //TODO remove this function (this is currently used, because working with PropertyPaths is not yet supported)
     public Scores pivotedSearch(ResourceEntity pivot,
                                 ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean returnBestMatchEntities) {
+
         searchParams.model(BuiltInModel.FACT);
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
-
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
 
-        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams);
-        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+        Scores scores = pivotedSearch(pivot, searchParams, rankParams, 1, returnBestMatchEntities);
 
-        // Fetch initial candidates from the search engine
-        Scores scores = searcher.search(holder);
+        // map property-path to property
+        if (!returnBestMatchEntities) {
+            return new Scores(scores.stream()
+                    .map(s -> new Score(((PropertyPath)s.getEntry()).getProperties().get(0), s.getValue()))
+                    .collect(Collectors.toList()));
+        }
 
+        return scores;
+    }
 
-        // We have to remap the facts to properties, the real target of the ranker call.
-        // Thus we're discarding the score values from the underlying search engine. Shall we?
-        Scores propScores = new Scores(scores.stream()
-                .map(s -> ((Fact) s.getEntry()).getPredicate())
+    // returns LabeledEntity-instances (if returnBestMatchEntities), else: PropertyPath-instances
+    public Scores pivotedSearch(ResourceEntity pivot,
+                                ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {
+
+        searchParams.model(BuiltInModel.FACT);
+        KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
+        if (rankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+        }
+
+        List<Route> neighbours = neighbourSearch(pivot, searchParams, range);
+
+        // We have to remap the routes to the propertyPath, the real target of the ranker call.
+        Scores propScores = new Scores(neighbours.stream()
+                .map(n -> n.getPropertyPath())
                 .distinct()
                 .map(p -> new Score(p, 0))
                 .collect(Collectors.toList()));
@@ -168,23 +184,90 @@ public class EntitySearcher {
                 return new Scores();
             }
             Score bestScore = rankedScores.get(0);
-            PropertyEntity bestProperty = (PropertyEntity) bestScore.getEntry();
-            logger.debug("Best match is {}, returning instances ..", bestProperty);
+            PropertyPath bestPropertyPath = (PropertyPath) bestScore.getEntry();
+            logger.debug("Best match is {}, returning instances ..", bestPropertyPath);
 
             result = new Scores();
-            for (Score score : scores) {
-                Fact fact = (Fact)score.getEntry();
-                if (fact.getPredicate().equals(bestProperty)) {
-                    if (fact.getSubject().equals(pivot)) {
-                        result.add(new Score(fact.getObject(), bestScore.getValue()));
-                    } else {
-                        result.add(new Score(fact.getSubject(), bestScore.getValue()));
-                    }
+            for (Route neighbour : neighbours) {
+                if (neighbour.getPropertyPath().equals(bestPropertyPath)) {
+                    result.add(new Score(neighbour.getLastWaypoint(), bestScore.getValue()));
                 }
             }
-
         }
 
         return result;
+    }
+
+
+    // direct neighbours only
+    private List<Route> directNeighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams) {
+        searchParams.model(BuiltInModel.FACT);
+        KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
+
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        List result = new ArrayList();
+        for (Score score : scores) {
+            Fact fact = (Fact)score.getEntry();
+            if (fact.getSubject().equals(pivot)) {
+                result.add(new Route(pivot).extend(fact.getPredicate(), fact.getObject()));
+            } else if (fact.getSubject() instanceof LabeledEntity) {
+                result.add(new Route(pivot).extend(fact.getPredicate(), (LabeledEntity) fact.getSubject()));
+            }
+        }
+
+        return result;
+    }
+
+
+    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range) {
+        if (range < 1) {
+            throw new IllegalArgumentException("Range has to be >= 1");
+        }
+
+        Map<ResourceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
+
+        Map<Integer, List<Route>> neighbours = new HashMap<>();
+        for (int i = 0; i < range; i++) {
+            if (i == 0) {
+                List<Route> directNs = directNeighbourSearch(pivot, searchParams);
+                directNeighbours.put(pivot, directNs);
+                neighbours.put(i, directNs);
+            } else {
+                neighbours.put(i, new ArrayList<>());
+                for (Route neighbour : neighbours.get(i - 1)) {
+                    if (!(neighbour.getLastWaypoint() instanceof ResourceEntity)) {
+                        continue;
+                    }
+                    ResourceEntity currPivot = (ResourceEntity) neighbour.getLastWaypoint();
+
+                    List<Route> directNS;
+                    if (directNeighbours.containsKey(currPivot)) {
+                        directNS = directNeighbours.get(currPivot);
+                    } else {
+                        directNS = directNeighbourSearch(currPivot, searchParams);
+                        directNeighbours.put(currPivot, directNS);
+                    }
+
+                    // create new routes
+                    for (Route directN : directNS) {
+                        PropertyEntity newProperty = directN.getPropertyPath().getProperties().get(0);
+                        LabeledEntity newWaypoint = directN.getLastWaypoint();
+
+                        // don't allow links back to previous waypoint
+                        if (!newWaypoint.equals(neighbour.getWaypoints().get(neighbour.getWaypoints().size() - 2))) {
+                            neighbours.get(i).add(neighbour.extend(newProperty, newWaypoint));
+                        }
+                    }
+                }
+            }
+        }
+
+        return neighbours.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 }

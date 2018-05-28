@@ -273,7 +273,7 @@ public final class QueryEngine {
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
             ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-            Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, false);
+            Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, 1, false);
 
             logger.debug(marker, "Resolved predicate for pivot {}, searching for term '{}' (pivotedSearch)", pivot, searchParams.getSearchTerm());
             logger.debug(marker, "Results: {}", scores);

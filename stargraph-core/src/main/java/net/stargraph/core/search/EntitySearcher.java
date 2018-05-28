@@ -134,28 +134,6 @@ public class EntitySearcher {
         return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
     }
 
-    //TODO remove this function (this is currently used, because working with PropertyPaths is not yet supported)
-    public Scores pivotedSearch(ResourceEntity pivot,
-                                ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean returnBestMatchEntities) {
-
-        searchParams.model(BuiltInModel.FACT);
-        KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
-        if (rankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-        }
-
-        Scores scores = pivotedSearch(pivot, searchParams, rankParams, 1, returnBestMatchEntities);
-
-        // map property-path to property
-        if (!returnBestMatchEntities) {
-            return new Scores(scores.stream()
-                    .map(s -> new Score(((PropertyPath)s.getEntry()).getProperties().get(0), s.getValue()))
-                    .collect(Collectors.toList()));
-        }
-
-        return scores;
-    }
-
     // returns LabeledEntity-instances (if returnBestMatchEntities), else: PropertyPath-instances
     public Scores pivotedSearch(ResourceEntity pivot,
                                 ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {

@@ -30,6 +30,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.typesafe.config.Config;
 import net.stargraph.StarGraphException;
+import net.stargraph.model.PropertyPath;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.ValueEntity;
@@ -125,6 +126,9 @@ public final class Namespace extends TreeMap<String, String> {
         } else if (entry instanceof PropertyEntity) {
             PropertyEntity e = (PropertyEntity) entry;
             return (S) new PropertyEntity(expandURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+        } else if (entry instanceof PropertyPath) {
+            PropertyPath p = (PropertyPath) entry;
+            return (S) new PropertyPath(p.getProperties().stream().map(x -> expand(x)).collect(Collectors.toList()));
         } else {
             throw new IllegalArgumentException("Unknown type instance to expand namespace: " + entry.getClass());
         }

@@ -115,6 +115,8 @@ public final class SPARQLQueryBuilder {
     }
 
     private String buildStatements() {
+        //TODO change this function to handle PropertyPaths (> 1) correctly
+
         StringJoiner tripleJoiner = new StringJoiner(" . \n", "{", "}");
 
         triplePatterns.forEach(triplePattern -> {

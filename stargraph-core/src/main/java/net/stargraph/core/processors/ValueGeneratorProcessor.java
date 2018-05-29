@@ -75,6 +75,10 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
 
+        /**
+         * One might consider avoiding redundant calculations for same entities here,
+         * but when executed after a sink-duplicate processor, this should be okay.
+         */
         if (entry instanceof ResourceEntity) {
             ResourceEntity entity = (ResourceEntity)entry;
             Language language = stargraph.getKBCore(holder.getKBId().getId()).getLanguage();

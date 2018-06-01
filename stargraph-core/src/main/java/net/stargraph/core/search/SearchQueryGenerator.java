@@ -46,6 +46,6 @@ public interface SearchQueryGenerator {
     SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams);
 
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
-    SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams);
+    SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
 
 }

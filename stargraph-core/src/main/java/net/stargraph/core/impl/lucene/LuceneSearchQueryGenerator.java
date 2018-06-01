@@ -56,7 +56,7 @@ public class LuceneSearchQueryGenerator implements SearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         //TODO implement
         throw new UnsupportedOperationException("Not implemented yet");
     }

@@ -32,6 +32,7 @@ import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 
@@ -88,11 +89,16 @@ public class ElasticSearchQueryGenerator implements SearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams) {
-        QueryBuilder queryBuilder = boolQuery()
-                .should(nestedQuery("s", termQuery("s.id", pivot.getId()), ScoreMode.Max))
-                .should(nestedQuery("o", termQuery("o.id", pivot.getId()), ScoreMode.Max))
-                .minimumNumberShouldMatch(1);
+    // There is a clear performance-loss when both inSubject and inObject are enabled together.
+    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+        BoolQueryBuilder queryBuilder = boolQuery();
+        if (inSubject) {
+            queryBuilder.should(nestedQuery("s", termQuery("s.id", pivot.getId()), ScoreMode.Max));
+        }
+        if (inObject) {
+            queryBuilder.should(nestedQuery("o", termQuery("o.id", pivot.getId()), ScoreMode.Max));
+        }
+        queryBuilder.minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }

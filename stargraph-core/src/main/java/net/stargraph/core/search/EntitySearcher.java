@@ -183,7 +183,7 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
 
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams, outgoingEdges, incomingEdges);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine

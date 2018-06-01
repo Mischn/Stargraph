@@ -27,15 +27,15 @@ package net.stargraph.core.impl.jena;
  */
 
 import net.stargraph.ModelCreator;
-import net.stargraph.ModelUtils;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.LabeledEntity;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.model.ValueEntity;
+import net.stargraph.model.*;
+import net.stargraph.rank.ModifiableSearchParams;
+import net.stargraph.rank.Scores;
+import org.apache.jena.graph.Node;
 import org.apache.jena.graph.impl.LiteralLabel;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -51,6 +51,10 @@ import org.slf4j.MarkerFactory;
 import java.util.*;
 
 public final class JenaGraphSearcher implements GraphSearcher {
+    private interface SparqlIteration {
+        void process(Binding binding);
+    }
+
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
     private Namespace ns;
@@ -75,13 +79,62 @@ public final class JenaGraphSearcher implements GraphSearcher {
         return false;
     }
 
-    private Map<String, List<LabeledEntity>> doSparqlQuery(String sparqlQuery) {
+    private static HashMap<String, Node> getVarMap(Binding binding) {
+        HashMap<String, Node> res = new HashMap<>();
+
+        Iterator<Var> varIt = binding.vars();
+        while (varIt.hasNext()) {
+            Var var = varIt.next();
+            res.put(var.getVarName(), binding.get(var));
+        }
+
+        return res;
+    }
+
+    private LabeledEntity convertEntityNode(Node node, boolean lookup) {
+        if (!node.isLiteral()) {
+            String id = node.getURI();
+            ResourceEntity resourceEntity = null;
+
+            //TODO re-enable?
+            //ResourceEntity resourceEntity = ns.isFromMainNS(id) ? entitySearcher.getResourceEntity(dbId, id) : ModelUtils.createResource(id);
+
+            if (lookup) {
+                resourceEntity = entitySearcher.getResourceEntity(dbId, id);
+            }
+            if (resourceEntity == null) {
+                resourceEntity = ModelCreator.createResource(id);
+            }
+            return resourceEntity;
+        } else {
+            LiteralLabel lit = node.getLiteral();
+            return new ValueEntity(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
+        }
+    }
+
+    private PropertyEntity convertPropertyNode(Node node, boolean lookup) {
+        if (!node.isLiteral()) {
+            String id = node.getURI();
+            PropertyEntity propertyEntity = null;
+
+            if (lookup) {
+                throw new UnsupportedOperationException("Not yet implemented");
+                //propertyEntity = entitySearcher.
+            }
+            if (propertyEntity == null) {
+                propertyEntity = ModelCreator.createProperty(id);
+            }
+            return propertyEntity;
+        } else {
+            throw new IllegalArgumentException("Node should not be a literal.");
+        }
+    }
+
+
+    private void doSparqlQuery(String sparqlQuery, SparqlIteration sparqlIteration) {
         logger.debug(marker, "Executing: {}", sparqlQuery);
 
         long startTime = System.currentTimeMillis();
-
-        Map<String, List<LabeledEntity>> result = new LinkedHashMap<>();
-
         graphModel.doRead(new BaseGraphModel.ReadTransaction() {
             @Override
             public void readTransaction(Model model) {
@@ -89,44 +142,38 @@ public final class JenaGraphSearcher implements GraphSearcher {
                     ResultSet results = qexec.execSelect();
 
                     while (results.hasNext()) {
-                        Binding jBinding = results.nextBinding();
-                        Iterator<Var> vars = jBinding.vars();
-                        while (vars.hasNext()) {
-                            Var jVar = vars.next();
-
-                            if (!jBinding.get(jVar).isLiteral()) {
-                                String id = jBinding.get(jVar).getURI();
-                                List<LabeledEntity> entities = result.computeIfAbsent(jVar.getVarName(), (v) -> new ArrayList<>());
-
-                                //TODO re-enable?
-                                //ResourceEntity resourceEntity = ns.isFromMainNS(id) ? entitySearcher.getResourceEntity(dbId, id) : ModelUtils.createResource(id);
-
-                                ResourceEntity resourceEntity = entitySearcher.getResourceEntity(dbId, id);
-                                if (resourceEntity == null) {
-                                    resourceEntity = ModelCreator.createResource(id);
-                                }
-
-                                entities.add(resourceEntity);
-                            } else {
-                                LiteralLabel lit = jBinding.get(jVar).getLiteral();
-                                ValueEntity valueEntity = new ValueEntity(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
-                                result.computeIfAbsent(jVar.getVarName(), (v) -> new ArrayList<>()).add(valueEntity);
-                            }
-                        }
+                        sparqlIteration.process(results.nextBinding());
                     }
                 }
             }
         });
-
         long millis = System.currentTimeMillis() - startTime;
+        logger.info(marker, "SPARQL query '{}' took {}s", sparqlQuery, millis / 1000.0);
+    }
 
-        if (!result.isEmpty()) {
-            logger.info(marker, "SPARQL {} query took {}s", sparqlQuery, millis / 1000.0);
-        }
-        else {
+    private Map<String, List<LabeledEntity>> doSparqlQuery(String sparqlQuery) {
+        Map<String, List<LabeledEntity>> result = new LinkedHashMap<>();
+
+        doSparqlQuery(sparqlQuery, new SparqlIteration() {
+            @Override
+            public void process(Binding binding) {
+                HashMap<String, Node> varMap = getVarMap(binding);
+                for (Map.Entry<String, Node> entry : varMap.entrySet()) {
+                    String var = entry.getKey();
+                    Node node = entry.getValue();
+
+                    //TODO what if property?
+                    LabeledEntity entity = convertEntityNode(node, true);
+                    result.computeIfAbsent(var, (v) -> new ArrayList<>()).add(entity);
+                }
+            }
+        });
+
+        if (result.isEmpty()) {
             logger.warn(marker, "No matches for {}", sparqlQuery);
         }
 
         return result;
     }
+
 }

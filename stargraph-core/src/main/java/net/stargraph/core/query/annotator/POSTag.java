@@ -31,7 +31,7 @@ import java.util.Objects;
 public class POSTag {
     private String tag;
 
-    POSTag(String tag) {
+    public POSTag(String tag) {
         this.tag = Objects.requireNonNull(tag);
     }
 

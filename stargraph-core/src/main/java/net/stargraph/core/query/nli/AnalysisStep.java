@@ -26,8 +26,9 @@ package net.stargraph.core.query.nli;
  * ==========================License-End===============================
  */
 
-import net.stargraph.StarGraphException;
+import net.stargraph.core.query.annotator.POSTag;
 import net.stargraph.core.query.annotator.Word;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -39,165 +40,91 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class AnalysisStep {
-    private static final Pattern punctPattern = Pattern.compile("[(){},.;!?<>%]");
+    private static final Pattern PUNCT_PATTERN = Pattern.compile(".*(([(){},.;!?<>%])).*");
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("nli");
 
     private List<Word> annotated;
-    private String questionStr;
-    private String posTagStr;
     private List<DataModelBinding> dataModelBindings;
 
-    private AnalysisStep(List<DataModelBinding> dataModelBindings, List<Word> annotated, String questionStr, String posTagStr) {
+    private AnalysisStep(List<DataModelBinding> dataModelBindings, List<Word> annotated) {
         this.dataModelBindings = Objects.requireNonNull(dataModelBindings);
         this.annotated = Objects.requireNonNull(annotated);
-        this.questionStr = Objects.requireNonNull(questionStr);
-        this.posTagStr = Objects.requireNonNull(posTagStr);
 
-        if (annotated.isEmpty() || questionStr.isEmpty() || posTagStr.isEmpty()) {
+        if (annotated.isEmpty()) {
             throw new IllegalArgumentException();
         }
 
-        logger.debug(marker, "Current Step: question='{}', postags='{}'", questionStr, posTagStr);
+        logger.debug(marker, "Current Step: '{}'", annotated);
     }
 
     public AnalysisStep(List<Word> annotated) {
-        this(Collections.emptyList(), Objects.requireNonNull(annotated),
-                annotated.stream().map(Word::getText).collect(Collectors.joining(" ")),
-                annotated.stream().map(w -> w.getPosTag().getTag()).collect(Collectors.joining(" ")));
+        this(Collections.emptyList(), annotated);
+    }
+
+    private static String getLexicalStr(List<Word> words) {
+        return words.stream().map(w -> w.getText()).collect(Collectors.joining(" "));
+    }
+
+    private static String getPosTagStr(List<Word> words) {
+        return words.stream().map(w -> w.getPosTag().getTag()).collect(Collectors.joining(" "));
+    }
+
+    private String getLexicalStr() {
+        return getLexicalStr(annotated);
+    }
+
+    private String getPosTagStr() {
+        return getPosTagStr(annotated);
+    }
+
+    public String getAnalyzedQuestionStr() {
+        return getLexicalStr();
     }
 
     public List<DataModelBinding> getBindings() {
-        return Arrays.stream(questionStr.split("\\s"))
+        return annotated.stream().map(w -> w.getText())
                 .map(this::getBinding)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
     }
 
-    AnalysisStep clean(List<Pattern> stopPatterns) {
-
-        stopPatterns.forEach(pattern -> {
-            Matcher matcher = pattern.matcher(questionStr);
-            if (matcher.matches()) {
-                questionStr = replace(pattern, questionStr, "").value;
-            }
-        });
-
-        questionStr = compact(questionStr);
-
-        return new AnalysisStep(dataModelBindings, annotated, questionStr, posTagStr);
-    }
-
-    AnalysisStep resolve(DataModelTypePattern rule) {
+    public AnalysisStep resolve(DataModelTypePattern rule) {
         final DataModelType modelType = Objects.requireNonNull(rule).getDataModelType();
         final Pattern rulePattern = Pattern.compile(rule.getPattern());
+        //logger.debug(marker, "Check to replace pattern: '{}' ---> '{}'", rulePattern, modelType);
 
         final List<DataModelBinding> bindings = new LinkedList<>(dataModelBindings);
 
-        if (matches(rulePattern)) {
-            String newQuestionStr;
-            String newPosTagStr;
+        String lexicalStr = getLexicalStr();
+        String posTagStr = getPosTagStr();
 
-            if (rule.isLexical()) {
-                String placeHolder = createPlaceholder(questionStr, modelType);
-                Replacement replacement = replace(rulePattern, questionStr, placeHolder);
-                newQuestionStr = replacement.value;
+        Matcher lexicalMatcher = rulePattern.matcher(lexicalStr);
+        Matcher posTagMatcher = rulePattern.matcher(posTagStr);
 
-                String subPosStr = findSubPosStr(replacement);
-                Replacement posTagReplacement = replace(subPosStr, posTagStr, placeHolder);
-                newPosTagStr = posTagReplacement.value;
-            }
-            else {
-                String placeHolder = createPlaceholder(posTagStr, modelType);
-                Replacement posTagReplacement = replace(rulePattern, posTagStr, placeHolder);
-                newPosTagStr = posTagReplacement.value;
+        if (rule.isLexical() && lexicalMatcher.matches()) {
+            String placeHolder = createPlaceholder(lexicalStr, modelType);
 
-                String subStr = findSubStr(posTagReplacement);
-                Replacement questionReplacement = replace(subStr, questionStr, placeHolder);
-                newQuestionStr = questionReplacement.value;
+            Replacement<Word> replacement = replace(annotated, lexicalStr, lexicalMatcher, Arrays.asList(new Word(new POSTag(placeHolder), placeHolder)));
+            logger.debug(marker, "Lexical replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
 
-                bindings.add(new DataModelBinding(modelType, subStr, placeHolder));
-            }
+            return new AnalysisStep(bindings, replacement.getResult());
+        } else if (!rule.isLexical() && posTagMatcher.matches()) {
+            String placeHolder = createPlaceholder(posTagStr, modelType);
 
-            return new AnalysisStep(bindings, annotated, newQuestionStr, newPosTagStr);
+            Replacement<Word> replacement = replace(annotated, posTagStr, posTagMatcher, Arrays.asList(new Word(new POSTag(placeHolder), placeHolder)));
+            logger.debug(marker, "POSTag replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getPosTagStr(replacement.getReplaced()), getPosTagStr(replacement.getReplacement()), getPosTagStr(replacement.getResult()));
+
+            // bind
+            bindings.add(new DataModelBinding(modelType, getLexicalStr(replacement.getExtracted()), placeHolder));
+            logger.debug(marker, "Bound '{}' to '{}'", placeHolder, getLexicalStr(replacement.getExtracted()));
+
+            return new AnalysisStep(bindings, replacement.getResult());
         }
 
         return null;
-    }
-
-    String getAnalyzedQuestionStr() {
-        return questionStr;
-    }
-
-    private String findSubStr(Replacement replacement) {
-        String[] capture = Objects.requireNonNull(replacement).capture.split("\\s");
-        int startIdx = 0;
-        String subStr = null;
-        for (Word w : annotated) {
-            if (w.getPosTag().getTag().equals(capture[0])) {
-                subStr = annotated.stream()
-                        .skip(startIdx)
-                        .limit(capture.length)
-                        .map(Word::getText).collect(Collectors.joining(" "));
-                break;
-            }
-            startIdx++;
-        }
-
-        return subStr;
-    }
-
-    private String findSubPosStr(Replacement replacement) {
-        String[] capture = Objects.requireNonNull(replacement).capture.split("\\s");
-        int startIdx = 0;
-        String subPosStr = null;
-        for (Word w : annotated) {
-            if (w.getText().equals(capture[0])) {
-                subPosStr = annotated.stream()
-                        .skip(startIdx)
-                        .limit(capture.length)
-                        .map(word -> word.getPosTag().getTag()).collect(Collectors.joining(" "));
-                break;
-            }
-            startIdx++;
-        }
-
-        return subPosStr;
-    }
-
-    private boolean matches(Pattern pattern) {
-        Matcher m1 = pattern.matcher(posTagStr);
-        Matcher m2 = pattern.matcher(questionStr);
-        return m1.matches() || m2.matches();
-    }
-
-    private Replacement replace(String subStr, String target, String replacementStr) {
-        return replace(Pattern.compile(String.format("^.*(%s).*$", Objects.requireNonNull(subStr))), target, replacementStr);
-    }
-
-    private Replacement replace(Pattern pattern, String target, String replacementStr) {
-        try {
-            String str = target.trim();
-            logger.debug(marker, "Target: '{}'", str);
-            Matcher matcher = pattern.matcher(str);
-            if (matcher.matches()) {
-                logger.debug(marker, "Replace '{}' ---> '{}'", pattern, replacementStr);
-                // As we expect just one capture capture per pattern this will replaceWithModelType the capture by the desired replacement.
-                StringBuffer sb = new StringBuffer();
-                String capturedStr = matcher.group(1);
-                matcher.appendReplacement(sb, matcher.group(0).replaceFirst(Pattern.quote(capturedStr), replacementStr));
-                matcher.appendTail(sb);
-                return new Replacement(sb.toString(), capturedStr);
-            } else {
-                logger.warn(marker, "Not replaced: '{}' ---> '{}'", pattern, replacementStr);
-            }
-            return new Replacement(target, null);
-        }
-        catch (Exception e) {
-            throw new StarGraphException("Fail to apply pattern '" + pattern + "'");
-        }
     }
 
     private String createPlaceholder(String target, DataModelType modelType) {
@@ -209,15 +136,25 @@ public final class AnalysisStep {
         return placeHolder;
     }
 
-    private String compact(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
+    public AnalysisStep clean(List<Pattern> stopPatterns) {
+        List<Word> newAnnotated = new ArrayList<>(annotated);
+
+        List<Pattern> patterns = new ArrayList<>(stopPatterns);
+        patterns.add(PUNCT_PATTERN);
+
+        for (Pattern pattern : patterns) {
+            String lexicalStr = getLexicalStr(newAnnotated);
+            Matcher lexicalMatcher = pattern.matcher(lexicalStr);
+
+            if (lexicalMatcher.matches()) {
+                Replacement<Word> replacement = replace(newAnnotated, lexicalStr, lexicalMatcher, Arrays.asList());
+                logger.debug(marker, "Clean replacement of pattern:\t\t{}\t\t'{}' ---> '{}'\t\tResult: '{}'", pattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
+
+                newAnnotated = replacement.getResult();
+            }
         }
 
-        String punctLess = punctPattern.matcher(str).replaceAll(" ");
-
-        return Arrays.stream(punctLess.split("\\s")).map(String::trim)
-                .filter(s -> !s.isEmpty()).collect(Collectors.joining(" "));
+        return new AnalysisStep(dataModelBindings, newAnnotated);
     }
 
     private Optional<DataModelBinding> getBinding(String term) {
@@ -226,19 +163,87 @@ public final class AnalysisStep {
 
     @Override
     public String toString() {
-        return "Step{" +
-                "questionStr='" + questionStr + '\'' +
-                ", posTagStr='" + posTagStr + '\'' +
+        return "AnalysisStep{" +
+                "annotated=" + annotated +
                 '}';
     }
 
-    private static class Replacement {
-        final String value;
-        final String capture;
 
-        Replacement(String value, String capture) {
-            this.value = value;
-            this.capture = capture;
+    private static int wordIndex(String str, int idx) {
+        return StringUtils.countMatches(str.substring(0, idx), " ");
+    }
+
+    private static Replacement<Word> replace(List<Word> words, String wordsStr, Matcher matcher, List<Word> replacement) {
+        if (!matcher.matches()) {
+            throw new IllegalStateException("No match!");
+        }
+        if (matcher.groupCount() < 1) {
+            throw new IllegalStateException("Match has no capturing group!");
+        }
+
+        int startReplaceWordIdx = wordIndex(wordsStr, matcher.start(1));
+        int endReplaceWordIdx = wordIndex(wordsStr, matcher.end(1));
+        int startExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.start(2)) : startReplaceWordIdx;
+        int endExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.end(2)) : endReplaceWordIdx;
+
+        List<Word> result = new ArrayList<>();
+        result.addAll(words.subList(0, startReplaceWordIdx));
+        result.addAll(replacement);
+        result.addAll(words.subList(endReplaceWordIdx+1, words.size()));
+
+        return new Replacement<>(
+                new ArrayList<>(words),
+                words.subList(startExtractWordIdx, endExtractWordIdx+1),
+                words.subList(startReplaceWordIdx, endReplaceWordIdx+1),
+                new ArrayList<>(replacement),
+                result
+        );
+    }
+
+    private static class Replacement<T> {
+        private final List<T> original;
+        private final List<T> extracted;
+        private final List<T> replaced;
+        private final List<T> replacement;
+        private final List<T> result;
+
+        public Replacement(List<T> original, List<T> extracted, List<T> replaced, List<T> replacement, List<T> result) {
+            this.original = original;
+            this.extracted = extracted;
+            this.replaced = replaced;
+            this.replacement = replacement;
+            this.result = result;
+        }
+
+        public List<T> getOriginal() {
+            return original;
+        }
+
+        public List<T> getExtracted() {
+            return extracted;
+        }
+
+        public List<T> getReplaced() {
+            return replaced;
+        }
+
+        public List<T> getReplacement() {
+            return replacement;
+        }
+
+        public List<T> getResult() {
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Replacement{" +
+                    "original=" + original +
+                    ", extracted=" + extracted +
+                    ", replaced=" + replaced +
+                    ", replacement=" + replacement +
+                    ", result=" + result +
+                    '}';
         }
     }
 }

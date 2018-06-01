@@ -49,6 +49,10 @@ public class PropertyPath implements Hashable, Rankable {
         return properties;
     }
 
+    public PropertyEntity getLastProperty() {
+        return properties.get(properties.size()-1);
+    }
+
     @Override
     public String getValue() {
         //TODO redefine interface of Rankable to compare multiple strings?

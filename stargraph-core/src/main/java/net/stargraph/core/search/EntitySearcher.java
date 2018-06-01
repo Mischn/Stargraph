@@ -144,7 +144,7 @@ public class EntitySearcher {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams, range);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, true, true);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -178,7 +178,7 @@ public class EntitySearcher {
 
 
     // direct neighbours only
-    private List<Route> directNeighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams) {
+    private List<Route> directNeighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges) {
         searchParams.model(BuiltInModel.FACT);
         KBCore core = stargraph.getKBCore(searchParams.getKbId().getId());
 
@@ -192,9 +192,9 @@ public class EntitySearcher {
         List result = new ArrayList();
         for (Score score : scores) {
             Fact fact = (Fact)score.getEntry();
-            if (fact.getSubject().equals(pivot)) {
+            if (outgoingEdges && fact.getSubject().equals(pivot)) {
                 result.add(new Route(pivot).extend(fact.getPredicate(), fact.getObject()));
-            } else if (fact.getSubject() instanceof LabeledEntity) {
+            } else if (incomingEdges && fact.getSubject() instanceof LabeledEntity) {
                 result.add(new Route(pivot).extend(fact.getPredicate(), (LabeledEntity) fact.getSubject()));
             }
         }
@@ -203,7 +203,7 @@ public class EntitySearcher {
     }
 
 
-    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range) {
+    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges) {
         if (range < 1) {
             throw new IllegalArgumentException("Range has to be >= 1");
         }
@@ -213,7 +213,7 @@ public class EntitySearcher {
         Map<Integer, List<Route>> neighbours = new HashMap<>();
         for (int i = 0; i < range; i++) {
             if (i == 0) {
-                List<Route> directNs = directNeighbourSearch(pivot, searchParams);
+                List<Route> directNs = directNeighbourSearch(pivot, searchParams, incomingEdges, outgoingEdges);
                 directNeighbours.put(pivot, directNs);
                 neighbours.put(i, directNs);
             } else {
@@ -222,13 +222,19 @@ public class EntitySearcher {
                     if (!(neighbour.getLastWaypoint() instanceof ResourceEntity)) {
                         continue;
                     }
+
+                    // don't traverse on previous is-a paths (for efficiency)
+                    //if (neighbour.getPropertyPath().getLastProperty().getValue().equals(FactClassifierProcessor.CLASS_RELATION_STR)) {
+                    //    continue;
+                    //}
+
                     ResourceEntity currPivot = (ResourceEntity) neighbour.getLastWaypoint();
 
                     List<Route> directNS;
                     if (directNeighbours.containsKey(currPivot)) {
                         directNS = directNeighbours.get(currPivot);
                     } else {
-                        directNS = directNeighbourSearch(currPivot, searchParams);
+                        directNS = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges);
                         directNeighbours.put(currPivot, directNS);
                     }
 

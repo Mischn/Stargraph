@@ -70,6 +70,8 @@ public final class EnglishPOSSet extends PartOfSpeechSet {
     public static POSTag WP$ = new POSTag("WP$");
     public static POSTag WRB = new POSTag("WRB");
     public static POSTag PUNCT = new POSTag(".");
+    public static POSTag QMO = new POSTag("``");
+    public static POSTag QMC = new POSTag("''");
 
     private EnglishPOSSet() {
         add(CC);
@@ -109,6 +111,8 @@ public final class EnglishPOSSet extends PartOfSpeechSet {
         add(WP$);
         add(WRB);
         add(PUNCT);
+        add(QMO);
+        add(QMC);
     }
 
     private static EnglishPOSSet instance;

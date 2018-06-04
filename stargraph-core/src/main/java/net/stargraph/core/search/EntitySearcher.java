@@ -12,10 +12,10 @@ package net.stargraph.core.search;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,6 +39,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class EntitySearcher {
+    private interface PruningMethod {
+        List<Route> traverse(List<Route> routes);
+    }
+
+
     private static final int FUZZINESS = 1;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -75,6 +80,8 @@ public class EntitySearcher {
         return scores.stream().map(s -> (ResourceEntity)s.getEntry()).collect(Collectors.toList());
     }
 
+
+
     // returns PropertyEntity-instance
     public PropertyEntity getPropertyEntity(String dbId, String id) {
         List<PropertyEntity> res = getPropertyEntities(dbId, Collections.singletonList(id));
@@ -99,6 +106,7 @@ public class EntitySearcher {
 
         return scores.stream().map(s -> (PropertyEntity)s.getEntry()).collect(Collectors.toList());
     }
+
 
 
 
@@ -170,7 +178,13 @@ public class EntitySearcher {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, true, true);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, true, true, new PruningMethod() {
+            @Override
+            public List<Route> traverse(List<Route> routes) {
+                //TODO strategies for pruning
+                return routes;
+            }
+        });
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -228,56 +242,68 @@ public class EntitySearcher {
         return result;
     }
 
-
-    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges) {
+    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod) {
         if (range < 1) {
             throw new IllegalArgumentException("Range has to be >= 1");
         }
 
         Map<ResourceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
-
         Map<Integer, List<Route>> neighbours = new HashMap<>();
-        for (int i = 0; i < range; i++) {
-            if (i == 0) {
-                List<Route> directNs = directNeighbourSearch(pivot, searchParams, incomingEdges, outgoingEdges);
-                directNeighbours.put(pivot, directNs);
-                neighbours.put(i, directNs);
-            } else {
-                neighbours.put(i, new ArrayList<>());
-                for (Route neighbour : neighbours.get(i - 1)) {
-                    if (!(neighbour.getLastWaypoint() instanceof ResourceEntity)) {
-                        continue;
-                    }
+        neighbourSearchRec(
+                new Route(pivot),
+                searchParams,
+                range,
+                range,
+                incomingEdges,
+                outgoingEdges,
+                pruningMethod,
+                directNeighbours,
+                neighbours
+        );
 
-                    // don't traverse on previous is-a paths (for efficiency)
-                    //if (neighbour.getPropertyPath().getLastProperty().getValue().equals(FactClassifierProcessor.CLASS_RELATION_STR)) {
-                    //    continue;
-                    //}
-
-                    ResourceEntity currPivot = (ResourceEntity) neighbour.getLastWaypoint();
-
-                    List<Route> directNS;
-                    if (directNeighbours.containsKey(currPivot)) {
-                        directNS = directNeighbours.get(currPivot);
-                    } else {
-                        directNS = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges);
-                        directNeighbours.put(currPivot, directNS);
-                    }
-
-                    // create new routes
-                    for (Route directN : directNS) {
-                        PropertyEntity newProperty = directN.getPropertyPath().getProperties().get(0);
-                        LabeledEntity newWaypoint = directN.getLastWaypoint();
-
-                        // don't allow links back to previous waypoint
-                        if (!newWaypoint.equals(neighbour.getWaypoints().get(neighbour.getWaypoints().size() - 2))) {
-                            neighbours.get(i).add(neighbour.extend(newProperty, newWaypoint));
-                        }
-                    }
-                }
-            }
+        for (Map.Entry<Integer, List<Route>> integerListEntry : neighbours.entrySet()) {
+            System.out.println(integerListEntry.getKey());
+            integerListEntry.getValue().forEach(v -> System.out.println("\t" + v));
         }
 
         return neighbours.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
+
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod, Map<ResourceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+        if (leftRange == 0 || !(route.getLastWaypoint() instanceof ResourceEntity)) {
+            return;
+        }
+
+        ResourceEntity currPivot = (ResourceEntity) route.getLastWaypoint();
+        List<Route> directNs;
+        if (directNeighbours.containsKey(currPivot)) {
+            directNs = directNeighbours.get(currPivot);
+        } else {
+            directNs = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges);
+            directNeighbours.put(currPivot, directNs);
+        }
+
+        // create new routes
+        List<Route> newRoutes = new ArrayList<>();
+        for (Route directN : directNs) {
+            PropertyEntity newProperty = directN.getPropertyPath().getLastProperty();
+            LabeledEntity newWaypoint = directN.getLastWaypoint();
+            Route newRoute = route.extend(newProperty, newWaypoint);
+
+            // don't allow links back to previous waypoint
+            if ((route.getWaypoints().size() >= 2) && newWaypoint.equals(route.getWaypoints().get(route.getWaypoints().size() - 2))) {
+                continue;
+            }
+
+            // add to result
+            newRoutes.add(newRoute);
+            routes.computeIfAbsent(range-(leftRange-1), (x) -> new ArrayList<>()).add(newRoute);
+        }
+
+        // recursion
+        pruningMethod.traverse(newRoutes).forEach(r -> {
+            neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, pruningMethod, directNeighbours, routes);
+        });
+    }
+
 }

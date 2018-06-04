@@ -49,7 +49,7 @@ abstract class GraphIterator<T> implements Iterator<T> {
 
     private StmtIterator innerIt;
     private Statement currentStmt;
-    private Namespace namespace;
+    protected Namespace namespace;
 
     GraphIterator(Stargraph stargraph, KBId kbId, BaseGraphModel model) {
         this.namespace = stargraph.getKBCore(kbId.getId()).getNamespace();
@@ -98,13 +98,6 @@ abstract class GraphIterator<T> implements Iterator<T> {
     }
 
     protected abstract T buildNext(Statement statement);
-
-    String applyNS(String uri) {
-        if (namespace != null) {
-            return namespace.shrinkURI(uri);
-        }
-        return uri;
-    }
 
     private void createIterator(BaseGraphModel graphModel) {
         graphModel.doRead(new BaseGraphModel.ReadTransaction() {

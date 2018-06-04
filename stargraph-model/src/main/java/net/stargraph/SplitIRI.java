@@ -61,7 +61,7 @@ package net.stargraph;
  * See {@link #splitpoint} for more details.
  * <p>
  */
-final class SplitIRI {
+public final class SplitIRI {
     /**
      * Return the 'namespace' (prefix) for a URI string.
      * Use with {@link #localname}

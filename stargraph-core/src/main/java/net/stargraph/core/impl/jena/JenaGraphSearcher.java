@@ -26,15 +26,15 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
-import net.stargraph.ModelCreator;
+import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.*;
-import net.stargraph.rank.ModifiableSearchParams;
-import net.stargraph.rank.Scores;
+import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.PropertyEntity;
+import net.stargraph.model.ResourceEntity;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.impl.LiteralLabel;
 import org.apache.jena.query.QueryExecution;
@@ -57,7 +57,7 @@ public final class JenaGraphSearcher implements GraphSearcher {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
-    private Namespace ns;
+    private Namespace namespace;
     private EntitySearcher entitySearcher;
     private BaseGraphModel graphModel;
     private String dbId;
@@ -66,7 +66,7 @@ public final class JenaGraphSearcher implements GraphSearcher {
         this.dbId = Objects.requireNonNull(dbId);
         this.entitySearcher = stargraph.getEntitySearcher();
         this.graphModel = stargraph.getKBCore(dbId).getGraphModel();
-        this.ns = stargraph.getKBCore(dbId).getNamespace();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
     }
 
     @Override
@@ -103,12 +103,12 @@ public final class JenaGraphSearcher implements GraphSearcher {
                 resourceEntity = entitySearcher.getResourceEntity(dbId, id);
             }
             if (resourceEntity == null) {
-                resourceEntity = ModelCreator.createResource(id);
+                resourceEntity = ModelCreator.createResource(id, namespace);
             }
             return resourceEntity;
         } else {
             LiteralLabel lit = node.getLiteral();
-            return new ValueEntity(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
+            return ModelCreator.createValue(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
         }
     }
 
@@ -118,11 +118,10 @@ public final class JenaGraphSearcher implements GraphSearcher {
             PropertyEntity propertyEntity = null;
 
             if (lookup) {
-                throw new UnsupportedOperationException("Not yet implemented");
-                //propertyEntity = entitySearcher.
+                propertyEntity = entitySearcher.getPropertyEntity(dbId, id);
             }
             if (propertyEntity == null) {
-                propertyEntity = ModelCreator.createProperty(id);
+                propertyEntity = ModelCreator.createProperty(id, namespace);
             }
             return propertyEntity;
         } else {
@@ -150,6 +149,7 @@ public final class JenaGraphSearcher implements GraphSearcher {
         long millis = System.currentTimeMillis() - startTime;
         logger.info(marker, "SPARQL query '{}' took {}s", sparqlQuery, millis / 1000.0);
     }
+
 
     private Map<String, List<LabeledEntity>> doSparqlQuery(String sparqlQuery) {
         Map<String, List<LabeledEntity>> result = new LinkedHashMap<>();

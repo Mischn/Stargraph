@@ -26,8 +26,7 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
-import net.stargraph.ModelCreator;
-import net.stargraph.ModelUtils;
+import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Namespace;
 import org.testng.Assert;
 import org.testng.annotations.Test;

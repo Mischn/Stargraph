@@ -33,7 +33,7 @@ import net.stargraph.model.KBId;
 import net.stargraph.model.PropertyEntity;
 import org.apache.jena.rdf.model.Statement;
 
-import static net.stargraph.ModelCreator.createProperty;
+import static net.stargraph.core.ModelCreator.createProperty;
 
 final class PropertyGraphIterator extends GraphIterator<Indexable> {
 
@@ -47,7 +47,7 @@ final class PropertyGraphIterator extends GraphIterator<Indexable> {
 
     @Override
     protected Indexable buildNext(Statement statement) {
-        PropertyEntity propertyEntity = createProperty(applyNS(statement.getPredicate().getURI()));
+        PropertyEntity propertyEntity = createProperty(statement.getPredicate().getURI(), namespace);
         return new Indexable(propertyEntity, kbId);
     }
 }

@@ -1,4 +1,4 @@
-package net.stargraph;
+package net.stargraph.core;
 
 /*-
  * ==========================License-Start=============================
@@ -26,12 +26,8 @@ package net.stargraph;
  * ==========================License-End===============================
  */
 
-import net.stargraph.data.Indexable;
-import net.stargraph.data.processor.Holder;
-import net.stargraph.model.Fact;
-import net.stargraph.model.KBId;
-import net.stargraph.model.PropertyEntity;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.SplitIRI;
+import net.stargraph.model.*;
 
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
@@ -43,6 +39,29 @@ import java.util.regex.Pattern;
 public final class ModelCreator {
     private static final Pattern pathFragmentPattern = Pattern.compile("^(\\w+:)(\\w+/)+(\\w+)$");
     private static final String RE_CAMELCASE_OR_UNDERSCORE = "(?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z])|_";
+
+    private static String getNamespace(String uriStr) {
+        if (uriStr.toLowerCase().startsWith("http://") || uriStr.toLowerCase().startsWith("https://")) {
+            return SplitIRI.namespace(uriStr);
+        }
+        else {
+            return uriStr.split(":")[0] + ':'; //NS already resolved.
+        }
+    }
+
+    private static String split(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+
+        StringJoiner joiner = new StringJoiner(" ");
+        for (String word : s.split(RE_CAMELCASE_OR_UNDERSCORE)) {
+            if (!word.isEmpty()) {
+                joiner.add(word.trim());
+            }
+        }
+        return joiner.toString();
+    }
 
     public static String extractLabel(String uriStr) {
         return extractLabel(getNamespace(uriStr), uriStr, false);
@@ -111,49 +130,38 @@ public final class ModelCreator {
         return split(remaining);
     }
 
-    public static ResourceEntity createResource(String uri) {
-        return new ResourceEntity(uri, extractLabel(uri, true));
-    }
 
-    public static PropertyEntity createProperty(String uri) {
-        return new PropertyEntity(uri, extractLabel(uri, true));
-    }
-
-    public static Fact createFact(KBId kbId, String s, String p, String o) {
-        return new Fact(kbId, ModelCreator.createResource(s), ModelCreator.createProperty(p), ModelCreator.createResource(o));
-    }
-
-    public static Holder createWrappedFact(KBId kbId, String s, String p, String o) {
-        Fact fact = ModelCreator.createFact(kbId, s, p, o);
-        return new Indexable(fact, kbId);
-    }
-
-    public static Holder createWrappedProperty(KBId kbId, String p) {
-        PropertyEntity propertyEntity = ModelCreator.createProperty(p);
-        return new Indexable(propertyEntity, kbId);
-    }
-
-    public static String getNamespace(String uriStr) {
-        if (uriStr.toLowerCase().startsWith("http://") || uriStr.toLowerCase().startsWith("https://")) {
-            return SplitIRI.namespace(uriStr);
+    private static String applyNamespace(String url, Namespace namespace) {
+        if (namespace == null) {
+            return url;
         }
-        else {
-            return uriStr.split(":")[0] + ':'; //NS already resolved.
-        }
+        return namespace.shrinkURI(url);
     }
 
-    private static String split(String s) {
-        if (s == null || s.isEmpty()) {
-            return s;
-        }
 
-        StringJoiner joiner = new StringJoiner(" ");
-        for (String word : s.split(RE_CAMELCASE_OR_UNDERSCORE)) {
-            if (!word.isEmpty()) {
-                joiner.add(word.trim());
-            }
-        }
-        return joiner.toString();
+
+
+
+
+    public static ResourceEntity createResource(String uri, Namespace namespace) {
+        String shrinkedUri = applyNamespace(uri, namespace);
+        return new ResourceEntity(shrinkedUri, extractLabel(shrinkedUri, true));
     }
 
+    public static PropertyEntity createProperty(String uri, Namespace namespace) {
+        String shrinkedUri = applyNamespace(uri, namespace);
+        return new PropertyEntity(shrinkedUri, extractLabel(shrinkedUri, true));
+    }
+
+    public static ValueEntity createValue(String value, String dataType, String langTag) {
+        return new ValueEntity(value, dataType, langTag);
+    }
+
+    public static Fact createFact(KBId kbId, String s, String p, String o, Namespace namespace) {
+        return new Fact(kbId, ModelCreator.createResource(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createResource(o, namespace));
+    }
+
+    public static Fact createFact(KBId kbId, String s, String p, String value, String dataType, String langTag, Namespace namespace) {
+        return new Fact(kbId, ModelCreator.createResource(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createValue(value, dataType, langTag));
+    }
 }

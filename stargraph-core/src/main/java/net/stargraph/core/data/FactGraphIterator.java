@@ -33,8 +33,9 @@ import net.stargraph.model.*;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Statement;
 
-import static net.stargraph.ModelCreator.createProperty;
-import static net.stargraph.ModelCreator.createResource;
+import static net.stargraph.core.ModelCreator.createProperty;
+import static net.stargraph.core.ModelCreator.createResource;
+import static net.stargraph.core.ModelCreator.createValue;
 
 final class FactGraphIterator extends GraphIterator<Indexable> {
 
@@ -48,19 +49,19 @@ final class FactGraphIterator extends GraphIterator<Indexable> {
 
     @Override
     protected Indexable buildNext(Statement statement) {
-        ResourceEntity resourceEntity = createResource(applyNS(statement.getSubject().getURI()));
-        PropertyEntity propertyEntity = createProperty(applyNS(statement.getPredicate().getURI()));
+        ResourceEntity resourceEntity = createResource(statement.getSubject().getURI(), namespace);
+        PropertyEntity propertyEntity = createProperty(statement.getPredicate().getURI(), namespace);
 
         LabeledEntity labeledEntity;
 
         if (!statement.getObject().isLiteral()) {
-            labeledEntity = createResource(applyNS(statement.getObject().asResource().getURI()));
+            labeledEntity = createResource(statement.getObject().asResource().getURI(), namespace);
         } else {
             Literal literal = statement.getObject().asLiteral();
             String dataType = literal.getDatatypeURI();
             String langTag = literal.getLanguage();
             String value = literal.getLexicalForm();
-            labeledEntity = new ValueEntity(value, dataType, langTag);
+            labeledEntity = createValue(value, dataType, langTag);
         }
 
 

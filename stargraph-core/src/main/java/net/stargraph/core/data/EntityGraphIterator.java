@@ -46,7 +46,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import static net.stargraph.ModelCreator.createResource;
+import static net.stargraph.core.ModelCreator.createResource;
 
 public final class EntityGraphIterator implements Iterator<Indexable> {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -99,17 +99,10 @@ public final class EntityGraphIterator implements Iterator<Indexable> {
             if (currentNode == null) {
                 throw new NoSuchElementException();
             }
-            return new Indexable(createResource(applyNS(currentNode.getURI())), kbId);
+            return new Indexable(createResource(currentNode.getURI(), namespace), kbId);
         } finally {
             currentNode = null;
         }
-    }
-
-    private String applyNS(String uri) {
-        if (namespace != null) {
-            return namespace.shrinkURI(uri);
-        }
-        return uri;
     }
 
     private void createIterator(BaseGraphModel graphModel) {

@@ -1,7 +1,9 @@
 package net.stargraph.core.impl.lucene;
 
 import net.stargraph.StarGraphException;
-import net.stargraph.core.search.SearchQueryGenerator;
+import net.stargraph.core.Namespace;
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
@@ -17,14 +19,21 @@ import org.apache.lucene.search.Query;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LuceneSearchQueryGenerator implements SearchQueryGenerator {
+public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
+
+    public LuceneSearchQueryGenerator(Stargraph stargraph, String dbId) {
+        super(stargraph, dbId);
+    }
 
     @Override
     public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        Namespace namespace = getNamespace();
+
         List<Term> terms = new ArrayList<>();
-        for (String id : idList) {
+        idList.stream().map(namespace::shrinkURI).forEach(id -> {
             terms.add(new Term("id", id));
-        }
+        });
+
         Query query = new TermsQuery(terms);
 
         return new LuceneQueryHolder(query, searchParams);
@@ -32,10 +41,13 @@ public class LuceneSearchQueryGenerator implements SearchQueryGenerator {
 
     @Override
     public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        Namespace namespace = getNamespace();
+
         List<Term> terms = new ArrayList<>();
-        for (String id : idList) {
+        idList.stream().map(namespace::shrinkURI).forEach(id -> {
             terms.add(new Term("id", id));
-        }
+        });
+
         Query query = new TermsQuery(terms);
 
         return new LuceneQueryHolder(query, searchParams);

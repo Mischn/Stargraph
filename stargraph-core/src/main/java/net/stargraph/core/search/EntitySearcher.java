@@ -27,7 +27,6 @@ package net.stargraph.core.search;
  */
 
 import net.stargraph.core.KBCore;
-import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
@@ -66,11 +65,8 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(dbId);
 
         logger.info(marker, "Fetching ids={}", ids);
-        Namespace ns = core.getNamespace();
-        List<String> idList = ids.stream().map(ns::shrinkURI).collect(Collectors.toList());
-
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.entitiesWithIds(idList, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.entitiesWithIds(ids, searchParams);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -94,11 +90,8 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(dbId);
 
         logger.info(marker, "Fetching ids={}", ids);
-        Namespace ns = core.getNamespace();
-        List<String> idList = ids.stream().map(ns::shrinkURI).collect(Collectors.toList());
-
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.propertiesWithIds(idList, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.propertiesWithIds(ids, searchParams);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine

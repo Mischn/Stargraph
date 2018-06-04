@@ -57,7 +57,7 @@ public final class LuceneFactory implements IndicesFactory {
 
     @Override
     public SearchQueryGenerator createSearchQueryGenerator(KBId kbId, Stargraph stargraph) {
-        return new LuceneSearchQueryGenerator();
+        return new LuceneSearchQueryGenerator(stargraph, kbId.getId());
     }
 
 

@@ -26,8 +26,10 @@ package net.stargraph.core.impl.elastic;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Namespace;
+import net.stargraph.core.Stargraph;
 import net.stargraph.core.processors.FactClassifierProcessor;
-import net.stargraph.core.search.SearchQueryGenerator;
+import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
@@ -37,21 +39,28 @@ import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
-public class ElasticSearchQueryGenerator implements SearchQueryGenerator {
+public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
+
+    public ElasticSearchQueryGenerator(Stargraph stargraph, String dbId) {
+        super(stargraph, dbId);
+    }
 
     @Override
     public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
-        QueryBuilder queryBuilder = termsQuery("id", idList);
+        Namespace namespace = getNamespace();
+        QueryBuilder queryBuilder = termsQuery("id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()));
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
     public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
-        QueryBuilder queryBuilder = termsQuery("id", idList);
+        Namespace namespace = getNamespace();
+        QueryBuilder queryBuilder = termsQuery("id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()));
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
@@ -98,12 +107,15 @@ public class ElasticSearchQueryGenerator implements SearchQueryGenerator {
     @Override
     // There is a clear performance-loss when both inSubject and inObject are enabled together.
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+        Namespace namespace = getNamespace();
+        String id = namespace.shrinkURI(pivot.getId());
+
         BoolQueryBuilder queryBuilder = boolQuery();
         if (inSubject) {
-            queryBuilder.should(nestedQuery("s", termQuery("s.id", pivot.getId()), ScoreMode.Max));
+            queryBuilder.should(nestedQuery("s", termQuery("s.id", id), ScoreMode.Max));
         }
         if (inObject) {
-            queryBuilder.should(nestedQuery("o", termQuery("o.id", pivot.getId()), ScoreMode.Max));
+            queryBuilder.should(nestedQuery("o", termQuery("o.id", id), ScoreMode.Max));
         }
         queryBuilder.minimumNumberShouldMatch(1);
 

@@ -43,6 +43,20 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 public class ElasticSearchQueryGenerator implements SearchQueryGenerator {
 
     @Override
+    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        QueryBuilder queryBuilder = termsQuery("id", idList);
+
+        return new ElasticQueryHolder(queryBuilder, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        QueryBuilder queryBuilder = termsQuery("id", idList);
+
+        return new ElasticQueryHolder(queryBuilder, searchParams);
+    }
+
+    @Override
     public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams) {
 
         QueryBuilder queryBuilder = boolQuery()
@@ -51,13 +65,6 @@ public class ElasticSearchQueryGenerator implements SearchQueryGenerator {
                 .should(nestedQuery("o",
                         matchQuery("o.value", searchParams.getSearchTerm()),  ScoreMode.Max))
                 .minimumNumberShouldMatch(1);
-
-        return new ElasticQueryHolder(queryBuilder, searchParams);
-    }
-
-    @Override
-    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
-        QueryBuilder queryBuilder = termsQuery("id", idList);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }

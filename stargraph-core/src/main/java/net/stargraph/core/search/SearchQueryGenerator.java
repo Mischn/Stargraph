@@ -33,11 +33,14 @@ import java.util.List;
 
 public interface SearchQueryGenerator {
 
-    // return facts that represent an is-a relationship between an arbitrary subject and an object's value matching the searchTerm
-    SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams);
-
     // return resource entities that match any of the given ids
     SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams);
+
+    // return property entities that match any of the given ids
+    SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams);
+
+    // return facts that represent an is-a relationship between an arbitrary subject and an object's value matching the searchTerm
+    SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams);
 
     // return resource entities whose value matches the searchTerm (fuzzy)
     SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, int maxEdits);

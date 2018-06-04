@@ -20,12 +20,6 @@ import java.util.List;
 public class LuceneSearchQueryGenerator implements SearchQueryGenerator {
 
     @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams) {
-        //TODO implement
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    @Override
     public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
         List<Term> terms = new ArrayList<>();
         for (String id : idList) {
@@ -34,6 +28,24 @@ public class LuceneSearchQueryGenerator implements SearchQueryGenerator {
         Query query = new TermsQuery(terms);
 
         return new LuceneQueryHolder(query, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        List<Term> terms = new ArrayList<>();
+        for (String id : idList) {
+            terms.add(new Term("id", id));
+        }
+        Query query = new TermsQuery(terms);
+
+        return new LuceneQueryHolder(query, searchParams);
+    }
+
+
+    @Override
+    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams) {
+        //TODO implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override

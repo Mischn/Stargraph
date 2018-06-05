@@ -27,6 +27,7 @@ package net.stargraph.core.search;
  */
 
 import net.stargraph.core.KBCore;
+import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
@@ -234,7 +235,7 @@ public class EntitySearcher {
             Fact fact = (Fact)score.getEntry();
             if (outgoingEdges && fact.getSubject().equals(pivot)) {
                 result.add(new Route(pivot).extend(fact.getPredicate(), fact.getObject()));
-            } else if (incomingEdges && fact.getSubject() instanceof LabeledEntity) {
+            } else if (incomingEdges && fact.getObject().equals(pivot) && fact.getSubject() instanceof LabeledEntity) {
                 result.add(new Route(pivot).extend(fact.getPredicate(), (LabeledEntity) fact.getSubject()));
             }
         }
@@ -247,10 +248,13 @@ public class EntitySearcher {
             throw new IllegalArgumentException("Range has to be >= 1");
         }
 
+        Namespace namespace = stargraph.getKBCore(searchParams.getKbId().getId()).getNamespace();
+        ResourceEntity myPivot = namespace.shrink(pivot);
+
         Map<ResourceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
         Map<Integer, List<Route>> neighbours = new HashMap<>();
         neighbourSearchRec(
-                new Route(pivot),
+                new Route(myPivot),
                 searchParams,
                 range,
                 range,

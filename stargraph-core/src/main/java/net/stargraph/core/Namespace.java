@@ -134,6 +134,28 @@ public final class Namespace extends TreeMap<String, String> {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public  <S extends Serializable> S shrink(S entry) {
+        if (entry == null) {
+            throw new IllegalArgumentException("Entry can't be null");
+        }
+
+        if (entry instanceof ValueEntity) {
+            return entry;
+        } else if (entry instanceof ResourceEntity) {
+            ResourceEntity e = (ResourceEntity) entry;
+            return (S) new ResourceEntity(shrinkURI(e.getId()), e.getValue(), e.getOtherValues());
+        } else if (entry instanceof PropertyEntity) {
+            PropertyEntity e = (PropertyEntity) entry;
+            return (S) new PropertyEntity(shrinkURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+        } else if (entry instanceof PropertyPath) {
+            PropertyPath p = (PropertyPath) entry;
+            return (S) new PropertyPath(p.getProperties().stream().map(x -> shrink(x)).collect(Collectors.toList()));
+        } else {
+            throw new IllegalArgumentException("Unknown type instance to shrink namespace: " + entry.getClass());
+        }
+    }
+
     static Namespace create(Config kbConfig) {
         return new Namespace(kbConfig);
     }

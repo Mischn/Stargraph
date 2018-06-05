@@ -53,6 +53,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         return new LuceneQueryHolder(query, searchParams);
     }
 
+    @Override
+    public SearchQueryHolder findClassFacts(List<String> idList, ModifiableSearchParams searchParams) {
+        //TODO implement
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
 
     @Override
     public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {

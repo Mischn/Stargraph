@@ -130,6 +130,41 @@ public class EntitySearcher {
     }
 
     /**
+     * Get members of a given class.
+     * @param dbId
+     * @param classEntity
+     * @return
+     */
+    public List<ResourceEntity> getClassMembers(String dbId, ResourceEntity classEntity) {
+        return getClassMembers(dbId, classEntity.getId());
+    }
+
+    /**
+     * Get members of a given class.
+     * @param dbId
+     * @param classId
+     * @return
+     */
+    public List<ResourceEntity> getClassMembers(String dbId, String classId) {
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.FACT);
+        KBCore core = stargraph.getKBCore(dbId);
+
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(classId), searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores.stream()
+                .map(s -> ((Fact)s.getEntry()).getSubject())
+                .filter(x -> x instanceof ResourceEntity)
+                .map(x -> (ResourceEntity)x)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Search resources by their value (fuzzy match with searchTerm).
      * @param searchParams
      * @param rankParams

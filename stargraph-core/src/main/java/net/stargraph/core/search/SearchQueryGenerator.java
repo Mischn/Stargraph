@@ -40,10 +40,10 @@ public interface SearchQueryGenerator {
     SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams);
 
     // return facts that represent an is-a relationship between arbitrary subjects and any object of the given ids
-    SearchQueryHolder findClassFacts(List<String> idList, ModifiableSearchParams searchParams);
+    SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
 
     // return facts that represent an is-a relationship between an arbitrary subject and an object's value matching the searchTerm
-    SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+    SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean inSubject, boolean fuzzy, int maxEdits);
 
     // return resource entities whose value matches the searchTerm
     SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);

@@ -67,26 +67,44 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassFacts(List<String> idList, ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
-        QueryBuilder queryBuilder = boolQuery()
-                .must(nestedQuery("p",
-                        termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR),  ScoreMode.Max))
-                .must(nestedQuery("o",
-                        constantScoreQuery(termsQuery("o.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max));
+        QueryBuilder queryBuilder;
+        if (inSubject) {
+            queryBuilder = boolQuery()
+                    .must(nestedQuery("s",
+                            constantScoreQuery(termsQuery("s.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max))
+                    .must(nestedQuery("p",
+                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max));
+        } else {
+            queryBuilder = boolQuery()
+                    .must(nestedQuery("p",
+                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
+                    .must(nestedQuery("o",
+                            constantScoreQuery(termsQuery("o.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max));
+        }
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
-
-        QueryBuilder queryBuilder = boolQuery()
-                .must(nestedQuery("p",
-                        termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR),  ScoreMode.Max))
-                .should(nestedQuery("o",
-                        fuzzyMatch(matchQuery("o.value", searchParams.getSearchTerm()), fuzzy, maxEdits),  ScoreMode.Max))
-                .minimumNumberShouldMatch(1);
+    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean inSubject, boolean fuzzy, int maxEdits) {
+        QueryBuilder queryBuilder;
+        if (inSubject) {
+            queryBuilder = boolQuery()
+                    .must(nestedQuery("p",
+                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
+                    .should(nestedQuery("s",
+                            fuzzyMatch(matchQuery("s.value", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
+                    .minimumNumberShouldMatch(1);
+        } else {
+            queryBuilder = boolQuery()
+                    .must(nestedQuery("p",
+                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
+                    .should(nestedQuery("o",
+                            fuzzyMatch(matchQuery("o.value", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
+                    .minimumNumberShouldMatch(1);
+        }
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }

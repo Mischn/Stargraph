@@ -37,6 +37,9 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class EntitySearcher {
@@ -167,10 +170,15 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        List<Score> classes2Score = scores.stream()
-                .map(s -> new Score(((Fact)s.getEntry()).getObject(), s.getValue())).collect(Collectors.toList());
+
+        // We have to remap the facts to the classes.
+        Scores classScores = new Scores(scores.stream()
+                .map(s -> new Score(((Fact)s.getEntry()).getObject(), s.getValue()))
+                .filter(distinctByKey(Score::getEntry))
+                .collect(Collectors.toList()));
+
         // Re-Rank
-        return Rankers.apply(new Scores(classes2Score), rankParams, searchParams.getSearchTerm());
+        return Rankers.apply(classScores, rankParams, searchParams.getSearchTerm());
     }
 
     /**
@@ -266,6 +274,10 @@ public class EntitySearcher {
 
     // HELPER FUNCTIONS
 
+    public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
 
     // direct neighbours only
     private List<Route> directNeighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges) {

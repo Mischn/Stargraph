@@ -55,18 +55,18 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
 
 
     @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         //TODO implement
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
-    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, int maxEdits) {
+    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         //Query query = new FuzzyQuery(new Term("value", searchParams.getSearchTerm()), maxEdits, 0, 50, false); // This does not take into account multiple words of the search term
 
         BooleanQuery query = new BooleanQuery.Builder()
-                .add(fuzzyPhraseSearch("value", searchParams.getSearchTerm(), maxEdits), BooleanClause.Occur.SHOULD)
-                .add(fuzzyPhraseSearch("otherValues", searchParams.getSearchTerm(), maxEdits), BooleanClause.Occur.SHOULD)
+                .add(fuzzyMatch("value", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
+                .add(fuzzyMatch("otherValues", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
                 .build();
 
@@ -74,7 +74,7 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         //TODO implement
         throw new UnsupportedOperationException("Not implemented yet");
     }
@@ -85,8 +85,18 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    private static Query matchQuery(String field, String searchTerm) {
+        StringBuilder queryStr = new StringBuilder();
+        queryStr.append(field).append(":(").append(searchTerm.trim()).append(")");
 
-    private static Query fuzzyPhraseSearch(String field, String searchTerm, int maxEdits) {
+        try {
+            return new ComplexPhraseQueryParser(field, new StandardAnalyzer()).parse(queryStr.toString());
+        } catch (ParseException e) {
+            throw new StarGraphException(e);
+        }
+    }
+
+    private static Query fuzzyMatchQuery(String field, String searchTerm, int maxEdits) {
         StringBuilder queryStr = new StringBuilder();
         queryStr.append(field).append(":(");
 
@@ -103,6 +113,14 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
             return new ComplexPhraseQueryParser(field, new StandardAnalyzer()).parse(queryStr.toString());
         } catch (ParseException e) {
             throw new StarGraphException(e);
+        }
+    }
+
+    private static Query fuzzyMatch(String field, String searchTerm, boolean fuzzy, int maxEdits) {
+        if (fuzzy) {
+            return fuzzyMatchQuery(field, searchTerm, maxEdits);
+        } else {
+            return matchQuery(field, searchTerm);
         }
     }
 }

@@ -35,6 +35,7 @@ import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 
@@ -66,39 +67,37 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
 
         QueryBuilder queryBuilder = boolQuery()
                 .must(nestedQuery("p",
                         termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR),  ScoreMode.Max))
                 .should(nestedQuery("o",
-                        matchQuery("o.value", searchParams.getSearchTerm()),  ScoreMode.Max))
+                        fuzzyMatch(matchQuery("o.value", searchParams.getSearchTerm()), fuzzy, maxEdits),  ScoreMode.Max))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, int maxEdits) {
+    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         QueryBuilder queryBuilder = boolQuery()
-                .should(matchQuery("value", searchParams.getSearchTerm())
-                        .fuzziness(maxEdits).fuzzyTranspositions(false).operator(Operator.AND))
-                .should(matchQuery("otherValues", searchParams.getSearchTerm())
-                        .fuzziness(maxEdits).fuzzyTranspositions(false).operator(Operator.AND))
+                .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
                 .minimumNumberShouldMatch(1);;
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         QueryBuilder queryBuilder = boolQuery()
                 .should(nestedQuery("hyponyms",
-                        matchQuery("hyponyms.word", searchParams.getSearchTerm()), ScoreMode.Max))
+                        fuzzyMatch(matchQuery("hyponyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
                 .should(nestedQuery("hypernyms",
-                        matchQuery("hypernyms.word", searchParams.getSearchTerm()), ScoreMode.Max))
+                        fuzzyMatch(matchQuery("hypernyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
                 .should(nestedQuery("synonyms",
-                        matchQuery("synonyms.word", searchParams.getSearchTerm()), ScoreMode.Max))
+                        fuzzyMatch(matchQuery("synonyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
@@ -120,5 +119,13 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
         queryBuilder.minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
+    }
+
+    private static MatchQueryBuilder fuzzyMatch(MatchQueryBuilder matchQueryBuilder, boolean fuzzy, int maxEdits) {
+        if (fuzzy) {
+            return matchQueryBuilder.fuzziness(maxEdits).fuzzyTranspositions(false).operator(Operator.AND);
+        } else {
+            return matchQueryBuilder;
+        }
     }
 }

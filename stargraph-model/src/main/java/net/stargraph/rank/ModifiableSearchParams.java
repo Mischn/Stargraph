@@ -32,14 +32,14 @@ import net.stargraph.model.KBId;
 public final class ModifiableSearchParams {
 
     private int limit;
-    private String kbId;
+    private String dbId;
     private String modelId;
     private String searchTerm;
 
-    private ModifiableSearchParams(String kbId) {
+    private ModifiableSearchParams(String dbId) {
         // defaults
         this.limit = -1;
-        this.kbId = kbId;
+        this.dbId = dbId;
     }
 
     public final ModifiableSearchParams term(String searchTerm) {
@@ -67,8 +67,12 @@ public final class ModifiableSearchParams {
         return limit;
     }
 
+    public final String getDbId() {
+        return dbId;
+    }
+
     public final KBId getKbId() {
-        return KBId.of(kbId, modelId);
+        return KBId.of(dbId, modelId);
     }
 
     public final String getSearchTerm() {

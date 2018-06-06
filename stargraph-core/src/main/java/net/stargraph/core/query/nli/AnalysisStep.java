@@ -12,10 +12,10 @@ package net.stargraph.core.query.nli;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -56,7 +56,7 @@ public final class AnalysisStep {
             throw new IllegalArgumentException();
         }
 
-        logger.debug(marker, "Current Step: '{}'", annotated);
+        logger.debug(marker, "Current Step: '{}' / '{}'", getLexicalStr(), getPosTagStr());
     }
 
     public AnalysisStep(List<Word> annotated) {
@@ -108,18 +108,18 @@ public final class AnalysisStep {
             String placeHolder = createPlaceholder(lexicalStr, modelType);
 
             Replacement<Word> replacement = replace(annotated, lexicalStr, lexicalMatcher, Arrays.asList(new Word(new POSTag(placeHolder), placeHolder)));
-            logger.debug(marker, "Lexical replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
+            //logger.debug(marker, "Lexical replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
 
             return new AnalysisStep(bindings, replacement.getResult());
         } else if (!rule.isLexical() && posTagMatcher.matches()) {
             String placeHolder = createPlaceholder(posTagStr, modelType);
 
             Replacement<Word> replacement = replace(annotated, posTagStr, posTagMatcher, Arrays.asList(new Word(new POSTag(placeHolder), placeHolder)));
-            logger.debug(marker, "POSTag replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getPosTagStr(replacement.getReplaced()), getPosTagStr(replacement.getReplacement()), getPosTagStr(replacement.getResult()));
+            //logger.debug(marker, "POSTag replacement of pattern:\t\t'{}'\t\t'{}' ---> '{}'\t\tResult: '{}'", rulePattern, getPosTagStr(replacement.getReplaced()), getPosTagStr(replacement.getReplacement()), getPosTagStr(replacement.getResult()));
 
             // bind
             bindings.add(new DataModelBinding(modelType, getLexicalStr(replacement.getExtracted()), placeHolder));
-            logger.debug(marker, "Bound '{}' to '{}'", placeHolder, getLexicalStr(replacement.getExtracted()));
+            //logger.debug(marker, "Bound '{}' to '{}'", placeHolder, getLexicalStr(replacement.getExtracted()));
 
             return new AnalysisStep(bindings, replacement.getResult());
         }
@@ -143,14 +143,20 @@ public final class AnalysisStep {
         patterns.add(PUNCT_PATTERN);
 
         for (Pattern pattern : patterns) {
-            String lexicalStr = getLexicalStr(newAnnotated);
-            Matcher lexicalMatcher = pattern.matcher(lexicalStr);
+            boolean b = true;
+            while(b) {
+                String lexicalStr = getLexicalStr(newAnnotated);
+                Matcher lexicalMatcher = pattern.matcher(lexicalStr);
 
-            if (lexicalMatcher.matches()) {
-                Replacement<Word> replacement = replace(newAnnotated, lexicalStr, lexicalMatcher, Arrays.asList());
-                logger.debug(marker, "Clean replacement of pattern:\t\t{}\t\t'{}' ---> '{}'\t\tResult: '{}'", pattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
+                if (lexicalMatcher.matches()) {
+                    Replacement<Word> replacement = replace(newAnnotated, lexicalStr, lexicalMatcher, Arrays.asList());
+                    //logger.debug(marker, "Clean replacement of pattern:\t\t{}\t\t'{}' ---> '{}'\t\tResult: '{}'", pattern, getLexicalStr(replacement.getReplaced()), getLexicalStr(replacement.getReplacement()), getLexicalStr(replacement.getResult()));
 
-                newAnnotated = replacement.getResult();
+                    newAnnotated = replacement.getResult();
+                    logger.debug(marker, "Cleaned Step: '{}' / '{}'", getLexicalStr(newAnnotated), getPosTagStr(newAnnotated));
+                } else {
+                    b = false;
+                }
             }
         }
 

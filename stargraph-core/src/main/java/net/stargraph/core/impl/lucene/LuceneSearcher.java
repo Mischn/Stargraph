@@ -30,8 +30,8 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearcher;
 import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.model.ResourceEntity;
 import net.stargraph.model.KBId;
+import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 import org.apache.lucene.document.Document;
@@ -42,6 +42,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public final class LuceneSearcher extends BaseSearcher {
@@ -69,8 +71,10 @@ public final class LuceneSearcher extends BaseSearcher {
                             //TODO support indexing of other types?
                             String id = hitDoc.get("id");
                             String value = hitDoc.get("value");
-                            ResourceEntity entity = new ResourceEntity(id, value);
+                            boolean isClass = hitDoc.get("isClass").equals("true");
+                            List<String> otherValues = Arrays.asList(hitDoc.getValues("otherValues"));
 
+                            ResourceEntity entity = new ResourceEntity(id, value, isClass, otherValues);
                             return new Score(entity, hit.score);
                         } catch (Exception e) {
                             logger.error(marker, "Fail to deserialize document {}", hit.doc, e);

@@ -88,33 +88,22 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean inSubject, boolean fuzzy, int maxEdits) {
-        QueryBuilder queryBuilder;
-        if (inSubject) {
-            queryBuilder = boolQuery()
-                    .must(nestedQuery("p",
-                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
-                    .should(nestedQuery("s",
-                            fuzzyMatch(matchQuery("s.value", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
-                    .minimumNumberShouldMatch(1);
-        } else {
-            queryBuilder = boolQuery()
-                    .must(nestedQuery("p",
-                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
-                    .should(nestedQuery("o",
-                            fuzzyMatch(matchQuery("o.value", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
-                    .minimumNumberShouldMatch(1);
-        }
+    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+        QueryBuilder queryBuilder = boolQuery()
+                .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         QueryBuilder queryBuilder = boolQuery()
+                .must(termQuery("isClass", true))
                 .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
                 .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
-                .minimumNumberShouldMatch(1);;
+                .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }

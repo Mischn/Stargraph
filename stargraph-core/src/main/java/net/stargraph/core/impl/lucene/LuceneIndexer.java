@@ -144,6 +144,7 @@ public final class LuceneIndexer extends BaseIndexer {
             doc.add(new StringField("id", entity.getId(), Field.Store.YES));
             doc.add(new TextField("value", entity.getValue(), Field.Store.YES));
             doc.add(new StringField("complex", entity.isComplex()? "true": "false", Field.Store.YES));
+            doc.add(new StringField("isClass", entity.isClass()? "true": "false", Field.Store.YES));
             for (String otherValue : entity.getOtherValues()) {
                 doc.add(new TextField("otherValues", otherValue, Field.Store.YES));
             }

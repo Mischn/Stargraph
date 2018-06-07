@@ -42,13 +42,13 @@ public interface SearchQueryGenerator {
     // return facts that represent an is-a relationship between arbitrary subjects and any object of the given ids
     SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
 
-    // return facts that represent an is-a relationship between an arbitrary subject and an object's value matching the searchTerm
-    SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean inSubject, boolean fuzzy, int maxEdits);
-
-    // return resource entities whose value matches the searchTerm
+    // return resource entities whose value or otherValues match the searchTerm
     SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
 
-    // return properties with either the hyponyms, hypernyms or synonyms matching the searchTerm (why not including the value?)
+    // return class resource entities whose value or otherValues match the searchTerm
+    SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+
+    // return properties whose hyponyms, hypernyms or synonyms match the searchTerm (why not including the value?)
     SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
 
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object

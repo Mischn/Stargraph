@@ -122,7 +122,7 @@ public final class Namespace extends TreeMap<String, String> {
             return entry;
         } else if (entry instanceof ResourceEntity) {
             ResourceEntity e = (ResourceEntity) entry;
-            return (S) new ResourceEntity(expandURI(e.getId()), e.getValue(), e.getOtherValues());
+            return (S) new ResourceEntity(expandURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
         } else if (entry instanceof PropertyEntity) {
             PropertyEntity e = (PropertyEntity) entry;
             return (S) new PropertyEntity(expandURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
@@ -144,7 +144,7 @@ public final class Namespace extends TreeMap<String, String> {
             return entry;
         } else if (entry instanceof ResourceEntity) {
             ResourceEntity e = (ResourceEntity) entry;
-            return (S) new ResourceEntity(shrinkURI(e.getId()), e.getValue(), e.getOtherValues());
+            return (S) new ResourceEntity(shrinkURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
         } else if (entry instanceof PropertyEntity) {
             PropertyEntity e = (PropertyEntity) entry;
             return (S) new PropertyEntity(shrinkURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());

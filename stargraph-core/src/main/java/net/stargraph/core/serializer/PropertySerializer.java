@@ -44,9 +44,9 @@ class PropertySerializer extends AbstractSerializer<PropertyEntity> {
     public void serialize(PropertyEntity value, JsonGenerator g, SerializerProvider provider) throws IOException {
         g.writeStartObject();
         g.writeStringField("id", value.getId());
-        if (!FactClassifierProcessor.isClassRelation(value)) {
-            g.writeStringField("value", value.getValue());
+        g.writeStringField("value", value.getValue());
 
+        if (!FactClassifierProcessor.isClassRelation(value)) {
             if (value.getHypernyms() != null && !value.getHypernyms().isEmpty()) {
                 g.writeObjectField("hypernyms", value.getHypernyms());
             }

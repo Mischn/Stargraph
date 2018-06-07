@@ -131,25 +131,61 @@ public class EntitySearcher {
     }
 
     /**
-     * Get members of a given class.
-     * @param dbId
-     * @param classEntity
+     * Get classes for the given member.
+     * @param memberEntity
+     * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassMembers(String dbId, ResourceEntity classEntity) {
-        return getClassMembers(dbId, classEntity.getId());
+    public List<ResourceEntity> getClassesForMember(ResourceEntity memberEntity, ModifiableSearchParams searchParams) {
+        return getClassesForMember(memberEntity.getId(), searchParams);
+    }
+
+    /**
+     * Get classes for the given member.
+     * @param memberId
+     * @param searchParams
+     * @return
+     */
+    public List<ResourceEntity> getClassesForMember(String memberId, ModifiableSearchParams searchParams) {
+        KBCore core = stargraph.getKBCore(searchParams.getDbId());
+
+        searchParams.model(BuiltInModel.FACT);
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(memberId), true, searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        // We have to remap the facts to the classes.
+        return scores.stream()
+                .map(s -> ((Fact)s.getEntry()).getObject())
+                .filter(x -> x instanceof ResourceEntity)
+                .map(x -> (ResourceEntity)x)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**
      * Get members of a given class.
-     * @param dbId
-     * @param classId
+     * @param classEntity
+     * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassMembers(String dbId, String classId) {
-        KBCore core = stargraph.getKBCore(dbId);
+    public List<ResourceEntity> getClassMembers(ResourceEntity classEntity, ModifiableSearchParams searchParams) {
+        return getClassMembers(classEntity.getId(), searchParams);
+    }
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.FACT);
+    /**
+     * Get members of a given class.
+     * @param classId
+     * @param searchParams
+     * @return
+     */
+    public List<ResourceEntity> getClassMembers(String classId, ModifiableSearchParams searchParams) {
+        KBCore core = stargraph.getKBCore(searchParams.getDbId());
+
+        searchParams.model(BuiltInModel.FACT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(classId), false, searchParams);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
@@ -167,7 +203,7 @@ public class EntitySearcher {
     }
 
     /**
-     * Search resources by their value (fuzzy match with searchTerm).
+     * Search resources by their value & otherValues (fuzzy match with searchTerm).
      * @param searchParams
      * @param rankParams
      * @return
@@ -191,7 +227,7 @@ public class EntitySearcher {
     }
 
     /**
-     * Search classes by their value (fuzzy match with searchTerm).
+     * Search classes by their value & otherValues (fuzzy match with searchTerm).
      * @param searchParams
      * @param rankParams
      * @return
@@ -199,26 +235,21 @@ public class EntitySearcher {
     public Scores classSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        searchParams.model(BuiltInModel.FACT);
+        searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(searchParams, false, false, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, false, FUZZINESS);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        // We have to remap the facts to the classes.
-        Scores classScores = new Scores(scores.stream()
-                .map(s -> new Score(((Fact)s.getEntry()).getObject(), s.getValue()))
-                .filter(distinctByKey(Score::getEntry))
-                .collect(Collectors.toList()));
-
         // Re-Rank
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        return Rankers.apply(classScores, rankParams, searchParams.getSearchTerm());
+        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
     }
+
 
     /**
      * Search properties by their hyponyms, hypernyms or synonyms (fuzzy match with searchTerm).
@@ -407,12 +438,12 @@ public class EntitySearcher {
     }
 
     private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod) {
-        if (range < 1) {
-            throw new IllegalArgumentException("Range has to be >= 1");
-        }
-
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
         ResourceEntity myPivot = namespace.shrink(pivot);
+
+        if (range == 0) {
+            return Arrays.asList(new Route(myPivot));
+        }
 
         Map<ResourceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
         Map<Integer, List<Route>> neighbours = new HashMap<>();

@@ -27,12 +27,16 @@ package net.stargraph.core.serializer;
  */
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.model.KBId;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 class ResourceDeserializer extends AbstractDeserializer<ResourceEntity> {
 
@@ -45,6 +49,14 @@ class ResourceDeserializer extends AbstractDeserializer<ResourceEntity> {
         JsonNode node = p.getCodec().readTree(p);
         String id = node.get("id").asText();
         String value = node.get("value").asText();
-        return new ResourceEntity(id, value);
+        boolean isClass = node.get("isClass").asBoolean();
+
+        List<String> otherValues = new ArrayList<>();
+        if (node.has("otherValues")) {
+            for (final JsonNode val : node.get("otherValues")) {
+                otherValues.add(val.textValue());
+            }
+        }
+        return new ResourceEntity(id, value, isClass, otherValues);
     }
 }

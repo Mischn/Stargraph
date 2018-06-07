@@ -96,7 +96,7 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
                     .map(s -> ((ValueEntity)s.getEntry()).getValue())
                     .collect(Collectors.toList());
 
-            holder.set(new ResourceEntity(entity.getId(), entity.getValue(), otherValues));
+            holder.set(new ResourceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
         }
     }
 

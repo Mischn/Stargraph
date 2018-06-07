@@ -59,18 +59,23 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
-
-    @Override
-    public SearchQueryHolder findClassFacts(ModifiableSearchParams searchParams, boolean inSubject, boolean fuzzy, int maxEdits) {
-        //TODO implement
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
     @Override
     public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         //Query query = new FuzzyQuery(new Term("value", searchParams.getSearchTerm()), maxEdits, 0, 50, false); // This does not take into account multiple words of the search term
 
         BooleanQuery query = new BooleanQuery.Builder()
+                .add(fuzzyMatch("value", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
+                .add(fuzzyMatch("otherValues", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
+                .setMinimumNumberShouldMatch(1)
+                .build();
+
+        return new LuceneQueryHolder(query, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+        BooleanQuery query = new BooleanQuery.Builder()
+                .add(boolQuery("isClass", true), BooleanClause.Occur.MUST)
                 .add(fuzzyMatch("value", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
                 .add(fuzzyMatch("otherValues", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
@@ -89,6 +94,17 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         //TODO implement
         throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private static Query boolQuery(String field, boolean value) {
+        StringBuilder queryStr = new StringBuilder();
+        queryStr.append(field).append(":").append(value);
+
+        try {
+            return new ComplexPhraseQueryParser(field, new StandardAnalyzer()).parse(queryStr.toString());
+        } catch (ParseException e) {
+            throw new StarGraphException(e);
+        }
     }
 
     private static Query matchQuery(String field, String searchTerm) {

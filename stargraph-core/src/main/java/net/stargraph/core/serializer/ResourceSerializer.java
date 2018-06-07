@@ -45,6 +45,7 @@ class ResourceSerializer extends AbstractSerializer<ResourceEntity> {
         g.writeStringField("id", value.getId());
         g.writeStringField("value", value.getValue());
         g.writeBooleanField("complex", value.isComplex());
+        g.writeBooleanField("isClass", value.isClass());
         if (!value.getOtherValues().isEmpty()) {
             g.writeObjectField("otherValues", value.getOtherValues());
         }

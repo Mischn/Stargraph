@@ -31,8 +31,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import net.stargraph.model.KBId;
 import net.stargraph.model.PropertyEntity;
+import net.stargraph.model.wordnet.PosType;
+import net.stargraph.model.wordnet.WNTuple;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 class PropertyDeserializer extends AbstractDeserializer<PropertyEntity> {
 
@@ -45,7 +49,29 @@ class PropertyDeserializer extends AbstractDeserializer<PropertyEntity> {
         JsonNode node = p.getCodec().readTree(p);
         String id = node.get("id").asText();
         String value = node.get("value").asText();
-        return new PropertyEntity(id, value);
+
+        List<WNTuple> hypernyms = new ArrayList<>();
+        if (node.has("hypernyms")) {
+            for (final JsonNode wnt : node.get("hypernyms")) {
+                hypernyms.add(new WNTuple(PosType.valueOf(wnt.get("posType").asText()), wnt.get("word").asText()));
+            }
+        }
+
+        List<WNTuple> hyponyms = new ArrayList<>();
+        if (node.has("hyponyms")) {
+            for (final JsonNode wnt : node.get("hyponyms")) {
+                hyponyms.add(new WNTuple(PosType.valueOf(wnt.get("posType").asText()), wnt.get("word").asText()));
+            }
+        }
+
+        List<WNTuple> synonyms = new ArrayList<>();
+        if (node.has("synonyms")) {
+            for (final JsonNode wnt : node.get("synonyms")) {
+                synonyms.add(new WNTuple(PosType.valueOf(wnt.get("posType").asText()), wnt.get("word").asText()));
+            }
+        }
+
+        return new PropertyEntity(id, value, hypernyms, hyponyms, synonyms);
     }
 
 

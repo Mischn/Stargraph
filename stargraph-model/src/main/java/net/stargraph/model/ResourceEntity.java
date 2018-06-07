@@ -31,18 +31,22 @@ import java.util.Collection;
 
 public final class ResourceEntity extends LabeledEntity implements ContextId {
     private boolean complex;
+    private boolean isClass;
     private Collection<String> otherValues;
 
     public ResourceEntity(String id, String value) {
-        this(id, value, new ArrayList<>());
+        this(id, value, false, new ArrayList<>());
     }
 
-    public ResourceEntity(String id, String value, Collection<String> otherValues) {
+    public ResourceEntity(String id, String value, boolean isClass, Collection<String> otherValues) {
         super(id, value);
         String[] terms = value.split("\\s+");
         this.complex = (terms.length > 1);
+        this.isClass = isClass;
         this.otherValues = otherValues;
     }
+
+    public boolean isClass() { return isClass; }
 
     public boolean isComplex() {
         return complex;

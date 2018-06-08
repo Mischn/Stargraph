@@ -12,10 +12,10 @@ package net.stargraph.core.query;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -120,10 +120,9 @@ public final class SPARQLQueryBuilder {
 
     private String buildStatements() {
         resetTmpVarCounter();
-        StringJoiner tripleJoiner = new StringJoiner(" . \n", "{", "}");
+        StringJoiner tripleJoiner = new StringJoiner("\n");
 
         triplePatterns.forEach(triplePattern -> {
-
             String[] components = triplePattern.getPattern().split("\\s");
 
             List<String> sURIs = placeHolder2Pattern(components[0], false);
@@ -132,8 +131,8 @@ public final class SPARQLQueryBuilder {
 
             List<String> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
 
-            StringJoiner stmtJoiner = new StringJoiner("} UNION \n{");
-            prod.forEach(p -> stmtJoiner.add(p.trim()));
+            StringJoiner stmtJoiner = new StringJoiner("} UNION \n{", "{", "}");
+            prod.forEach(p -> stmtJoiner.add(p.trim() + " ."));
 
             tripleJoiner.add(stmtJoiner.toString());
         });

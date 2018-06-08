@@ -12,10 +12,10 @@ package net.stargraph.core.query;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -130,7 +130,6 @@ public final class QueryEngine {
 
         triplePatterns.forEach(triplePattern -> {
             Triple triple = asTriple(triplePattern, bindings);
-            logger.debug(marker, "Resolving {}", triple);
             resolve(triple, queryBuilder);
         });
 
@@ -257,9 +256,8 @@ public final class QueryEngine {
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
             ModifiableRankParams rankParams = ParamsBuilder.word2vec();
+            logger.debug(marker, "Resolve class, searching for term '{}' (classSearch)", searchParams.getSearchTerm());
             Scores scores = entitySearcher.classSearch(searchParams, rankParams);
-
-            logger.debug(marker, "Resolved class, searching for term '{}' (classSearch)", searchParams.getSearchTerm());
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
             builder.add(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
@@ -273,9 +271,8 @@ public final class QueryEngine {
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
             ModifiableRankParams rankParams = ParamsBuilder.word2vec();
+            logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}' (pivotedSearch)", pivot, searchParams.getSearchTerm());
             Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, 1, false);
-
-            logger.debug(marker, "Resolved predicate for pivot {}, searching for term '{}' (pivotedSearch)", pivot, searchParams.getSearchTerm());
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
             builder.add(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
@@ -294,9 +291,8 @@ public final class QueryEngine {
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
             ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
+            logger.debug(marker, "Resolve pivot, searching for term '{}' (resourceSearch)", searchParams.getSearchTerm());
             Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
-
-            logger.debug(marker, "Resolved pivot, searching for term '{}' (resourceSearch)", searchParams.getSearchTerm());
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.get(0), binding);
             ResourceEntity instance = (ResourceEntity) scores.get(0).getEntry();
@@ -310,9 +306,8 @@ public final class QueryEngine {
 
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(instanceTerm);
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
-
         logger.debug(marker, "Resolve instance/resource, searching for term '{}' (resourceSearch)", searchParams.getSearchTerm());
+        Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
         logger.debug(marker, "Results: {}", scores);
         logger.debug(marker, "Return: {}", scores.get(0));
         return (ResourceEntity) scores.get(0).getEntry();
@@ -347,11 +342,10 @@ public final class QueryEngine {
 
         @Override
         public String toString() {
-            return "Triple{" +
-                    "s=" + s +
-                    ", p=" + p +
-                    ", o=" + o +
-                    '}';
+            return String.format("<%s %s %s>     (%s='%s', %s='%s', %s='%s')", s.getPlaceHolder(), p.getPlaceHolder(), o.getPlaceHolder(),
+                    s.getPlaceHolder(), s.getTerm(),
+                    p.getPlaceHolder(), p.getTerm(),
+                    o.getPlaceHolder(), o.getTerm());
         }
     }
 }

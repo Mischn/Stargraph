@@ -28,8 +28,10 @@ package net.stargraph.core.query;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
+import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.QueryPlanPatterns;
+import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
@@ -124,11 +126,9 @@ public final class SPARQLQueryBuilder {
 
             String[] components = triplePattern.getPattern().split("\\s");
 
-
-            // TODO (?) The mappings for predicates may be retrieved by pivotedSearch, which returns bidirectional predicates (e.h. has-wife, wife-of). Here, this fact is not considered.
-            List<String> sURIs = placeHolder2Pattern(components[0]);
-            List<String> pURIs = placeHolder2Pattern(components[1]);
-            List<String> oURIs = placeHolder2Pattern(components[2]);
+            List<String> sURIs = placeHolder2Pattern(components[0], false);
+            List<String> pURIs = placeHolder2Pattern(components[1], true);
+            List<String> oURIs = placeHolder2Pattern(components[2], false);
 
             List<String> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
 
@@ -147,22 +147,74 @@ public final class SPARQLQueryBuilder {
         return xy;
     }
 
-    private List<String> placeHolder2Pattern(String placeHolder) {
+    private List<String> placeHolder2Pattern(String placeHolder, boolean predicate) {
+        final int varRange = 1; //TODO experiment with this value
+        final int typeRange = 1; //TODO experiment with this value
+
+        // Variable
         if (isVar(placeHolder)) {
-            return Collections.singletonList(placeHolder);
+            if (predicate) {
+                // create someting like ['?VAR_1', '?VAR_1 ?TMP_1 . ?TMP_1 ?TMP_2'] for varRange=2
+                List<String> patterns = new ArrayList<>();
+                for (int i = 0; i < varRange; i++) {
+                    List<String> ps = new ArrayList<>();
+                    ps.add(placeHolder);
+                    for (int j = 0; j < i; j++) {
+                        ps.add(getNewTmpVar());
+                    }
+                    patterns.add(joinedPathPredicate(ps));
+                }
+                return patterns;
+            } else {
+                return Collections.singletonList(placeHolder);
+            }
         }
 
+        // Type
         if (isType(placeHolder)) {
-            return Collections.singletonList("a");
+            if (predicate) {
+                // create someting like ['a', 'a ?TMP_1 . ?TMP_1 a'] for typeRange=2
+                List<String> patterns = new ArrayList<>();
+                for (int i = 1; i < typeRange+1; i++) {
+                    List<String> ps = new ArrayList<>();
+                    for (int j = 0; j < i; j++) {
+                        ps.add("a");
+                    }
+                    patterns.add(joinedPathPredicate(ps));
+                }
+                return patterns;
+            } else {
+                return Collections.singletonList("a");
+            }
         }
 
+        // Bindings
         DataModelBinding binding = getBinding(placeHolder);
         List<Score> mappings = getMappings(binding);
         if (mappings.isEmpty()) {
             return Collections.singletonList(getURI(binding));
         }
+        List<String> patterns = new ArrayList<>();
+        for (Score mapping : mappings) {
 
-        return mappings.stream().map(m -> mappingToPattern(m)).collect(Collectors.toList());
+            // create someting like '<..> ?TMP_1 . ?TMP_1 <..>' for path with 2 properties
+            if (mapping.getEntry() instanceof PropertyPath) {
+                PropertyPath path = (PropertyPath)mapping.getEntry();
+                List<String> ps = new ArrayList<>();
+                for (PropertyEntity property : path.getProperties()) {
+                    if (FactClassifierProcessor.isClassRelation(property)) {
+                        ps.add("a");
+                    } else {
+                        ps.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
+                    }
+                }
+                patterns.add(joinedPathPredicate(ps));
+            } else {
+                patterns.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
+            }
+        }
+
+        return patterns;
     }
 
     private void resetTmpVarCounter() {
@@ -174,28 +226,20 @@ public final class SPARQLQueryBuilder {
         return "?TMP_" + tmpVarCounter;
     }
 
-    private String mappingToPattern(Score mapping) {
-        if (mapping.getEntry() instanceof PropertyPath) {
-            PropertyPath path = (PropertyPath)mapping.getEntry();
-            List<String> properties = path.getProperties().stream().map(p -> String.format("<%s>", unmap(p.getId()))).collect(Collectors.toList());
-
-            if (properties.size() == 1) {
-                return properties.get(0);
-            } else {
-                StringBuilder strb = new StringBuilder();
-                strb.append(properties.get(0));
-                for (int i = 1; i < properties.size(); i++) {
-                    String tmpVar = getNewTmpVar();
-                    strb.append(String.format(" %s . %s %s", tmpVar, tmpVar, properties.get(i)));
-                }
-                return strb.toString();
-            }
+    // creates 'x ?TMP_1 . TMP_1 y TMP_2 . TMP_2 z' for ['x', 'y', 'z']
+    private String joinedPathPredicate(List<String> predicateStrs) {
+        if (predicateStrs.size() == 1) {
+            return predicateStrs.get(0);
         } else {
-            return String.format("<%s>", unmap(mapping.getRankableView().getId()));
+            StringBuilder strb = new StringBuilder();
+            strb.append(predicateStrs.get(0));
+            for (int i = 1; i < predicateStrs.size(); i++) {
+                String tmpVar = getNewTmpVar();
+                strb.append(String.format(" %s . %s %s", tmpVar, tmpVar, predicateStrs.get(i)));
+            }
+            return strb.toString();
         }
     }
-
-
 
 
     private boolean isVar(String s) {

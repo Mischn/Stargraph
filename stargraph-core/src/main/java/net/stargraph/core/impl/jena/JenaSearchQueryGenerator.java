@@ -26,21 +26,24 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
+    private List<String> classURIs;
 
     public JenaSearchQueryGenerator(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
+        this.classURIs = stargraph.getClassRelations();
     }
-
 
     @Override
     public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
@@ -54,8 +57,17 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
-        //TODO implement
-        return null;
+        Namespace namespace = getNamespace();
+
+        List<String> expandedIdList = idList.stream().map(namespace::expandURI).collect(Collectors.toList());
+        String query = "SELECT DISTINCT ?s ?p ?o {"
+                + "?s ?p ?o ."
+                + createFilter("?p", classURIs)
+                + createFilter((inSubject)? "?s":"?o", expandedIdList)
+                + "}"
+                + createLimit(searchParams);
+
+        return new JenaQueryHolder(query, searchParams);
     }
 
     @Override
@@ -75,9 +87,45 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
-        //TODO implement
-        return null;
+        Namespace namespace = getNamespace();
+
+        String id = namespace.expandURI(pivot.getId());
+
+        String query;
+        if (inSubject && inObject) {
+            query = "SELECT DISTINCT ?s ?p ?o {"
+                    + "{"
+                    + "?s ?p ?o ."
+                    + createFilter("?s", Arrays.asList(id))
+                    + "} UNION {"
+                    + "?s ?p ?o ."
+                    + createFilter("?o", Arrays.asList(id))
+                    + "}"
+                    + "}"
+                    + createLimit(searchParams);
+        } else if (inSubject) {
+            query = "SELECT DISTINCT ?s ?p ?o {"
+                    + "?s ?p ?o ."
+                    + createFilter("?s", Arrays.asList(id))
+                    + "}"
+                    + createLimit(searchParams);
+        } else if (inObject) {
+            query = "SELECT DISTINCT ?s ?p ?o {"
+                    + "?s ?p ?o ."
+                    + createFilter("?o", Arrays.asList(id))
+                    + "}"
+                    + createLimit(searchParams);
+        } else {
+            query = "SELECT DISTINCT ?s ?p ?o {"
+                    + "?s ?p ?o ."
+                    + "}"
+                    + createLimit(searchParams);
+        }
+
+        return new JenaQueryHolder(query, searchParams);
     }
+
+
 
     public static String createFilter(String variable, List<String> idList) {
         return "FILTER( " + idList.stream().map(i ->  variable + " = <" + i + ">").collect(Collectors.joining(" || ")) + " )";

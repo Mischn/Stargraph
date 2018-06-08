@@ -36,12 +36,10 @@ public final class JenaQueryHolder implements SearchQueryHolder<String> {
 
     private ModifiableSearchParams searchParams;
     private String sparqlQuery;
-    private boolean lookup;
 
-    public JenaQueryHolder(String sparqlQuery, ModifiableSearchParams searchParams, boolean lookup) {
+    public JenaQueryHolder(String sparqlQuery, ModifiableSearchParams searchParams) {
         this.searchParams = Objects.requireNonNull(searchParams);
         this.sparqlQuery = sparqlQuery;
-        this.lookup = lookup;
     }
 
     @Override
@@ -54,7 +52,4 @@ public final class JenaQueryHolder implements SearchQueryHolder<String> {
         return searchParams;
     }
 
-    public boolean isLookup() {
-        return lookup;
-    }
 }

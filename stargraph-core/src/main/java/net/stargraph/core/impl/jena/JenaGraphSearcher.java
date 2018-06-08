@@ -97,9 +97,8 @@ public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSe
     public Scores search(SearchQueryHolder holder) {
         JenaQueryHolder jenaQueryHolder = (JenaQueryHolder)holder;
         String modelId = jenaQueryHolder.getSearchParams().getKbId().getModel();
-
+        boolean lookup = jenaQueryHolder.getSearchParams().isLookup();
         String sparqlQuery = jenaQueryHolder.getQuery();
-        boolean lookup = jenaQueryHolder.isLookup();
 
         Scores scores = new Scores();
         sparqlQuery(sparqlQuery, new SparqlIteration() {

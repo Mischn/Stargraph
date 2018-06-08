@@ -35,15 +35,22 @@ public final class ModifiableSearchParams {
     private String dbId;
     private String modelId;
     private String searchTerm;
+    private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
         // defaults
         this.limit = -1;
         this.dbId = dbId;
+        this.lookup = true;
     }
 
     public final ModifiableSearchParams term(String searchTerm) {
         this.searchTerm = searchTerm;
+        return this;
+    }
+
+    public final ModifiableSearchParams lookup(boolean lookup) {
+        this.lookup = lookup;
         return this;
     }
 
@@ -77,6 +84,10 @@ public final class ModifiableSearchParams {
 
     public final String getSearchTerm() {
         return searchTerm;
+    }
+
+    public boolean isLookup() {
+        return lookup;
     }
 
     public static ModifiableSearchParams create(String dbId) {

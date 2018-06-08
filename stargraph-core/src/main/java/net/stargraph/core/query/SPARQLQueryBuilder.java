@@ -28,6 +28,8 @@ package net.stargraph.core.query;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
 import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.QueryPlanPatterns;
@@ -41,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class SPARQLQueryBuilder {
+    private List<String> classURIs;
     private QueryType queryType;
     private QueryPlanPatterns triplePatterns;
     private List<DataModelBinding> bindings;
@@ -48,7 +51,8 @@ public final class SPARQLQueryBuilder {
     private Namespace namespace;
     private int tmpVarCounter;
 
-    public SPARQLQueryBuilder(QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
+    public SPARQLQueryBuilder(Stargraph stargraph, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
+        this.classURIs = stargraph.getClassRelations();
         this.queryType = Objects.requireNonNull(queryType);
         this.triplePatterns = Objects.requireNonNull(triplePatterns);
         this.bindings = Objects.requireNonNull(bindings);
@@ -125,14 +129,17 @@ public final class SPARQLQueryBuilder {
         triplePatterns.forEach(triplePattern -> {
             String[] components = triplePattern.getPattern().split("\\s");
 
-            List<String> sURIs = placeHolder2Pattern(components[0], false);
-            List<String> pURIs = placeHolder2Pattern(components[1], true);
-            List<String> oURIs = placeHolder2Pattern(components[2], false);
+            List<Pattern> sURIs = placeHolder2Pattern(components[0], false);
+            List<Pattern> pURIs = placeHolder2Pattern(components[1], true);
+            List<Pattern> oURIs = placeHolder2Pattern(components[2], false);
 
-            List<String> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
+            List<Pattern> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
 
             StringJoiner stmtJoiner = new StringJoiner("} UNION \n{", "{", "}");
-            prod.forEach(p -> stmtJoiner.add(p.trim() + " ."));
+            prod.forEach(p -> {
+                String filterPattern = p.getFilterPatterns().stream().collect(Collectors.joining(" "));
+                stmtJoiner.add(p.getPattern().trim() + " . " + filterPattern);
+            });
 
             tripleJoiner.add(stmtJoiner.toString());
         });
@@ -140,50 +147,71 @@ public final class SPARQLQueryBuilder {
         return tripleJoiner.toString();
     }
 
+    private List<Pattern> cartesianProduct(List<Pattern> x, List<Pattern> y) {
+        List<Pattern> xy = new ArrayList<>();
+        x.forEach(s1 -> y.forEach(s2 -> {
+            List<String> joinedFilter = new ArrayList<>();
+            joinedFilter.addAll(s1.getFilterPatterns());
+            joinedFilter.addAll(s2.getFilterPatterns());
+            xy.add(new Pattern(s1.getPattern().trim() + " " + s2.getPattern().trim(), joinedFilter));
+        }));
+        return xy;
+    }
+
+/*
     private List<String> cartesianProduct(List<String> x, List<String> y) {
         List<String> xy = new ArrayList<>();
         x.forEach(s1 -> y.forEach(s2 -> xy.add(s1.trim() + " " + s2.trim())));
         return xy;
     }
+*/
 
-    private List<String> placeHolder2Pattern(String placeHolder, boolean predicate) {
+    private List<Pattern> placeHolder2Pattern(String placeHolder, boolean predicate) {
         final int varRange = 1; //TODO experiment with this value
         final int typeRange = 1; //TODO experiment with this value
 
         // Variable
         if (isVar(placeHolder)) {
             if (predicate) {
-                // create someting like ['?VAR_1', '?VAR_1 ?TMP_1 . ?TMP_1 ?TMP_2'] for varRange=2
-                List<String> patterns = new ArrayList<>();
-                for (int i = 0; i < varRange; i++) {
+                // create someting like ['?VAR_1', '?TMP_1 ?TMP_2 . ?TMP_2 ?TMP_3'] for varRange=2
+                List<Pattern> patterns = new ArrayList<>();
+                for (int i = 1; i < varRange+1; i++) {
                     List<String> ps = new ArrayList<>();
-                    ps.add(placeHolder);
-                    for (int j = 0; j < i; j++) {
-                        ps.add(getNewTmpVar());
+                    if (i == 1) {
+                        ps.add(placeHolder);
+                    } else {
+                        for (int j = 0; j < i; j++) {
+                            ps.add(getNewTmpVar());
+                        }
                     }
-                    patterns.add(joinedPathPredicate(ps));
+                    patterns.add(new Pattern(joinedPathPredicate(ps)));
                 }
                 return patterns;
             } else {
-                return Collections.singletonList(placeHolder);
+                return Collections.singletonList(new Pattern(placeHolder));
             }
         }
 
         // Type
         if (isType(placeHolder)) {
             if (predicate) {
-                // create someting like ['a', 'a ?TMP_1 . ?TMP_1 a'] for typeRange=2
-                List<String> patterns = new ArrayList<>();
+                // create someting like ['?TMP_1', '?TMP_2 ?TMP_3 . ?TMP_3 ?TMP_4'] for typeRange=2
+                // with filters for ?TMP_1, ?TMP_2, ?TMP_3 specifying type-of-class-relations
+                List<Pattern> patterns = new ArrayList<>();
                 for (int i = 1; i < typeRange+1; i++) {
                     List<String> ps = new ArrayList<>();
+                    List<String> filterPatterns = new ArrayList<>();
                     for (int j = 0; j < i; j++) {
-                        ps.add("a");
+                        String classVar = getNewTmpVar();
+                        ps.add(classVar);
+                        filterPatterns.add(JenaSearchQueryGenerator.createFilter(classVar, classURIs));
                     }
-                    patterns.add(joinedPathPredicate(ps));
+
+                    patterns.add(new Pattern(joinedPathPredicate(ps), filterPatterns));
                 }
                 return patterns;
             } else {
-                return Collections.singletonList("a");
+                return Collections.singletonList(new Pattern("a"));
             }
         }
 
@@ -191,9 +219,9 @@ public final class SPARQLQueryBuilder {
         DataModelBinding binding = getBinding(placeHolder);
         List<Score> mappings = getMappings(binding);
         if (mappings.isEmpty()) {
-            return Collections.singletonList(getURI(binding));
+            return Collections.singletonList(new Pattern(getURI(binding)));
         }
-        List<String> patterns = new ArrayList<>();
+        List<Pattern> patterns = new ArrayList<>();
         for (Score mapping : mappings) {
 
             // create someting like '<..> ?TMP_1 . ?TMP_1 <..>' for path with 2 properties
@@ -207,9 +235,9 @@ public final class SPARQLQueryBuilder {
                         ps.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
                     }
                 }
-                patterns.add(joinedPathPredicate(ps));
+                patterns.add(new Pattern(joinedPathPredicate(ps)));
             } else {
-                patterns.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
+                patterns.add(new Pattern(String.format("<%s>", unmap(mapping.getRankableView().getId()))));
             }
         }
 
@@ -255,5 +283,27 @@ public final class SPARQLQueryBuilder {
 
     private String unmap(String uri) {
         return namespace != null ? namespace.expandURI(uri) : uri;
+    }
+
+    private class Pattern {
+        private String pattern;
+        private List<String> filterPatterns;
+
+        public Pattern(String pattern) {
+            this(pattern, new ArrayList<>());
+        }
+
+        public Pattern(String pattern, List<String> filterPatterns) {
+            this.pattern = pattern;
+            this.filterPatterns = filterPatterns;
+        }
+
+        public String getPattern() {
+            return pattern;
+        }
+
+        public List<String> getFilterPatterns() {
+            return filterPatterns;
+        }
     }
 }

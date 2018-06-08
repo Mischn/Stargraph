@@ -158,6 +158,6 @@ public class JenaBaseSearcher {
         });
         clearMaps();
         long millis = System.currentTimeMillis() - startTime;
-        logger.info(marker, "SPARQL query '{}' took {}s", sparqlQuery, millis / 1000.0);
+        logger.info(marker, "SPARQL query took {}s", millis / 1000.0);
     }
 }

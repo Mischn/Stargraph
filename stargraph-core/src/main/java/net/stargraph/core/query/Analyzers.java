@@ -28,6 +28,7 @@ package net.stargraph.core.query;
 
 import com.typesafe.config.Config;
 import net.stargraph.StarGraphException;
+import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.annotator.Annotator;
 import net.stargraph.core.query.annotator.AnnotatorFactory;
 import net.stargraph.core.query.nli.QuestionAnalyzer;
@@ -37,11 +38,14 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class Analyzers {
+    private Stargraph stargraph;
     private Rules rules;
     private Annotator annotator;
     private ConcurrentHashMap<Language, QuestionAnalyzer> questionAnalyzers;
 
-    public Analyzers(Config config) {
+    public Analyzers(Stargraph stargraph) {
+        Config config = stargraph.getMainConfig();
+        this.stargraph = stargraph;
         this.rules = new Rules(config);
         AnnotatorFactory factory = createAnnotatorFactory(config);
         this.annotator = factory.create();
@@ -49,7 +53,7 @@ public final class Analyzers {
     }
 
     public QuestionAnalyzer getQuestionAnalyzer(Language language) {
-        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(lang, annotator, rules));
+        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, lang, annotator, rules));
     }
 
     public static AnnotatorFactory createAnnotatorFactory(Config config) {

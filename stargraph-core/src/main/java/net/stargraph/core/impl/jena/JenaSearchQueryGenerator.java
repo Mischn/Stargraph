@@ -33,6 +33,7 @@ import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
 
@@ -76,5 +77,13 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         //TODO implement
         return null;
+    }
+
+    public static String createFilter(String variable, List<String> idList) {
+        return "FILTER( " + idList.stream().map(i ->  variable + " = <" + i + ">").collect(Collectors.joining(" || ")) + " )";
+    }
+
+    private static String createLimit(ModifiableSearchParams searchParams) {
+        return (searchParams.getLimit() >= 0)? "LIMIT " + searchParams.getLimit(): "";
     }
 }

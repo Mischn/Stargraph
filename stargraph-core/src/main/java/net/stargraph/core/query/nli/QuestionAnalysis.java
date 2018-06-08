@@ -12,10 +12,10 @@ package net.stargraph.core.query.nli;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,6 +27,7 @@ package net.stargraph.core.query.nli;
  */
 
 import net.stargraph.StarGraphException;
+import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.annotator.Word;
@@ -45,13 +46,15 @@ public final class QuestionAnalysis {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("nli");
 
+    private Stargraph stargraph;
     private QueryType queryType;
     private String question;
     private List<Word> annotatedWords;
     private Deque<AnalysisStep> steps;
     private SPARQLQueryBuilder sparqlQueryBuilder;
 
-    QuestionAnalysis(String question, QueryType queryType) {
+    QuestionAnalysis(Stargraph stargraph, String question, QueryType queryType) {
+        this.stargraph = stargraph;
         this.question = Objects.requireNonNull(question);
         this.queryType = Objects.requireNonNull(queryType);
         this.steps = new ArrayDeque<>();
@@ -112,7 +115,7 @@ public final class QuestionAnalysis {
 
         logger.debug(marker, "Creating SPARQL Query Builder, matched plan for '{}' is '{}'", planId, plan);
 
-        sparqlQueryBuilder = new SPARQLQueryBuilder(queryType, plan, bindings);
+        sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, queryType, plan, bindings);
     }
 
     public SPARQLQueryBuilder getSPARQLQueryBuilder() {

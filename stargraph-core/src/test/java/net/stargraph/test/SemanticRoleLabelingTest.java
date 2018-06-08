@@ -27,6 +27,7 @@ package net.stargraph.test;
  */
 
 import com.typesafe.config.ConfigFactory;
+import net.stargraph.core.Stargraph;
 import net.stargraph.query.Language;
 import net.stargraph.core.query.Analyzers;
 import net.stargraph.core.query.SPARQLQueryBuilder;
@@ -43,7 +44,8 @@ public final class  SemanticRoleLabelingTest {
 
     @BeforeClass
     public void beforeClass() {
-        Analyzers analyzers = new Analyzers(ConfigFactory.load().getConfig("stargraph"));
+        Stargraph stargraph = new Stargraph();
+        Analyzers analyzers = new Analyzers(stargraph);
         analyzer = analyzers.getQuestionAnalyzer(Language.EN);
     }
 

@@ -47,6 +47,7 @@ public final class ElasticQueryHolder implements SearchQueryHolder<QueryBuilder>
         return queryBuilder;
     }
 
+    @Override
     public ModifiableSearchParams getSearchParams() {
         return searchParams;
     }

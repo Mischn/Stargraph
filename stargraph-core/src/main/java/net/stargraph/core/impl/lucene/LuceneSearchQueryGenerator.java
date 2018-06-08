@@ -55,8 +55,7 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
-        //TODO implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
@@ -86,14 +85,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
-        //TODO implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
-        //TODO implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     private static Query boolQuery(String field, boolean value) {

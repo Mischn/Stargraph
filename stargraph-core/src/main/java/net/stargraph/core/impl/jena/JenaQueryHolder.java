@@ -1,4 +1,4 @@
-package net.stargraph.core.impl.lucene;
+package net.stargraph.core.impl.jena;
 
 /*-
  * ==========================License-Start=============================
@@ -12,10 +12,10 @@ package net.stargraph.core.impl.lucene;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,26 +28,33 @@ package net.stargraph.core.impl.lucene;
 
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.rank.ModifiableSearchParams;
-import org.apache.lucene.search.Query;
+import org.elasticsearch.index.query.QueryBuilder;
 
 import java.util.Objects;
 
-public class LuceneQueryHolder implements SearchQueryHolder<Query> {
-    private ModifiableSearchParams searchParams;
-    private Query query;
+public final class JenaQueryHolder implements SearchQueryHolder<String> {
 
-    public LuceneQueryHolder(Query query, ModifiableSearchParams searchParams) {
-        this.query = Objects.requireNonNull(query);
+    private ModifiableSearchParams searchParams;
+    private String sparqlQuery;
+    private boolean lookup;
+
+    public JenaQueryHolder(String sparqlQuery, ModifiableSearchParams searchParams, boolean lookup) {
         this.searchParams = Objects.requireNonNull(searchParams);
+        this.sparqlQuery = sparqlQuery;
+        this.lookup = lookup;
     }
 
     @Override
-    public Query getQuery() {
-        return query;
+    public String getQuery() {
+        return sparqlQuery;
     }
 
     @Override
     public ModifiableSearchParams getSearchParams() {
         return searchParams;
+    }
+
+    public boolean isLookup() {
+        return lookup;
     }
 }

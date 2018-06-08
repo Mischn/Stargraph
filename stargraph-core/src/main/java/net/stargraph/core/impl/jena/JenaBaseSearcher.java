@@ -63,14 +63,20 @@ public class JenaBaseSearcher {
     private Marker marker = MarkerFactory.getMarker("jena");
     private Namespace namespace;
     private EntitySearcher entitySearcher;
-    private BaseGraphModel graphModel;
+    protected BaseGraphModel graphModel;
     private String dbId;
+
+    private HashMap<String, ResourceEntity> entityMap; // for avoiding redundant lookups
+    private HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
 
     public JenaBaseSearcher(String dbId, Stargraph stargraph) {
         this.dbId = Objects.requireNonNull(dbId);
         this.entitySearcher = stargraph.getEntitySearcher();
         this.graphModel = stargraph.getKBCore(dbId).getGraphModel();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
+
+        this.entityMap = new HashMap<>();
+        this.propertyMap = new HashMap<>();
     }
 
     public static HashMap<String, Node> getVarMap(Binding binding) {
@@ -85,14 +91,23 @@ public class JenaBaseSearcher {
         return res;
     }
 
+    protected void clearMaps() {
+        this.entityMap.clear();
+        this.propertyMap.clear();
+    }
+
     public LabeledEntity asEntity(Node node, boolean lookup) {
         if (!node.isLiteral()) {
             String id = node.getURI();
             ResourceEntity resourceEntity = null;
 
-            if (lookup) {
+            if (entityMap.containsKey(id)) {
+                resourceEntity = entityMap.get(id);
+            } else if (lookup) {
                 resourceEntity = entitySearcher.getResourceEntity(dbId, id);
+                entityMap.put(id, resourceEntity);
             }
+
             if (resourceEntity == null) {
                 resourceEntity = ModelCreator.createResource(id, namespace);
             }
@@ -108,9 +123,13 @@ public class JenaBaseSearcher {
             String id = node.getURI();
             PropertyEntity propertyEntity = null;
 
-            if (lookup) {
+            if (propertyMap.containsKey(id)) {
+                propertyEntity = propertyMap.get(id);
+            } else if (lookup) {
                 propertyEntity = entitySearcher.getPropertyEntity(dbId, id);
+                propertyMap.put(id, propertyEntity);
             }
+
             if (propertyEntity == null) {
                 propertyEntity = ModelCreator.createProperty(id, namespace);
             }
@@ -121,6 +140,7 @@ public class JenaBaseSearcher {
     }
 
     public void sparqlQuery(String sparqlQuery, SparqlIteration sparqlIteration) {
+        clearMaps();
         logger.debug(marker, "Executing: {}", sparqlQuery);
 
         long startTime = System.currentTimeMillis();
@@ -136,6 +156,7 @@ public class JenaBaseSearcher {
                 }
             }
         });
+        clearMaps();
         long millis = System.currentTimeMillis() - startTime;
         logger.info(marker, "SPARQL query '{}' took {}s", sparqlQuery, millis / 1000.0);
     }

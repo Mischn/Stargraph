@@ -26,9 +26,14 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
+import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.GraphSearcher;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.core.search.SearchQueryHolder;
+import net.stargraph.core.search.Searcher;
+import net.stargraph.model.*;
+import net.stargraph.rank.Score;
+import net.stargraph.rank.Scores;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.slf4j.Logger;
@@ -36,9 +41,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import javax.ws.rs.NotSupportedException;
 import java.util.*;
 
-public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSearcher {
+public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSearcher, Searcher {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
 
@@ -75,5 +81,71 @@ public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSe
     @Override
     public boolean ask(String sparqlQuery) {
         return false;
+    }
+
+    @Override
+    public void start() {
+        // nothing
+    }
+
+    @Override
+    public void stop() {
+        // nothing
+    }
+
+    @Override
+    public Scores search(SearchQueryHolder holder) {
+        JenaQueryHolder jenaQueryHolder = (JenaQueryHolder)holder;
+        String modelId = jenaQueryHolder.getSearchParams().getKbId().getModel();
+
+        String sparqlQuery = jenaQueryHolder.getQuery();
+        boolean lookup = jenaQueryHolder.isLookup();
+
+        Scores scores = new Scores();
+        sparqlQuery(sparqlQuery, new SparqlIteration() {
+            @Override
+            public void process(Binding binding) {
+                HashMap<String, Node> varMap = getVarMap(binding);
+
+                if (modelId.equals(BuiltInModel.FACT.modelId)) {
+                    // assume that '?s' '?p' '?o' variables are available in the query
+                    if (!varMap.containsKey("s") || !varMap.containsKey("p") || !varMap.containsKey("o")) {
+                        throw new StarGraphException("?s ?p ?o variables need to be available in the query");
+                    }
+
+                    ResourceEntity subject = (ResourceEntity) asEntity(varMap.get("s"), lookup);
+                    PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
+                    LabeledEntity object = asEntity(varMap.get("o"), lookup);
+
+                    Fact fact = new Fact(holder.getSearchParams().getKbId(), subject, predicate, object);
+                    scores.add(new Score(fact, 0.0));
+                } else if (modelId.equals(BuiltInModel.ENTITY.modelId)) {
+                    // assume that '?e' variable is available in the query
+                    if (!varMap.containsKey("e")) {
+                        throw new StarGraphException("?e variable need to be available in the query");
+                    }
+
+                    ResourceEntity entity = (ResourceEntity) asEntity(varMap.get("e"), lookup);
+                    scores.add(new Score(entity, 0.0));
+                } else if (modelId.equals(BuiltInModel.PROPERTY.modelId)) {
+                    // assume that '?p' variable is available in the query
+                    if (!varMap.containsKey("p")) {
+                        throw new StarGraphException("?p variable need to be available in the query");
+                    }
+
+                    PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
+                    scores.add(new Score(predicate, 0.0));
+                } else {
+                    throw new NotSupportedException("Model '" + modelId + "' is not supported.");
+                }
+            }
+        });
+
+        return scores;
+    }
+
+    @Override
+    public long countDocuments() {
+        return graphModel.getSize();
     }
 }

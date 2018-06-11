@@ -150,9 +150,9 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
-        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(memberId), true, searchParams);
-        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+        Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
@@ -186,9 +186,9 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
-        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(classId), false, searchParams);
-        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+        Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
@@ -237,7 +237,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, false, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS); //TODO fuzzy true or false?
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -350,9 +350,9 @@ public class EntitySearcher {
                 .collect(Collectors.toList());
 
         searchParams.model(BuiltInModel.FACT);
-        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(neighbourIds, true, searchParams);
-        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+        Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
@@ -417,9 +417,9 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
-        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams, outgoingEdges, incomingEdges);
-        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+        Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);

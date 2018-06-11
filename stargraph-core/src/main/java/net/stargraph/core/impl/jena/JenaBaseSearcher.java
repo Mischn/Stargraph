@@ -32,7 +32,6 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.core.search.Searcher;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.ResourceEntity;
@@ -49,12 +48,14 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * Contains basic functionalities for querying the graph.
  */
-public class JenaBaseSearcher {
+public abstract class JenaBaseSearcher extends GraphSearcher {
     public interface SparqlIteration {
         void process(Binding binding);
     }
@@ -70,6 +71,7 @@ public class JenaBaseSearcher {
     private HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
 
     public JenaBaseSearcher(String dbId, Stargraph stargraph) {
+        super(stargraph);
         this.dbId = Objects.requireNonNull(dbId);
         this.entitySearcher = stargraph.getEntitySearcher();
         this.graphModel = stargraph.getKBCore(dbId).getGraphModel();

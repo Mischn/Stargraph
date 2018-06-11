@@ -26,15 +26,21 @@ package net.stargraph.core.graph;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.search.BaseSearcher;
 import net.stargraph.model.LabeledEntity;
 
 import java.util.List;
 import java.util.Map;
 
-public interface GraphSearcher {
+public abstract class GraphSearcher extends BaseSearcher {
 
-    Map<String, List<LabeledEntity>> select(String sparqlQuery);
+    public GraphSearcher(Stargraph stargraph) {
+        super(stargraph);
+    }
 
-    boolean ask(String sparqlQuery);
+    public abstract Map<String, List<LabeledEntity>> select(String sparqlQuery);
+
+    public abstract boolean ask(String sparqlQuery);
 
 }

@@ -28,7 +28,7 @@ package net.stargraph.core.impl.elastic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.search.BaseSearcher;
+import net.stargraph.core.search.IndexSearcher;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.core.serializer.ObjectSerializer;
 import net.stargraph.model.BuiltInModel;
@@ -42,7 +42,7 @@ import org.elasticsearch.search.SearchHit;
 
 import java.io.Serializable;
 
-public final class ElasticSearcher extends BaseSearcher {
+public final class ElasticSearcher extends IndexSearcher {
     private ObjectMapper mapper;
     private ElasticClient esClient;
 

@@ -35,47 +35,11 @@ import org.slf4j.MarkerFactory;
 
 import java.util.Objects;
 
-public abstract class BaseSearcher implements Searcher {
-    protected Logger logger = LoggerFactory.getLogger(getClass());
-    protected Marker marker = MarkerFactory.getMarker("search");
-    protected Stargraph stargraph;
-    private boolean running;
+public abstract class IndexSearcher extends BaseSearcher {
+   protected KBId kbId;
 
-    public BaseSearcher(Stargraph stargraph) {
-        this.stargraph = Objects.requireNonNull(stargraph);
+    public IndexSearcher(KBId kbId, Stargraph stargraph) {
+        super(stargraph);
+        this.kbId = kbId;
     }
-
-    @Override
-    public synchronized final void start() {
-        if (running) {
-            throw new IllegalStateException("Already started!");
-        }
-        onStart();
-        running = true;
-    }
-
-    @Override
-    public synchronized final void stop() {
-        if (!running) {
-            logger.error(marker, "Searcher already stopped.");
-        } else {
-            try {
-                onStop();
-                running = false;
-            }
-            catch (Exception e) {
-                logger.error(marker, "Fail to stop.", e);
-            }
-
-        }
-    }
-
-    protected void onStart() {
-        // Specific implementation detail
-    }
-
-    protected void onStop() {
-        // Specific implementation detail
-    }
-
 }

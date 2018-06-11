@@ -44,7 +44,7 @@ import org.slf4j.MarkerFactory;
 import javax.ws.rs.NotSupportedException;
 import java.util.*;
 
-public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSearcher, Searcher {
+public final class JenaGraphSearcher extends JenaBaseSearcher {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
 
@@ -81,16 +81,6 @@ public final class JenaGraphSearcher extends JenaBaseSearcher implements GraphSe
     @Override
     public boolean ask(String sparqlQuery) {
         return false;
-    }
-
-    @Override
-    public void start() {
-        // nothing
-    }
-
-    @Override
-    public void stop() {
-        // nothing
     }
 
     @Override

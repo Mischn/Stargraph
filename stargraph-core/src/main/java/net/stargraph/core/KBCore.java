@@ -7,6 +7,7 @@ import net.stargraph.core.graph.GraphModelProviderFactory;
 import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.impl.corenlp.NERSearcher;
 import net.stargraph.core.impl.jena.JenaGraphSearcher;
+import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
 import net.stargraph.core.index.Indexer;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.BaseSearcher;
@@ -45,8 +46,10 @@ public final class KBCore {
     private Stargraph stargraph;
     private NER ner;
     private Map<String, Indexer> indexers;
-    private Map<String, Searcher> searchers;
-    private Map<String, SearchQueryGenerator> searchQueryGenerators;
+    private Map<String, Searcher> indexSearchers;
+    private Map<String, SearchQueryGenerator> indexSearchQueryGenerators;
+    private GraphSearcher graphSearcher;
+    private SearchQueryGenerator graphSearchQueryGenerator;
     private boolean running;
 
     public KBCore(String kbName, Stargraph stargraph, boolean start) {
@@ -55,8 +58,8 @@ public final class KBCore {
         this.kbConfig = stargraph.getKBConfig(kbName);
         this.marker = MarkerFactory.getMarker(kbName);
         this.indexers = new ConcurrentHashMap<>();
-        this.searchers = new ConcurrentHashMap<>();
-        this.searchQueryGenerators = new ConcurrentHashMap<>();
+        this.indexSearchers = new ConcurrentHashMap<>();
+        this.indexSearchQueryGenerators = new ConcurrentHashMap<>();
         this.language = Language.valueOf(kbConfig.getString("language").toUpperCase());
 
         if (kbConfig.hasPathOrNull("ner-kb")) {
@@ -100,14 +103,14 @@ public final class KBCore {
 
             if (searcher != null) {
                 searcher.start();
-                searchers.put(modelId, searcher);
+                indexSearchers.put(modelId, searcher);
             } else {
                 logger.warn(marker, "No searcher created for {}", kbId);
             }
 
             SearchQueryGenerator searchQueryGenerator = factory.createSearchQueryGenerator(kbId, stargraph);
             if (searchQueryGenerator != null) {
-                searchQueryGenerators.put(modelId, searchQueryGenerator);
+                indexSearchQueryGenerators.put(modelId, searchQueryGenerator);
             } else {
                 logger.warn(marker, "No search query generator created for {}", kbId);
             }
@@ -126,7 +129,7 @@ public final class KBCore {
         logger.info(marker, "Terminating '{}'", kbName);
 
         indexers.values().forEach(Indexer::stop);
-        searchers.values().forEach(Searcher::stop);
+        indexSearchers.values().forEach(Searcher::stop);
         BaseGraphModel m = getGraphModel();
         if (m != null) {
             m.close();
@@ -189,17 +192,32 @@ public final class KBCore {
 
     public Searcher getSearcher(String modelId) {
         checkRunning();
-        if (searchers.containsKey(modelId)) {
-            return searchers.get(modelId);
+        if (indexSearchers.containsKey(modelId)) {
+            return indexSearchers.get(modelId);
         }
         throw new StarGraphException("Searcher not found nor initialized: " + KBId.of(kbName, modelId));
     }
 
     public SearchQueryGenerator getSearchQueryGenerator(String modelId) {
-        if (searchQueryGenerators.containsKey(modelId)) {
-            return searchQueryGenerators.get(modelId);
+        if (indexSearchQueryGenerators.containsKey(modelId)) {
+            return indexSearchQueryGenerators.get(modelId);
         }
         throw new StarGraphException("SearchQueryGenerator not found nor initialized: " + KBId.of(kbName, modelId));
+    }
+
+    public GraphSearcher getGraphSearcher() {
+        if (graphSearcher == null) {
+            graphSearcher = new JenaGraphSearcher(kbName, stargraph);
+
+        }
+        return graphSearcher;
+    }
+
+    public SearchQueryGenerator getGraphSearchQueryGenerator() {
+        if (graphSearchQueryGenerator == null) {
+            graphSearchQueryGenerator = new JenaSearchQueryGenerator(stargraph, kbName);
+        }
+        return graphSearchQueryGenerator;
     }
 
     public KBLoader getLoader() {
@@ -213,10 +231,6 @@ public final class KBCore {
 
     public Namespace getNamespace() {
         return namespace;
-    }
-
-    public GraphSearcher createGraphSearcher() {
-        return new JenaGraphSearcher(kbName, stargraph);
     }
 
     public void configureDistributionalParams(ModifiableIndraParams params) {

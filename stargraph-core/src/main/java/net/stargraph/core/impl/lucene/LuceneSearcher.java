@@ -46,7 +46,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public final class LuceneSearcher extends BaseSearcher {
+public final class LuceneSearcher extends net.stargraph.core.search.IndexSearcher {
     private Directory directory;
     private IndexReader indexReader;
     private IndexSearcher indexSearcher;

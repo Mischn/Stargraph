@@ -68,7 +68,7 @@ public final class QueryEngine {
         this.dbId = Objects.requireNonNull(dbId);
         this.core = Objects.requireNonNull(stargraph.getKBCore(dbId));
         this.analyzers = new Analyzers(stargraph);
-        this.graphSearcher = core.createGraphSearcher();
+        this.graphSearcher = core.getGraphSearcher();
         this.entitySearcher = stargraph.getEntitySearcher();
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();

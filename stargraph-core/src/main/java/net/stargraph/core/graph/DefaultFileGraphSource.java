@@ -42,20 +42,13 @@ public class DefaultFileGraphSource extends FileGraphSource {
     }
 
     @Override
-    protected void extend(BaseGraphModel graphModel, File file) {
-        logger.info(marker, "Extending graph model with file '{}'", file.getAbsolutePath());
-
-        try {
-            graphModel.doWrite(new BaseGraphModel.WriteTransaction() {
-                @Override
-                public boolean writeTransaction(Model model) {
-                    RDFDataMgr.read(model, file.getAbsolutePath());
-                    return true;
-                }
-            });
-        } catch (Exception e) {
-            logger.error(marker, "Failed to extend graph model for {}", dbId);
-            throw new StarGraphException(e);
-        }
+    public void extend(BaseGraphModel graphModel, File file) {
+        graphModel.doWrite(new BaseGraphModel.WriteTransaction() {
+            @Override
+            public boolean writeTransaction(Model model) {
+                RDFDataMgr.read(model, file.getAbsolutePath());
+                return true;
+            }
+        });
     }
 }

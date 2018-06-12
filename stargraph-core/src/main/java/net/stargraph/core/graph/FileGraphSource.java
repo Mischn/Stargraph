@@ -45,9 +45,9 @@ public abstract class FileGraphSource implements GraphSource<BaseGraphModel> {
 
     protected final Stargraph stargraph;
     protected final String dbId;
-    private final String storeFilename; // optional
-    private final String resource;
-    private final boolean required;
+    protected final String storeFilename; // optional
+    protected final String resource;
+    protected final boolean required;
 
     public FileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required) {
         this.stargraph = Objects.requireNonNull(stargraph);
@@ -57,7 +57,7 @@ public abstract class FileGraphSource implements GraphSource<BaseGraphModel> {
         this.required = required;
     }
 
-    protected abstract void extend(BaseGraphModel graphModel, File file);
+    protected abstract void extend(BaseGraphModel graphModel, File file) throws Exception;
 
     @Override
     public void extend(BaseGraphModel graphModel) {
@@ -71,7 +71,13 @@ public abstract class FileGraphSource implements GraphSource<BaseGraphModel> {
                     return;
                 }
             } else {
-                extend(graphModel, file);
+                try {
+                    logger.info(marker, "Extending graph model with file '{}'", file.getAbsolutePath());
+                    extend(graphModel, file);
+                } catch (Exception e) {
+                    logger.error(marker, "Failed to extend graph model for {}", dbId);
+                    throw new StarGraphException(e);
+                }
             }
         } catch (Exception e) {
             throw new StarGraphException(e);

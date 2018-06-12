@@ -1,4 +1,4 @@
-package net.stargraph.core.impl.hdt;
+package net.stargraph.core.impl.nquads;
 
 /*-
  * ==========================License-Start=============================
@@ -26,36 +26,35 @@ package net.stargraph.core.impl.hdt;
  * ==========================License-End===============================
  */
 
-import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.graph.BatchFileGraphSource;
 import net.stargraph.core.graph.FileGraphSource;
-import net.stargraph.core.graph.MGraphModel;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.rdfhdt.hdt.hdt.HDT;
-import org.rdfhdt.hdt.hdt.HDTManager;
-import org.rdfhdt.hdtjena.HDTGraph;
+import net.stargraph.core.graph.batch.BatchFileGenerator;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.List;
 
-public class HDTFileGraphSource extends FileGraphSource {
-    private boolean useIndex;
+/**
+ * This is used since NQuadsFileGraphSource needs to load data in memory.
+ */
+public class NQuadsBatchFileGraphSource extends BatchFileGraphSource {
+    private boolean includeDefaultGraph;
+    private List<String> graphNames;
 
-    public HDTFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, boolean useIndex) {
-        super(stargraph, dbId, resource, storeFilename, required);
-        this.useIndex = useIndex;
+    public NQuadsBatchFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, long maxTriplesInFile, boolean includeDefaultGraph, List<String> graphNames) {
+        super(stargraph, dbId, resource, storeFilename, required, maxTriplesInFile);
+        this.includeDefaultGraph = includeDefaultGraph;
+        this.graphNames = graphNames;
     }
 
     @Override
-    public void extend(BaseGraphModel graphModel, File file) throws IOException {
-        HDT hdt = useIndex ? HDTManager.mapIndexedHDT(file.getAbsolutePath(), null) : HDTManager.loadHDT(file.getAbsolutePath(), null);
-        HDTGraph graph = new HDTGraph(hdt);
-        Model other = ModelFactory.createModelForGraph(graph);
+    protected BatchFileGenerator createBatchFileGenerator(File directory, long maxEntriesInFile, String fileNamePrefix) {
+        return new NQuadsBatchFileGenerator(directory, maxEntriesInFile, fileNamePrefix);
+    }
 
-        // Attention: The HDT file is fully loaded into memory
-        MGraphModel otherModel = new MGraphModel(other);
-        graphModel.add(otherModel);
+    @Override
+    protected FileGraphSource createBatchFileGraphSource(Stargraph stargraph, String dbId, File file) {
+        return new NQuadsFileGraphSource(stargraph, dbId, file.getAbsolutePath(), "", true, includeDefaultGraph, graphNames);
     }
 }

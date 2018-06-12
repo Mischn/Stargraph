@@ -60,42 +60,35 @@ public class NQuadsFileGraphSource extends FileGraphSource {
     }
 
     @Override
-    protected void extend(BaseGraphModel graphModel, File file) {
-        logger.info(marker, "Extending graph model with file '{}'", file.getAbsolutePath());
+    public void extend(BaseGraphModel graphModel, File file) {
 
-        try {
-            // Attention: The NQuads file is fully loaded into memory
-            Dataset dataset = RDFDataMgr.loadDataset(file.getAbsolutePath());
+        // Attention: The NQuads file is fully loaded into memory
+        Dataset dataset = RDFDataMgr.loadDataset(file.getAbsolutePath());
 
-            List<String> allGraphNames = getGraphNames(dataset);
-            logger.info(marker, "Found {} named graphs: {}", allGraphNames.size(), allGraphNames);
+        List<String> allGraphNames = getGraphNames(dataset);
+        logger.info(marker, "Found {} named graphs: {}", allGraphNames.size(), allGraphNames);
 
-            // determine graph names to use
-            List<String> usedGraphNames = (graphNames == null)? allGraphNames : graphNames;
+        // determine graph names to use
+        List<String> usedGraphNames = (graphNames == null)? allGraphNames : graphNames;
 
-            if (includeDefaultGraph) {
-                logger.info(marker, "Adding default graph..");
-                Model other = dataset.getDefaultModel();
+        if (includeDefaultGraph) {
+            logger.info(marker, "Adding default graph..");
+            Model other = dataset.getDefaultModel();
+
+            MGraphModel otherModel = new MGraphModel(other);
+            graphModel.add(otherModel);
+        }
+
+        for (String graphName : usedGraphNames) {
+            if (!dataset.containsNamedModel(graphName)) {
+                logger.warn(marker, "Named graph '{}' does not exist.", graphName);
+            } else {
+                logger.info(marker, "Adding named graph {}..", graphName);
+                Model other = dataset.getNamedModel(graphName);
 
                 MGraphModel otherModel = new MGraphModel(other);
                 graphModel.add(otherModel);
             }
-
-            for (String graphName : usedGraphNames) {
-                if (!dataset.containsNamedModel(graphName)) {
-                    logger.warn(marker, "Named graph '{}' does not exist.", graphName);
-                } else {
-                    logger.info(marker, "Adding named graph {}..", graphName);
-                    Model other = dataset.getNamedModel(graphName);
-
-                    MGraphModel otherModel = new MGraphModel(other);
-                    graphModel.add(otherModel);
-                }
-            }
-
-        } catch (Exception e) {
-            logger.error(marker, "Failed to extend graph model for {}", dbId);
-            throw new StarGraphException(e);
         }
     }
 }

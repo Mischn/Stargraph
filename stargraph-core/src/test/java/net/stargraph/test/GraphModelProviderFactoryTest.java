@@ -31,6 +31,7 @@ import com.typesafe.config.ConfigFactory;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.*;
 import net.stargraph.core.impl.hdt.HDTFileGraphSource;
+import net.stargraph.core.impl.nquads.NQuadsFileGraphSource;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -64,6 +65,10 @@ public final class GraphModelProviderFactoryTest {
             return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.ttl").getPath(), null, true);
         }
 
+        public GraphSource getNQuadsDataSource() {
+            return new NQuadsFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.nq").getPath(), null, true, true, null);
+        }
+
         public GraphSource getNewDataSource() {
             return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/Michelle_Obama.nt").getPath(), null, true);
         }
@@ -91,6 +96,42 @@ public final class GraphModelProviderFactoryTest {
         BaseGraphModel model = stargraph.getKBCore(dbId).getGraphModel();
         Assert.assertTrue(model.getSize() > 2000);
     }
+
+    private void loadSingleGraphModelTest(FactoryGenerator factoryGenerator) throws IOException {
+        Path root = java.nio.file.Files.createTempFile("stargraph-", "-dataDir");
+        createGraphModelPath(root, dbId);
+
+        ConfigFactory.invalidateCaches();
+        Config config = ConfigFactory.load().getConfig("stargraph");
+        stargraph = new Stargraph(config, false);
+        stargraph.setDataRootDir(root.toFile());
+        stargraph.setDefaultGraphModelProviderFactory(factoryGenerator.generate(stargraph, dbId));
+        stargraph.initialize();
+
+        BaseGraphModel model = stargraph.getKBCore(dbId).getGraphModel();
+        Assert.assertTrue(model.getSize() > 1800);
+    }
+
+    @Test
+    public void loadJointGraphModelNQuadsNEWTest() throws Exception {
+
+        loadJointGraphModelTest(new FactoryGenerator() {
+            @Override
+            public GraphModelProviderFactory generate(Stargraph stargraph, String dbId) {
+                GraphSourceGenerator generator = new GraphSourceGenerator(stargraph, dbId);
+                return new BaseGraphModelProviderFactory(stargraph) {
+                    @Override
+                    public GraphModelProvider create(String dbId) {
+                        return new GraphModelProvider(stargraph, dbId, true, true, Arrays.asList(
+                                generator.getNQuadsDataSource(),
+                                generator.getNewDataSource()
+                        ));
+                    }
+                };
+            }
+        });
+    }
+
 
     @Test
     public void loadJointGraphModelHDTNEWTest() throws Exception {
@@ -146,7 +187,82 @@ public final class GraphModelProviderFactoryTest {
                                 generator.getNTDataSource(),
                                 generator.getHDTDataSource(),
                                 generator.getTurtleDataSource(),
+                                generator.getNQuadsDataSource(),
                                 generator.getNewDataSource()
+                        ));
+                    }
+                };
+            }
+        });
+    }
+
+
+
+    @Test
+    public void loadNTriples() throws Exception {
+        loadSingleGraphModelTest(new FactoryGenerator() {
+            @Override
+            public GraphModelProviderFactory generate(Stargraph stargraph, String dbId) {
+                GraphSourceGenerator generator = new GraphSourceGenerator(stargraph, dbId);
+                return new BaseGraphModelProviderFactory(stargraph) {
+                    @Override
+                    public GraphModelProvider create(String dbId) {
+                        return new GraphModelProvider(stargraph, dbId, true, true, Arrays.asList(
+                                generator.getNTDataSource()
+                        ));
+                    }
+                };
+            }
+        });
+    }
+
+    @Test
+    public void loadHDT() throws Exception {
+        loadSingleGraphModelTest(new FactoryGenerator() {
+            @Override
+            public GraphModelProviderFactory generate(Stargraph stargraph, String dbId) {
+                GraphSourceGenerator generator = new GraphSourceGenerator(stargraph, dbId);
+                return new BaseGraphModelProviderFactory(stargraph) {
+                    @Override
+                    public GraphModelProvider create(String dbId) {
+                        return new GraphModelProvider(stargraph, dbId, true, true, Arrays.asList(
+                                generator.getHDTDataSource()
+                        ));
+                    }
+                };
+            }
+        });
+    }
+
+    @Test
+    public void loadTurtle() throws Exception {
+        loadSingleGraphModelTest(new FactoryGenerator() {
+            @Override
+            public GraphModelProviderFactory generate(Stargraph stargraph, String dbId) {
+                GraphSourceGenerator generator = new GraphSourceGenerator(stargraph, dbId);
+                return new BaseGraphModelProviderFactory(stargraph) {
+                    @Override
+                    public GraphModelProvider create(String dbId) {
+                        return new GraphModelProvider(stargraph, dbId, true, true, Arrays.asList(
+                                generator.getTurtleDataSource()
+                        ));
+                    }
+                };
+            }
+        });
+    }
+
+    @Test
+    public void loadNQuads() throws Exception {
+        loadSingleGraphModelTest(new FactoryGenerator() {
+            @Override
+            public GraphModelProviderFactory generate(Stargraph stargraph, String dbId) {
+                GraphSourceGenerator generator = new GraphSourceGenerator(stargraph, dbId);
+                return new BaseGraphModelProviderFactory(stargraph) {
+                    @Override
+                    public GraphModelProvider create(String dbId) {
+                        return new GraphModelProvider(stargraph, dbId, true, true, Arrays.asList(
+                                generator.getNQuadsDataSource()
                         ));
                     }
                 };

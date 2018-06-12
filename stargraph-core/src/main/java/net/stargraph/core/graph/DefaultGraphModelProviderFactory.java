@@ -29,6 +29,7 @@ package net.stargraph.core.graph;
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.hdt.HDTFileGraphSource;
+import net.stargraph.core.impl.nquads.NQuadsFileGraphSource;
 import org.apache.commons.io.FilenameUtils;
 
 import java.util.ArrayList;
@@ -61,6 +62,13 @@ public class DefaultGraphModelProviderFactory extends BaseGraphModelProviderFact
         final String hdtUseIndexCfgPath = "hdt.use-index";
         boolean hdtUseIndex = graphModelCfg.hasPath(hdtUseIndexCfgPath) && graphModelCfg.getBoolean(hdtUseIndexCfgPath);
 
+        final String nqGraphNamesCfgPath = "nq.named-graphs";
+        List<String> graphNames = null;
+        if (graphModelCfg.hasPathOrNull(nqGraphNamesCfgPath)) {
+            if (!graphModelCfg.getIsNull(nqGraphNamesCfgPath)) {
+                graphNames = graphModelCfg.getStringList(nqGraphNamesCfgPath);
+            }
+        }
 
         // create graph sources
         List<GraphSource<BaseGraphModel>> graphSources = new ArrayList<>();
@@ -69,6 +77,8 @@ public class DefaultGraphModelProviderFactory extends BaseGraphModelProviderFact
 
             if (extension.equals("hdt")) {
                 graphSources.add(new HDTFileGraphSource(stargraph, dbId, resource, null, true, hdtUseIndex));
+            } else if (extension.equals("nq")) {
+                graphSources.add(new NQuadsFileGraphSource(stargraph, dbId, resource, null, true, true, graphNames));
             } else {
                 graphSources.add(new DefaultFileGraphSource(stargraph, dbId, resource, null, true));
             }

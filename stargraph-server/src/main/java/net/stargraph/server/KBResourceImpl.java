@@ -61,8 +61,14 @@ final class KBResourceImpl implements KBResource {
         this.stargraph = Objects.requireNonNull(stargraph);
     }
 
+
     @Override
-    public List<String> getKBs() {
+    public List<String> getIds() {
+        return stargraph.getKBs().stream().map(c -> c.getKBName()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> getModels() {
         List<String> kbIdList = new ArrayList<>();
         stargraph.getKBs().forEach(core -> kbIdList.addAll(core.getKBIds().stream()
                 .map(kbId -> String.format("%s/%s", kbId.getId(), kbId.getModel()))

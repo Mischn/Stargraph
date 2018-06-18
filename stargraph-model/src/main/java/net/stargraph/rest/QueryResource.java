@@ -39,5 +39,5 @@ public interface QueryResource {
 
     @GET
     @Path("{kbId}/query")
-    Response query(@PathParam("kbId") String id, @QueryParam("q") String q);
+    Response query(@PathParam("kbId") String dbId, @QueryParam("q") String q);
 }

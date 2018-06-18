@@ -26,6 +26,8 @@ package net.stargraph.rank;
  * ==========================License-End===============================
  */
 
+import net.stargraph.StarGraphException;
+
 public final class ParamsBuilder {
 
     public static ModifiableRankParams stringDistance() {
@@ -66,5 +68,32 @@ public final class ParamsBuilder {
 
     public static ModifiableIndraParams glove() {
         return new ModifiableIndraParams(Threshold.auto(), RankingModel.GLOVE);
+    }
+
+    public static ModifiableRankParams get(String model) {
+        switch (model.toLowerCase()) {
+            case "stringdistance":
+                return stringDistance();
+            case "levenshtein":
+                return levenshtein();
+            case "fuzzy":
+                return fuzzy();
+            case "jaccard":
+                return jaccard();
+            case "jarowinkler":
+                return jarowinkler();
+            case "distributional":
+                return distributional();
+            case "word2vec":
+            case "w2v":
+                return word2vec();
+            case "esa":
+                return esa();
+            case "lsa":
+                return lsa();
+            case "glove":
+                return glove();
+        }
+        throw new StarGraphException("Unknown ranking model");
     }
 }

@@ -41,7 +41,12 @@ import java.util.List;
 public interface KBResource {
 
     @GET
-    List<String> getKBs();
+    @Path("_ids")
+    List<String> getIds();
+
+    @GET
+    @Path("_models")
+    List<String> getModels();
 
     @POST
     @Path("{id}/_load/{type}")

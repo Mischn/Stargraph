@@ -33,17 +33,17 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class SPARQLSelectUserResponse extends UserResponse {
-    private Map<String, List<String>> bindings;
+    private Map<String, List<EntityEntry>> bindings;
 
     public SPARQLSelectUserResponse(String query, InteractionMode interactionMode) {
         super(query, interactionMode);
     }
 
-    public void setBindings(Map<String, List<String>> bindings) {
+    public void setBindings(Map<String, List<EntityEntry>> bindings) {
         this.bindings = Objects.requireNonNull(bindings);
     }
 
-    public Map<String, List<String>> getBindings() {
+    public Map<String, List<EntityEntry>> getBindings() {
         return bindings;
     }
 }

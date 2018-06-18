@@ -72,6 +72,7 @@ public final class Server {
             rc.register(AdminResourceImpl.class);
             rc.register(new KBResourceImpl(stargraph));
             rc.register(new QueryResourceImpl(stargraph));
+            rc.register(new SearchResourceImpl(stargraph));
             httpServer = GrizzlyHttpServerFactory.createHttpServer(URI.create(urlStr), rc, true);
             logger.info(marker, "Stargraph listening on {}", urlStr);
         } catch (Exception e) {

@@ -26,10 +26,7 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
-import net.stargraph.model.LabeledEntity;
-import net.stargraph.model.ValueEntity;
 import net.stargraph.query.InteractionMode;
-import net.stargraph.rank.Score;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -63,15 +60,6 @@ public abstract class UserResponse implements Serializable {
 
         public double score;
 
-        public EntityEntry(Score entityScore) {
-            this((entityScore.getEntry() instanceof ValueEntity)? EntityType.LITERAL : EntityType.INSTANCE,
-                    entityScore.getRankableView().getId(),
-                    entityScore.getRankableView().getValue(),
-                    entityScore.getValue());
-        }
-        public EntityEntry(LabeledEntity entity) {
-            this((entity instanceof ValueEntity)? EntityType.LITERAL : EntityType.INSTANCE, entity.getId(), entity.getValue());
-        }
         public EntityEntry(EntityType type, String id, String value) {
             this(type, id, value, 1);
         }

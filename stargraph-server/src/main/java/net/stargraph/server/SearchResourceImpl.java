@@ -34,12 +34,14 @@ import net.stargraph.rank.ModifiableSearchParams;
 import net.stargraph.rank.ParamsBuilder;
 import net.stargraph.rank.Scores;
 import net.stargraph.rest.SearchResource;
+import net.stargraph.rest.UserResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Objects;
 
 final class SearchResourceImpl implements SearchResource {
@@ -56,39 +58,49 @@ final class SearchResourceImpl implements SearchResource {
 
     @Override
     public Response resourceSearch(String dbId, String resourceTerm, String model, int topk) {
-        Namespace ns = stargraph.getKBCore(dbId).getNamespace();
+        Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(resourceTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
 
-        return Response.status(Response.Status.OK).entity(scores).build();
+        return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
 
     @Override
     public Response classSearch(String dbId, String classTerm, String model, int topk) {
+        Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
+
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(classTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.classSearch(searchParams, rankParams);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
 
-        return Response.status(Response.Status.OK).entity(scores).build();
+        return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
 
     @Override
     public Response propertySearch(String dbId, String propertyTerm, String model, int topk) {
+        Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
+
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(propertyTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.propertySearch(searchParams, rankParams);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
 
-        return Response.status(Response.Status.OK).entity(scores).build();
+        return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
 
     @Override
     public Response pivotedSearch(String dbId, String id, String relationTerm, boolean incomingEdges, boolean outgoingEdges, int range, String model, int topk) {
+        Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
+
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(relationTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankParams, incomingEdges, outgoingEdges, range, false);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
 
-        return Response.status(Response.Status.OK).entity(scores).build();
+        return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
 }

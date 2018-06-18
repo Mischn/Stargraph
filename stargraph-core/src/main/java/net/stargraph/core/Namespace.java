@@ -75,11 +75,15 @@ public final class Namespace extends TreeMap<String, String> {
         this.shortenedURICache = CacheBuilder.newBuilder().maximumSize(1000).build();
     }
 
+    public static boolean isFullId(String id) {
+        return (id.toLowerCase().startsWith("http://") || id.toLowerCase().startsWith("https://"));
+    }
+
     public String shrinkURI(String uri) {
         try {
             return shortenedURICache.get(uri, () -> {
                 // This is the computation we want to avoid using the cache.
-                if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                if (isFullId(uri)) {
                     for (Map.Entry<String, String> entry : this.entrySet()) {
                         if (uri.startsWith(entry.getKey())) {
                             return uri.replace(entry.getKey(), entry.getValue());

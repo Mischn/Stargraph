@@ -55,7 +55,7 @@ public class DataUtils {
     public static Path getData(String resource, String baseDir, String storeFilename) throws IOException {
 
         // web resource
-        if (resource.startsWith("http://")) {
+        if (resource.startsWith("http://") || resource.startsWith("https://")) {
             String stFilename = (storeFilename != null)? storeFilename : FilenameUtils.getName(resource);
             Path storePath = Paths.get(baseDir, stFilename);
 

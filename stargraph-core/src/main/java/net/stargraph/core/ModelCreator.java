@@ -41,7 +41,7 @@ public final class ModelCreator {
     private static final String RE_CAMELCASE_OR_UNDERSCORE = "(?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z])|_";
 
     private static String getNamespace(String uriStr) {
-        if (uriStr.toLowerCase().startsWith("http://") || uriStr.toLowerCase().startsWith("https://")) {
+        if (Namespace.isFullId(uriStr)) {
             return SplitIRI.namespace(uriStr);
         }
         else {

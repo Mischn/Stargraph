@@ -237,9 +237,14 @@ public final class QueryEngine {
             // if predicate is not a type assume: I (C|P) V pattern
             logger.debug(marker, "Assume 'I (C|P) V' pattern");
 
+            boolean subjPivot = true;
             ResourceEntity pivot = resolvePivot(triple.s, builder);
-            pivot = pivot != null ? pivot : resolvePivot(triple.o, builder);
-            resolvePredicate(pivot, triple.p, builder);
+            if (pivot == null) {
+                subjPivot = false;
+                pivot : resolvePivot(triple.o, builder);
+            }
+
+            resolvePredicate(pivot, !subjPivot, subjPivot, triple.p, builder);
         }
         else {
             // Probably is: V T C
@@ -264,7 +269,7 @@ public final class QueryEngine {
         }
     }
 
-    private void resolvePredicate(ResourceEntity pivot, DataModelBinding binding, SPARQLQueryBuilder builder) {
+    private void resolvePredicate(ResourceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding, SPARQLQueryBuilder builder) {
         if ((binding.getModelType() == DataModelType.CLASS
                 || binding.getModelType() == DataModelType.PROPERTY) && !builder.isResolved(binding)) {
             final int LIMIT = 6;
@@ -272,7 +277,7 @@ public final class QueryEngine {
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
             ModifiableRankParams rankParams = ParamsBuilder.word2vec();
             logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}' (pivotedSearch)", pivot, searchParams.getSearchTerm());
-            Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, 1, false);
+            Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
             builder.add(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));

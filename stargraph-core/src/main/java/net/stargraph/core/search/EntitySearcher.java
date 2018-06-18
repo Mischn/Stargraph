@@ -27,6 +27,7 @@ package net.stargraph.core.search;
  */
 
 import net.stargraph.core.KBCore;
+import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.model.*;
@@ -278,17 +279,20 @@ public class EntitySearcher {
     /**
      * Search property paths from the pivot to other labeled entities that are connected with the pivot up to a certain range.
      * If {@code returnBestMatchEntities}, these labeled entities are returned.
-     * @param pivot
+     * @param pivotId
      * @param searchParams
      * @param rankParams
      * @param range
      * @param returnBestMatchEntities
      * @return
      */
-    public Scores pivotedSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
+        return pivotedSearch(ModelCreator.createResource(pivotId, null), searchParams, rankParams, incomingEdges, outgoingEdges, range, returnBestMatchEntities);
+    }
+    public Scores pivotedSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, false, true, new PruningMethod() {
+        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, incomingEdges, outgoingEdges, new PruningMethod() {
             @Override
             public List<Route> traverse(List<Route> routes) {
                 //TODO strategies for pruning

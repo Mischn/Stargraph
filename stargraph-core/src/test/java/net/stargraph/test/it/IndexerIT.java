@@ -111,7 +111,7 @@ public final class IndexerIT {
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
 
         final ResourceEntity obama = new ResourceEntity("dbr:Barack_Obama", "Barack Obama");
-        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankParams, 1, false);
+        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankParams, false, true, 1, false);
 
         PropertyEntity expected = new PropertyEntity("dbp:education", "education");
         Assert.assertEquals(expected, scores.get(0).getEntry());

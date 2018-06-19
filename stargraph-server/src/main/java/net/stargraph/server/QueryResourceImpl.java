@@ -28,13 +28,13 @@ package net.stargraph.server;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.model.ValueEntity;
+import net.stargraph.query.ExtQueryEngine;
 import net.stargraph.rank.Score;
 import net.stargraph.rest.*;
 import org.slf4j.Logger;
@@ -51,7 +51,7 @@ public final class QueryResourceImpl implements QueryResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("server");
     private Stargraph core;
-    private Map<String, QueryEngine> engines;
+    private Map<String, ExtQueryEngine> engines;
 
     public QueryResourceImpl(Stargraph core) {
         this.core = Objects.requireNonNull(core);
@@ -60,11 +60,20 @@ public final class QueryResourceImpl implements QueryResource {
 
     @Override
     public Response query(String dbId, String q) {
+        return query(dbId, q, null);
+    }
+
+    @Override
+    public Response query(String dbId, String q, MappingsBean betterMappings) {
         try {
             if (core.hasKB(dbId)) {
                 Namespace namespace = core.getKBCore(dbId).getNamespace();
-                QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
+                ExtQueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new ExtQueryEngine(k, core));
+                if (betterMappings != null) {
+                    engine.setBetterMappings(betterMappings.getMappings());
+                }
                 QueryResponse queryResponse = engine.query(q);
+                engine.clearBetterMappings();
                 return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, dbId, namespace)).build();
             }
             return Response.status(Response.Status.NOT_FOUND).build();

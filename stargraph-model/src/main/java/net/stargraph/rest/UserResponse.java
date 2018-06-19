@@ -71,5 +71,25 @@ public abstract class UserResponse implements Serializable {
             this.value = value;
             this.score = score;
         }
+
+        public String getDbId() {
+            return dbId;
+        }
+
+        public EntityType getType() {
+            return type;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public double getScore() {
+            return score;
+        }
     }
 }

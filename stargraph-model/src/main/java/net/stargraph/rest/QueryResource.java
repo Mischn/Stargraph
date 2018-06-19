@@ -29,6 +29,8 @@ package net.stargraph.rest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Entry point to talk with the Database.
@@ -40,4 +42,33 @@ public interface QueryResource {
     @GET
     @Path("{kbId}/query")
     Response query(@PathParam("kbId") String dbId, @QueryParam("q") String q);
+
+    @POST
+    @Path("{kbId}/query")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response query(@PathParam("kbId") String dbId, @QueryParam("q") String q, MappingsBean betterMappings);
+
+
+    class MappingsBean {
+        private Map<String, List<String>> mappings;
+
+        public MappingsBean() {}
+
+        @SuppressWarnings("unused") // used by jackson serializer
+        public Map<String, List<String>> getMappings() {
+            return mappings;
+        }
+
+        @SuppressWarnings("unused") // used by jackson serializer
+        public void setMappings(Map<String, List<String>> mappings) {
+            this.mappings = mappings;
+        }
+
+        @Override
+        public String toString() {
+            return "MappingsBean{" +
+                    "mappings=" + mappings +
+                    '}';
+        }
+    }
 }

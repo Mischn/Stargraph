@@ -63,7 +63,7 @@ final class SearchResourceImpl implements SearchResource {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(resourceTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
-        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
@@ -75,7 +75,7 @@ final class SearchResourceImpl implements SearchResource {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(classTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.classSearch(searchParams, rankParams);
-        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
@@ -87,7 +87,7 @@ final class SearchResourceImpl implements SearchResource {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(propertyTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.propertySearch(searchParams, rankParams);
-        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
     }
@@ -99,7 +99,7 @@ final class SearchResourceImpl implements SearchResource {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(relationTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
         Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankParams, incomingEdges, outgoingEdges, range, false);
-        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, namespace);
+        List<UserResponse.EntityEntry> entityEntries = QueryResourceImpl.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
     }

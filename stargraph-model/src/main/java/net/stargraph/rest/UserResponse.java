@@ -54,16 +54,18 @@ public abstract class UserResponse implements Serializable {
     }
 
     public static class EntityEntry {
+        public String dbId;
         public EntityType type;
         public String id;
         public String value;
 
         public double score;
 
-        public EntityEntry(EntityType type, String id, String value) {
-            this(type, id, value, 1);
+        public EntityEntry(String dbId, EntityType type, String id, String value) {
+            this(dbId, type, id, value, 1);
         }
-        public EntityEntry(EntityType type, String id, String value, double score) {
+        public EntityEntry(String dbId, EntityType type, String id, String value, double score) {
+            this.dbId = dbId;
             this.type = type;
             this.id = id;
             this.value = value;

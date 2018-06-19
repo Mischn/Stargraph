@@ -65,7 +65,7 @@ public final class QueryResourceImpl implements QueryResource {
                 Namespace namespace = core.getKBCore(dbId).getNamespace();
                 QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
                 QueryResponse queryResponse = engine.query(q);
-                return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, namespace)).build();
+                return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, dbId, namespace)).build();
             }
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -76,11 +76,12 @@ public final class QueryResourceImpl implements QueryResource {
     }
 
     // expand URIs by convention
-    public static List<UserResponse.EntityEntry> createEntityEntries(List<LabeledEntity> entities, Namespace namespace) {
-        return entities.stream().map(e -> createEntityEntry(e, namespace)).collect(Collectors.toList());
+    public static List<UserResponse.EntityEntry> createEntityEntries(List<LabeledEntity> entities, String dbId, Namespace namespace) {
+        return entities.stream().map(e -> createEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
     }
-    public static UserResponse.EntityEntry createEntityEntry(LabeledEntity entity, Namespace namespace) {
+    public static UserResponse.EntityEntry createEntityEntry(LabeledEntity entity, String dbId, Namespace namespace) {
         return new UserResponse.EntityEntry(
+                dbId,
                 (entity instanceof ValueEntity)? UserResponse.EntityType.LITERAL: UserResponse.EntityType.INSTANCE,
                 namespace.expandURI(entity.getId()),
                 entity.getValue()
@@ -88,11 +89,12 @@ public final class QueryResourceImpl implements QueryResource {
     }
 
     // expand URIs by convention
-    public static List<UserResponse.EntityEntry> createScoredEntityEntries(List<Score> entityScores, Namespace namespace) {
-        return entityScores.stream().map(s -> createScoredEntityEntry(s, namespace)).collect(Collectors.toList());
+    public static List<UserResponse.EntityEntry> createScoredEntityEntries(List<Score> entityScores, String dbId, Namespace namespace) {
+        return entityScores.stream().map(s -> createScoredEntityEntry(s, dbId, namespace)).collect(Collectors.toList());
     }
-    public static UserResponse.EntityEntry createScoredEntityEntry(Score entityScore, Namespace namespace) {
+    public static UserResponse.EntityEntry createScoredEntityEntry(Score entityScore, String dbId, Namespace namespace) {
         return new UserResponse.EntityEntry(
+                dbId,
                 (entityScore.getEntry() instanceof ValueEntity)? UserResponse.EntityType.LITERAL: UserResponse.EntityType.INSTANCE,
                 namespace.expandURI(entityScore.getRankableView().getId()),
                 entityScore.getRankableView().getValue(),
@@ -100,7 +102,7 @@ public final class QueryResourceImpl implements QueryResource {
         );
     }
 
-    public UserResponse buildUserResponse(QueryResponse queryResponse, Namespace namespace) {
+    public UserResponse buildUserResponse(QueryResponse queryResponse, String dbId, Namespace namespace) {
 
         if (queryResponse instanceof NoResponse) {
             return new NoUserResponse(queryResponse.getUserQuery(), queryResponse.getInteractionMode());
@@ -110,12 +112,12 @@ public final class QueryResourceImpl implements QueryResource {
             SchemaAgnosticUserResponse response =
                     new SchemaAgnosticUserResponse(answerSet.getUserQuery(), answerSet.getInteractionMode(), answerSet.getSparqlQuery());
 
-            List<UserResponse.EntityEntry> answers = createEntityEntries(answerSet.getEntityAnswer(), namespace);
+            List<UserResponse.EntityEntry> answers = createEntityEntries(answerSet.getEntityAnswer(), dbId, namespace);
             response.setAnswers(answers);
 
             final Map<String, List<UserResponse.EntityEntry>> mappings = new HashMap<>();
             answerSet.getMappings().forEach((modelBinding, scoreList) -> {
-                List<UserResponse.EntityEntry> entries = createScoredEntityEntries(scoreList, namespace);
+                List<UserResponse.EntityEntry> entries = createScoredEntityEntries(scoreList, dbId, namespace);
                 mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
             });
 
@@ -126,7 +128,7 @@ public final class QueryResourceImpl implements QueryResource {
             SPARQLSelectResponse selectResponse = (SPARQLSelectResponse)queryResponse;
             final Map<String, List<UserResponse.EntityEntry>> bindings = new LinkedHashMap<>();
             selectResponse.getBindings().entrySet().forEach(e -> {
-                List<UserResponse.EntityEntry> entries = createEntityEntries(e.getValue(), namespace);
+                List<UserResponse.EntityEntry> entries = createEntityEntries(e.getValue(), dbId, namespace);
                 bindings.put(e.getKey(), entries);
             });
 

@@ -102,7 +102,7 @@ public final class SPARQLQueryBuilder {
         return mappings;
     }
 
-    void add(DataModelBinding binding, List<Score> scores) {
+    void addMapping(DataModelBinding binding, List<Score> scores) {
         final Scores newScores = new Scores(scores.size());
         // Expanding the Namespace for all entities
         scores.forEach(s -> newScores.add(new Score(namespace.expand(s.getEntry()), s.getValue())));

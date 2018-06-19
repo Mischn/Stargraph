@@ -265,7 +265,7 @@ public final class QueryEngine {
             Scores scores = entitySearcher.classSearch(searchParams, rankParams);
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
-            builder.add(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
+            builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
         }
     }
 
@@ -280,7 +280,7 @@ public final class QueryEngine {
             Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
-            builder.add(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
+            builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
         }
     }
 
@@ -301,7 +301,7 @@ public final class QueryEngine {
             logger.debug(marker, "Results: {}", scores);
             logger.debug(marker, "Map {} to binding {}", scores.get(0), binding);
             ResourceEntity instance = (ResourceEntity) scores.get(0).getEntry();
-            builder.add(binding, Collections.singletonList(scores.get(0)));
+            builder.addMapping(binding, Collections.singletonList(scores.get(0)));
             return instance;
         }
         return null;

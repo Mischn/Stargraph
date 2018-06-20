@@ -51,7 +51,8 @@ public final class InteractionModeSelector {
             if (queryString.contains("PREFIX ") || queryString.contains("http:")) {
                 mode = InteractionMode.SPARQL;
             } else {
-                mode = InteractionMode.SA_SPARQL;
+                mode = InteractionMode.SPARQL;
+                //mode = InteractionMode.SA_SPARQL; //TODO re-activate?
             }
         } else {
             if (queryString.contains("http:")) {

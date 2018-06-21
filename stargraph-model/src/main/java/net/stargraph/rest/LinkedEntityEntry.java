@@ -26,26 +26,44 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
-import net.stargraph.query.InteractionMode;
+public class LinkedEntityEntry {
+    private String value;
+    private String cat;
+    private int start;
+    private int end;
+    private EntityEntry entity;
+    private double score;
 
-import java.io.Serializable;
-import java.util.Objects;
-
-public abstract class UserResponse implements Serializable {
-    private String query;
-    private InteractionMode interactionMode;
-
-    public UserResponse(String query, InteractionMode interactionMode) {
-        this.query = Objects.requireNonNull(query);
-        this.interactionMode = Objects.requireNonNull(interactionMode);
+    public LinkedEntityEntry(String value, String cat, int start, int end, EntityEntry entity, double score) {
+        this.value = value;
+        this.cat = cat;
+        this.start = start;
+        this.end = end;
+        this.entity = entity;
+        this.score = score;
     }
 
-    public final String getQuery() {
-        return query;
+    public String getValue() {
+        return value;
     }
 
-    public final InteractionMode getInteractionMode() {
-        return interactionMode;
+    public String getCat() {
+        return cat;
     }
 
+    public int getStart() {
+        return start;
+    }
+
+    public int getEnd() {
+        return end;
+    }
+
+    public EntityEntry getEntity() {
+        return entity;
+    }
+
+    public double getScore() {
+        return score;
+    }
 }

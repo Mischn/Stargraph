@@ -26,26 +26,46 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
-import net.stargraph.query.InteractionMode;
-
-import java.io.Serializable;
-import java.util.Objects;
-
-public abstract class UserResponse implements Serializable {
-    private String query;
-    private InteractionMode interactionMode;
-
-    public UserResponse(String query, InteractionMode interactionMode) {
-        this.query = Objects.requireNonNull(query);
-        this.interactionMode = Objects.requireNonNull(interactionMode);
+public class EntityEntry {
+    public enum EntityType {
+        INSTANCE,
+        LITERAL
     }
 
-    public final String getQuery() {
-        return query;
+    public String dbId;
+    public EntityType type;
+    public String id;
+    public String value;
+    public double score;
+
+    public EntityEntry(String dbId, EntityType type, String id, String value) {
+        this(dbId, type, id, value, 1);
+    }
+    public EntityEntry(String dbId, EntityType type, String id, String value, double score) {
+        this.dbId = dbId;
+        this.type = type;
+        this.id = id;
+        this.value = value;
+        this.score = score;
     }
 
-    public final InteractionMode getInteractionMode() {
-        return interactionMode;
+    public String getDbId() {
+        return dbId;
     }
 
+    public EntityType getType() {
+        return type;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public double getScore() {
+        return score;
+    }
 }

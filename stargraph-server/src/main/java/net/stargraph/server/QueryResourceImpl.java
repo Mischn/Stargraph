@@ -85,26 +85,26 @@ public final class QueryResourceImpl implements QueryResource {
     }
 
     // expand URIs by convention
-    public static List<UserResponse.EntityEntry> createEntityEntries(List<LabeledEntity> entities, String dbId, Namespace namespace) {
+    public static List<EntityEntry> createEntityEntries(List<LabeledEntity> entities, String dbId, Namespace namespace) {
         return entities.stream().map(e -> createEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
     }
-    public static UserResponse.EntityEntry createEntityEntry(LabeledEntity entity, String dbId, Namespace namespace) {
-        return new UserResponse.EntityEntry(
+    public static EntityEntry createEntityEntry(LabeledEntity entity, String dbId, Namespace namespace) {
+        return new EntityEntry(
                 dbId,
-                (entity instanceof ValueEntity)? UserResponse.EntityType.LITERAL: UserResponse.EntityType.INSTANCE,
+                (entity instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.INSTANCE,
                 namespace.expandURI(entity.getId()),
                 entity.getValue()
         );
     }
 
     // expand URIs by convention
-    public static List<UserResponse.EntityEntry> createScoredEntityEntries(List<Score> entityScores, String dbId, Namespace namespace) {
+    public static List<EntityEntry> createScoredEntityEntries(List<Score> entityScores, String dbId, Namespace namespace) {
         return entityScores.stream().map(s -> createScoredEntityEntry(s, dbId, namespace)).collect(Collectors.toList());
     }
-    public static UserResponse.EntityEntry createScoredEntityEntry(Score entityScore, String dbId, Namespace namespace) {
-        return new UserResponse.EntityEntry(
+    public static EntityEntry createScoredEntityEntry(Score entityScore, String dbId, Namespace namespace) {
+        return new EntityEntry(
                 dbId,
-                (entityScore.getEntry() instanceof ValueEntity)? UserResponse.EntityType.LITERAL: UserResponse.EntityType.INSTANCE,
+                (entityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.INSTANCE,
                 namespace.expandURI(entityScore.getRankableView().getId()),
                 entityScore.getRankableView().getValue(),
                 entityScore.getValue()
@@ -121,12 +121,12 @@ public final class QueryResourceImpl implements QueryResource {
             SchemaAgnosticUserResponse response =
                     new SchemaAgnosticUserResponse(answerSet.getUserQuery(), answerSet.getInteractionMode(), answerSet.getSparqlQuery());
 
-            List<UserResponse.EntityEntry> answers = createEntityEntries(answerSet.getEntityAnswer(), dbId, namespace);
+            List<EntityEntry> answers = createEntityEntries(answerSet.getEntityAnswer(), dbId, namespace);
             response.setAnswers(answers);
 
-            final Map<String, List<UserResponse.EntityEntry>> mappings = new HashMap<>();
+            final Map<String, List<EntityEntry>> mappings = new HashMap<>();
             answerSet.getMappings().forEach((modelBinding, scoreList) -> {
-                List<UserResponse.EntityEntry> entries = createScoredEntityEntries(scoreList, dbId, namespace);
+                List<EntityEntry> entries = createScoredEntityEntries(scoreList, dbId, namespace);
                 mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
             });
 
@@ -135,9 +135,9 @@ public final class QueryResourceImpl implements QueryResource {
         }
         else if (queryResponse instanceof SPARQLSelectResponse) {
             SPARQLSelectResponse selectResponse = (SPARQLSelectResponse)queryResponse;
-            final Map<String, List<UserResponse.EntityEntry>> bindings = new LinkedHashMap<>();
+            final Map<String, List<EntityEntry>> bindings = new LinkedHashMap<>();
             selectResponse.getBindings().entrySet().forEach(e -> {
-                List<UserResponse.EntityEntry> entries = createEntityEntries(e.getValue(), dbId, namespace);
+                List<EntityEntry> entries = createEntityEntries(e.getValue(), dbId, namespace);
                 bindings.put(e.getKey(), entries);
             });
 

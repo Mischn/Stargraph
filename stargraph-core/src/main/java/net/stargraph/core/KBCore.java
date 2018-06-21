@@ -116,7 +116,7 @@ public final class KBCore {
             }
         }
 
-        this.ner = new NERSearcher(language, stargraph.getEntitySearcher(), nerKbName);
+        this.ner = stargraph.createNER(language, nerKbName);
         this.kbLoader = new KBLoader(this);
         this.running = true;
     }

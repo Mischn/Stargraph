@@ -12,10 +12,10 @@ package net.stargraph.rest;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,26 +26,27 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
-import net.stargraph.query.InteractionMode;
-
 import java.io.Serializable;
-import java.util.Objects;
+import java.util.List;
 
-public abstract class UserResponse implements Serializable {
-    private String query;
-    private InteractionMode interactionMode;
+public class NERResponse implements Serializable {
+    private String text;
+    private List<LinkedEntityEntry> nes;
 
-    public UserResponse(String query, InteractionMode interactionMode) {
-        this.query = Objects.requireNonNull(query);
-        this.interactionMode = Objects.requireNonNull(interactionMode);
+
+    public NERResponse(String text, List<LinkedEntityEntry> nes) {
+        if (text == null || text.isEmpty()) {
+            throw new IllegalArgumentException("text param is required.");
+        }
+        this.text = text;
+        this.nes = nes;
     }
 
-    public final String getQuery() {
-        return query;
+    public String getText() {
+        return text;
     }
 
-    public final InteractionMode getInteractionMode() {
-        return interactionMode;
+    public List<LinkedEntityEntry> getNes() {
+        return nes;
     }
-
 }

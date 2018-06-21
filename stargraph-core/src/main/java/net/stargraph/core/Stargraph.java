@@ -35,7 +35,9 @@ import net.stargraph.core.data.BaseDataProviderFactory;
 import net.stargraph.core.graph.BaseGraphModelProviderFactory;
 import net.stargraph.core.graph.DefaultGraphModelProviderFactory;
 import net.stargraph.core.graph.GraphModelProviderFactory;
+import net.stargraph.core.impl.corenlp.NERSearcher;
 import net.stargraph.core.index.Indexer;
+import net.stargraph.core.ner.NER;
 import net.stargraph.core.processors.Processors;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.core.search.Searcher;
@@ -43,6 +45,7 @@ import net.stargraph.data.DataProviderFactory;
 import net.stargraph.data.processor.Processor;
 import net.stargraph.data.processor.ProcessorChain;
 import net.stargraph.model.KBId;
+import net.stargraph.query.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -303,6 +306,9 @@ public final class Stargraph {
         return entitySearcher;
     }
 
+    public NER createNER(Language language, String nerKbName) {
+        return new NERSearcher(language, getEntitySearcher(), nerKbName);
+    }
 
     public List<KBId> getKBIds(String dbId) {
         ConfigObject typeObj = getKBConfig(dbId).getObject("model");

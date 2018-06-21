@@ -35,14 +35,18 @@ import java.util.Objects;
 
 public final class LinkedNamedEntity {
 
-    private LabeledEntity entity;
-    private double score;
+    private String value;
+    private String cat;
     private int start;
     private int end;
-    private String cat;
-    private String value;
+    private LabeledEntity entity; // optional
+    private double score; // optional
 
     public LinkedNamedEntity(String value, String cat, int start, int end) {
+        this(value, cat, start, end, null, -1);
+    }
+
+    public LinkedNamedEntity(String value, String cat, int start, int end, LabeledEntity entity, double score) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("NamedEntity `value` can't be null or empty");
         }
@@ -50,6 +54,8 @@ public final class LinkedNamedEntity {
         this.cat = cat;
         this.start = start;
         this.end = end;
+        this.entity = entity;
+        this.score = score;
     }
 
     public String getValue() {

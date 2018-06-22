@@ -26,11 +26,9 @@ package net.stargraph.core.impl.hdt;
  * ==========================License-End===============================
  */
 
-import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.graph.BaseGraphModel;
-import net.stargraph.core.graph.FileGraphSource;
-import net.stargraph.core.graph.MGraphModel;
+import net.stargraph.core.graph.*;
+import net.stargraph.core.graph.batch.BatchFileGenerator;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.rdfhdt.hdt.hdt.HDT;
@@ -40,16 +38,26 @@ import org.rdfhdt.hdtjena.HDTGraph;
 import java.io.File;
 import java.io.IOException;
 
-public class HDTFileGraphSource extends FileGraphSource {
+public class HDTFileGraphSource extends BatchFileGraphSource {
     private boolean useIndex;
 
-    public HDTFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, boolean useIndex) {
-        super(stargraph, dbId, resource, storeFilename, required);
+    public HDTFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, int batchMB, long maxEntriesInBatchFile, boolean useIndex) {
+        super(stargraph, dbId, resource, storeFilename, required, batchMB, maxEntriesInBatchFile);
         this.useIndex = useIndex;
     }
 
     @Override
-    public void extend(BaseGraphModel graphModel, File file) throws IOException {
+    protected BatchFileGenerator createBatchFileGenerator() {
+        return new HDTtoNtriplesBatchFileGenerator(stargraph, dbId);
+    }
+
+    @Override
+    protected FileGraphSource createBatchFileGraphSource(File file) {
+        return new DefaultFileGraphSource(stargraph, dbId, file.getAbsolutePath(), null, true, -1, 10_000_000);
+    }
+
+    @Override
+    public void _extend(BaseGraphModel graphModel, File file) throws IOException {
         HDT hdt = useIndex ? HDTManager.mapIndexedHDT(file.getAbsolutePath(), null) : HDTManager.loadHDT(file.getAbsolutePath(), null);
         HDTGraph graph = new HDTGraph(hdt);
         Model other = ModelFactory.createModelForGraph(graph);

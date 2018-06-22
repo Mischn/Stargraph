@@ -26,23 +26,32 @@ package net.stargraph.core.graph;
  * ==========================License-End===============================
  */
 
-import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
-import net.stargraph.model.GraphModel;
+import net.stargraph.core.graph.batch.BatchFileGenerator;
+import net.stargraph.core.impl.ntriples.NTriplesBatchFileGenerator;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.RDFDataMgr;
 
 import java.io.File;
 
-public class DefaultFileGraphSource extends FileGraphSource {
+public class DefaultFileGraphSource extends BatchFileGraphSource {
 
-    public DefaultFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required) {
-        super(stargraph, dbId, resource, storeFilename, required);
+    public DefaultFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, int batchMB, long maxEntriesInBatchFile) {
+        super(stargraph, dbId, resource, storeFilename, required, batchMB, maxEntriesInBatchFile);
     }
 
     @Override
-    public void extend(BaseGraphModel graphModel, File file) {
+    protected BatchFileGenerator createBatchFileGenerator() {
+        return new NTriplesBatchFileGenerator(stargraph, dbId);
+    }
+
+    @Override
+    protected FileGraphSource createBatchFileGraphSource(File file) {
+        return new DefaultFileGraphSource(stargraph, dbId, file.getAbsolutePath(), null, true, -1, 10_000_000);
+    }
+
+    @Override
+    public void _extend(BaseGraphModel graphModel, File file) {
         graphModel.doWrite(new BaseGraphModel.WriteTransaction() {
             @Override
             public boolean writeTransaction(Model model) {

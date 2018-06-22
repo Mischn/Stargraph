@@ -29,14 +29,13 @@ package net.stargraph.core.graph;
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.hdt.HDTFileGraphSource;
-import net.stargraph.core.impl.nquads.NQuadsBatchFileGraphSource;
+import net.stargraph.core.impl.nquads.NQuadsFileGraphSource;
 import org.apache.commons.io.FilenameUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultGraphModelProviderFactory extends BaseGraphModelProviderFactory {
-    private static long MAX_BATCH_ENTRIES = 10_000_000; // ca 2,5 GB for each file, reduce for lower batch size
 
     public DefaultGraphModelProviderFactory(Stargraph stargraph) {
         super(stargraph);
@@ -60,6 +59,22 @@ public class DefaultGraphModelProviderFactory extends BaseGraphModelProviderFact
         final String resetCfgPath = "reset";
         boolean reset = graphModelCfg.hasPath(resetCfgPath) && graphModelCfg.getBoolean(resetCfgPath);
 
+        final String batchMBCfgPath = "batchMB";
+        int batchMB = -1;
+        if (graphModelCfg.hasPathOrNull(batchMBCfgPath)) {
+            if (!graphModelCfg.getIsNull(batchMBCfgPath)) {
+                batchMB = graphModelCfg.getInt(batchMBCfgPath);
+            }
+        }
+
+        final String maxBatchTriplesCfgPath = "maxBatchTriples";
+        int maxBatchTriples = 10_000_000; // ca 2.5 GB
+        if (graphModelCfg.hasPathOrNull(maxBatchTriplesCfgPath)) {
+            if (!graphModelCfg.getIsNull(maxBatchTriplesCfgPath)) {
+                maxBatchTriples = graphModelCfg.getInt(maxBatchTriplesCfgPath);
+            }
+        }
+
         final String hdtUseIndexCfgPath = "hdt.use-index";
         boolean hdtUseIndex = graphModelCfg.hasPath(hdtUseIndexCfgPath) && graphModelCfg.getBoolean(hdtUseIndexCfgPath);
 
@@ -77,11 +92,11 @@ public class DefaultGraphModelProviderFactory extends BaseGraphModelProviderFact
             String extension = FilenameUtils.getExtension(resource).toLowerCase();
 
             if (extension.equals("hdt")) {
-                graphSources.add(new HDTFileGraphSource(stargraph, dbId, resource, null, true, hdtUseIndex));
+                graphSources.add(new HDTFileGraphSource(stargraph, dbId, resource, null, true, batchMB, maxBatchTriples, hdtUseIndex));
             } else if (extension.equals("nq")) {
-                graphSources.add(new NQuadsBatchFileGraphSource(stargraph, dbId, resource, null, true, MAX_BATCH_ENTRIES, true, graphNames));
+                graphSources.add(new NQuadsFileGraphSource(stargraph, dbId, resource, null, true, batchMB, maxBatchTriples, true, graphNames));
             } else {
-                graphSources.add(new DefaultFileGraphSource(stargraph, dbId, resource, null, true));
+                graphSources.add(new DefaultFileGraphSource(stargraph, dbId, resource, null, true, batchMB, maxBatchTriples));
             }
         }
 

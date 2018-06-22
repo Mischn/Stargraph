@@ -1,4 +1,4 @@
-package net.stargraph.core.impl.nquads;
+package net.stargraph.core.impl.ntriples;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.batch.BaseBatchFileGenerator;
@@ -10,10 +10,10 @@ import org.apache.jena.sparql.core.Quad;
 import java.io.File;
 import java.util.List;
 
-public class NQuadsBatchFileGenerator extends BaseBatchFileGenerator {
+public class NTriplesBatchFileGenerator extends BaseBatchFileGenerator {
 
 
-    public NQuadsBatchFileGenerator(Stargraph stargraph, String dbId) {
+    public NTriplesBatchFileGenerator(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
     }
 
@@ -22,14 +22,10 @@ public class NQuadsBatchFileGenerator extends BaseBatchFileGenerator {
             private String formatTriple(Triple triple) {
                 return formatNT(triple.getSubject()) + " " + formatNT(triple.getPredicate()) + " " + formatNT(triple.getObject()) + " .";
             }
-            private String formatQuad(Quad quad) {
-                String graphStr = (quad.getGraph() != null)? " " + formatNT(quad.getGraph()) : "";
-                return formatNT(quad.getSubject()) + " " + formatNT(quad.getPredicate()) + " " + formatNT(quad.getObject()) + graphStr + " .";
-            }
 
             @Override
             protected String getFileExtension() {
-                return ".nq";
+                return ".nt";
             }
 
             @Override
@@ -39,7 +35,8 @@ public class NQuadsBatchFileGenerator extends BaseBatchFileGenerator {
 
             @Override
             public void quad(Quad quad) {
-                write(formatQuad(quad));
+                // WARNING: this ignores the named graphs
+                write(formatTriple(quad.asTriple()));
             }
 
             @Override

@@ -26,11 +26,12 @@ package net.stargraph.core.impl.nquads;
  * ==========================License-End===============================
  */
 
-import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.graph.BatchFileGraphSource;
 import net.stargraph.core.graph.FileGraphSource;
 import net.stargraph.core.graph.MGraphModel;
+import net.stargraph.core.graph.batch.BatchFileGenerator;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.RDFDataMgr;
@@ -40,15 +41,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class NQuadsFileGraphSource extends FileGraphSource {
+public class NQuadsFileGraphSource extends BatchFileGraphSource {
     private boolean includeDefaultGraph;
     private List<String> graphNames; // if null, then all data is loaded
 
-    public NQuadsFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, boolean includeDefaultGraph, List<String> graphNames) {
-        super(stargraph, dbId, resource, storeFilename, required);
+    public NQuadsFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, int batchMB, long maxEntriesInBatchFile, boolean includeDefaultGraph, List<String> graphNames) {
+        super(stargraph, dbId, resource, storeFilename, required, batchMB, maxEntriesInBatchFile);
         this.includeDefaultGraph = includeDefaultGraph;
         this.graphNames = graphNames;
     }
+
 
     private List<String> getGraphNames(Dataset dataset) {
         List<String> res = new ArrayList<>();
@@ -60,7 +62,17 @@ public class NQuadsFileGraphSource extends FileGraphSource {
     }
 
     @Override
-    public void extend(BaseGraphModel graphModel, File file) {
+    protected BatchFileGenerator createBatchFileGenerator() {
+        return new NQuadsBatchFileGenerator(stargraph, dbId);
+    }
+
+    @Override
+    protected FileGraphSource createBatchFileGraphSource(File file) {
+        return new NQuadsFileGraphSource(stargraph, dbId, file.getAbsolutePath(), null, true, -1, 10_000_000, includeDefaultGraph, graphNames);
+    }
+
+    @Override
+    public void _extend(BaseGraphModel graphModel, File file) {
 
         // Attention: The NQuads file is fully loaded into memory
         Dataset dataset = RDFDataMgr.loadDataset(file.getAbsolutePath());

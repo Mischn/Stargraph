@@ -31,52 +31,62 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.batch.BatchFileGenerator;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
  * Converts an RDF-file into a batch of (smaller) RDF-files and incrementally extends the graph model with these smaller files.
- * Note that DefaultFileGraphSource is sufficient in most cases since the model is not completely loaded in memory (using RDFDataMgr.read()).
  */
 public abstract class BatchFileGraphSource extends FileGraphSource {
-    private long maxTriplesInFile;
+    private final int batchMB; // if the file-size is >= batchMB, batching is activated
+    private final long maxEntriesInBatchFile;
 
-    public BatchFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, long maxTriplesInFile) {
+    public BatchFileGraphSource(Stargraph stargraph, String dbId, String resource, String storeFilename, boolean required, int batchMB, long maxEntriesInBatchFile) {
         super(stargraph, dbId, resource, storeFilename, required);
-        this.maxTriplesInFile = maxTriplesInFile;
+        this.batchMB = batchMB;
+        this.maxEntriesInBatchFile = maxEntriesInBatchFile;
     }
 
-    protected abstract BatchFileGenerator createBatchFileGenerator(File directory, long maxEntriesInFile, String fileNamePrefix);
-    protected abstract FileGraphSource createBatchFileGraphSource(Stargraph stargraph, String dbId, File file);
+    protected abstract BatchFileGenerator createBatchFileGenerator();
+    protected abstract FileGraphSource createBatchFileGraphSource(File file);
+    protected abstract void _extend(BaseGraphModel graphModel, File file) throws Exception;
 
     @Override
-    public void extend(BaseGraphModel graphModel, File file) throws IOException {
+    public void extend(BaseGraphModel graphModel, File file) throws Exception {
+        BatchFileGenerator batchFileGenerator = createBatchFileGenerator();
+        if (batchFileGenerator == null) {
+            logger.info(marker, "No batch-file-generator specified");
+            _extend(graphModel, file);
+            return;
+        }
 
-        // create tmp-dir
-        Path path = Files.createTempFile("stargraph-", "-graphDir");
-        Files.delete(path);
-        Files.createDirectories(path);
+        double fileMB = ((file.length() / 1024.) / 1024.);
+        if (fileMB >= batchMB && batchMB >= 0) {
+            // use batch-loading
+            logger.info(marker, "File size {} exceeds the specified size {}. Use batch-loading.", fileMB, batchMB);
 
-        try {
-            BatchFileGenerator batchFileGenerator = createBatchFileGenerator(path.toFile(), maxTriplesInFile, file.getName());
-
-            logger.info(marker, "Convert '{}' into smaller batch-files (stored in tmp-dir: '{}')", file.getAbsolutePath(), path.toString());
-            batchFileGenerator.generateBatches(file.getAbsolutePath());
-            List<File> outFiles = batchFileGenerator.getOutFiles();
-            logger.info(marker, "Created {} batch-files", outFiles.size());
-
-            // iterate over files
-            outFiles.forEach(f -> {
-                FileGraphSource source = createBatchFileGraphSource(stargraph, dbId, f);
-                source.extend(graphModel);
-            });
-        } catch (Exception e) {
-            throw new StarGraphException(e);
-        } finally {
-            logger.info(marker, "Delete tmp-dir '{}'", path.toString());
-            Files.delete(path);
+            try {
+                batchFileGenerator.start();
+                List<File> batchFiles = batchFileGenerator.generateBatches(file, maxEntriesInBatchFile);
+                batchFiles.forEach(f -> {
+                    try {
+                        FileGraphSource fileGraphSource = createBatchFileGraphSource(f);
+                        if (fileGraphSource == null) {
+                            throw new StarGraphException("No FileGraphSource specified");
+                        }
+                        logger.info(marker, "Loading batch-file {}.", f.getAbsolutePath());
+                        fileGraphSource.extend(graphModel, f);
+                    } catch (Exception e) {
+                        logger.error(marker, "Failed to extend graph model with batch file {}", f);
+                        throw new StarGraphException(e);
+                    }
+                });
+            } catch (Exception e) {
+                throw new StarGraphException(e);
+            } finally {
+                batchFileGenerator.end();
+            }
+        } else {
+            _extend(graphModel, file);
         }
     }
 }

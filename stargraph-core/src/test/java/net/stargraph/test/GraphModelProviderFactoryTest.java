@@ -54,23 +54,23 @@ public final class GraphModelProviderFactoryTest {
         }
 
         public GraphSource getHDTDataSource() {
-            return new HDTFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.hdt").getPath(), null, true, false);
+            return new HDTFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.hdt").getPath(), null, true, -1, 10, false);
         }
 
         public GraphSource getNTDataSource() {
-            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.nt").getPath(), null, true);
+            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.nt").getPath(), null, true, -1, 10);
         }
 
         public GraphSource getTurtleDataSource() {
-            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.ttl").getPath(), null, true);
+            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.ttl").getPath(), null, true, -1, 10);
         }
 
         public GraphSource getNQuadsDataSource() {
-            return new NQuadsFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.nq").getPath(), null, true, true, null);
+            return new NQuadsFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/triples.nq").getPath(), null, true, -1,10, true, null);
         }
 
         public GraphSource getNewDataSource() {
-            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/Michelle_Obama.nt").getPath(), null, true);
+            return new DefaultFileGraphSource(stargraph, dbId, ClassLoader.getSystemResource("dataSets/obama/graph/Michelle_Obama.nt").getPath(), null, true, -1, 10);
         }
     }
 

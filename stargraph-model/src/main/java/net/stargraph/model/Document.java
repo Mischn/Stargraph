@@ -36,30 +36,42 @@ import java.util.Objects;
  * A Document.
  */
 public final class Document implements Hashable {
+    private String type;
+    private String entity; // the id of an entity, used for entity-similarity search (optional)
     private String id;
     private String title;
-    private String summary;
+    private String summary; // optional
     private String text;
-    private List<Passage> passages;
-
-    public Document(String id, String title, String text) {
-        this(id, title, null, text, null);
-    }
+    private List<LabeledEntity> entities;
 
     public Document(String id, String title, String summary, String text) {
-        this(id, title, summary, text, null);
+        this(id, "unknown", title, summary, text, null);
     }
 
-    public Document(String id, String title, String summary, String text, List<Passage> passages) {
+    public Document(String id, String type, String entity, String title, String summary, String text) {
+        this(id, type, entity, title, summary, text, null);
+    }
+
+    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities) {
         this.id = Objects.requireNonNull(id);
+        this.type = type;
+        this.entity = entity;
         this.title = Objects.requireNonNull(title);
         this.text = Objects.requireNonNull(text);
         this.summary = summary;
-        this.passages = (passages != null) ? passages : new ArrayList<>() ;
+        this.entities = (entities != null) ? entities : new ArrayList<>() ;
     }
 
     public String getId() {
         return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getEntity() {
+        return entity;
     }
 
     public String getTitle() {
@@ -74,8 +86,8 @@ public final class Document implements Hashable {
         return text;
     }
 
-    public List<Passage> getPassages() {
-        return passages;
+    public List<LabeledEntity> getEntities() {
+        return entities;
     }
 
     @Override
@@ -84,10 +96,12 @@ public final class Document implements Hashable {
         String abbrevText = (text.length() > 30)? text.substring(0, 30-3) + "..." : text;
         return "Document{" +
                 "id='" + id + '\'' +
+                ", type='" + type + '\'' +
+                ", entity='" + entity + '\'' +
                 ", title='" + title + '\'' +
                 ", summary='" + abbrevSummary + '\'' +
                 ", text='" + abbrevText + '\'' +
-                ", passages=" + passages +
+                ", entities=" + entities +
                 '}';
     }
 

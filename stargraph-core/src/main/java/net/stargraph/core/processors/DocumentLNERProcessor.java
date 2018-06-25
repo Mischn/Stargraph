@@ -35,24 +35,21 @@ import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
-import net.stargraph.model.Passage;
-import org.lambda3.text.simplification.discourse.utils.sentences.SentencesUtils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Can be placed in the workflow to create passages.
+ * Can be placed in the workflow to create linked named entities.
  */
-public final class PassageProcessor extends BaseProcessor {
-    public static String name = "passage-processor";
+public final class DocumentLNERProcessor extends BaseProcessor {
+    public static String name = "document-lner-processor";
 
     private Stargraph stargraph;
 
-    public PassageProcessor(Stargraph stargraph, Config config) {
+    public DocumentLNERProcessor(Stargraph stargraph, Config config) {
         super(config);
         this.stargraph = Objects.requireNonNull(stargraph);
     }
@@ -65,24 +62,21 @@ public final class PassageProcessor extends BaseProcessor {
         if (entry instanceof Document) {
             Document document = (Document)entry;
 
-            List<Passage> passages = new ArrayList<>();
-            for (String sentence : SentencesUtils.splitIntoSentences(document.getText())) {
-                List<LinkedNamedEntity> lners = ner.searchAndLink(sentence);
+            List<LinkedNamedEntity> lners = ner.searchAndLink(document.getText());
 
-                // only add linked entities
-                List<LabeledEntity> entities = lners.parallelStream()
-                        .filter(e -> e.isLinked())
-                        .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
-
-                passages.add(new Passage(sentence, entities));
-            }
+            // only add linked entities
+            List<LabeledEntity> entities = lners.parallelStream()
+                    .filter(e -> e.isLinked())
+                    .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
 
             holder.set(new Document(
                     document.getId(),
+                    document.getType(),
+                    document.getEntity(),
                     document.getTitle(),
                     document.getSummary(),
                     document.getText(),
-                    passages
+                    entities
             ));
         }
     }

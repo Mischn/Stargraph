@@ -44,13 +44,17 @@ class DocumentSerializer extends AbstractSerializer<Document> {
     public void serialize(Document value, JsonGenerator g, SerializerProvider provider) throws IOException {
         g.writeStartObject();
         g.writeObjectField("id", value.getId());
+        g.writeObjectField("type", value.getType());
+        if (value.getEntity() != null) {
+            g.writeObjectField("entity", value.getEntity());
+        }
         g.writeObjectField("title", value.getTitle());
         if (value.getSummary() != null) {
             g.writeObjectField("summary", value.getSummary());
         }
         g.writeObjectField("text", value.getText());
-        if (!value.getPassages().isEmpty()) {
-            g.writeObjectField("passages", value.getPassages());
+        if (!value.getEntities().isEmpty()) {
+            g.writeObjectField("entities", value.getEntities());
         }
         g.writeEndObject();
     }

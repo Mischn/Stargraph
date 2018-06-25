@@ -48,7 +48,7 @@ public final class Processors {
             put(StopPropertyFilterProcessor.name, StopPropertyFilterProcessor.class);
             put(LengthFilterProcessor.name, LengthFilterProcessor.class);
             put(CoreferenceResolutionProcessor.name, CoreferenceResolutionProcessor.class);
-            put(PassageProcessor.name, PassageProcessor.class);
+            put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
             put(ValueGeneratorProcessor.name, ValueGeneratorProcessor.class);
         }};
@@ -82,8 +82,8 @@ public final class Processors {
 
         try {
 
-            // use special constructor for PassageProcessor
-            if ((stargraph != null) && (c.equals(PassageProcessor.class))) {
+            // use special constructor for DocumentLNERProcessor
+            if ((stargraph != null) && (c.equals(DocumentLNERProcessor.class))) {
                 Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
                 return constructor.newInstance(stargraph, config);
             }

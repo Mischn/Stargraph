@@ -29,7 +29,7 @@ package net.stargraph.test.it;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.processors.PassageProcessor;
+import net.stargraph.core.processors.DocumentLNERProcessor;
 import net.stargraph.data.Indexable;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.model.Document;
@@ -45,7 +45,7 @@ import java.nio.file.Paths;
 @Test
 public final class DocumentProcessorIT {
     KBId kbId = KBId.of("dbpedia-2016", "documents");
-    PassageProcessor processor;
+    DocumentLNERProcessor processor;
     String text;
 
     @BeforeClass
@@ -56,15 +56,15 @@ public final class DocumentProcessorIT {
         core.setKBInitSet(kbId.getId());
         core.initialize();
 
-        Config processorCfg = config.getConfig("processor").withOnlyPath(PassageProcessor.name);
-        processor = new PassageProcessor(core, processorCfg);
+        Config processorCfg = config.getConfig("processor").withOnlyPath(DocumentLNERProcessor.name);
+        processor = new DocumentLNERProcessor(core, processorCfg);
         URI u = getClass().getClassLoader().getResource("anarchism.txt").toURI();
         Assert.assertNotNull(u);
         text = new String(Files.readAllBytes(Paths.get(u)));
     }
 
     public void processTest() {
-        Holder holder = new Indexable(new Document("anarchism.txt", "Anarchism", text), kbId);
+        Holder holder = new Indexable(new Document("anarchism.txt", "Anarchism", "Summary", text), kbId);
         processor.run(holder);
         Assert.assertFalse(holder.isSinkable());
     }

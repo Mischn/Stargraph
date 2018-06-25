@@ -96,7 +96,7 @@ public final class ProcessorsTest {
     public void unrecoverableErrorProcessorTest() {
         KBId kbId = KBId.of("any", "type");
         Processor processor = Processors.create(config.withOnlyPath(CoreferenceResolutionProcessor.name));
-        Holder holder = new Indexable(new Document("Some Id", " Some title", "A bunch of text .."), kbId);
+        Holder holder = new Indexable(new Document("Some Id", " Some title", "A bunch of text ..", "Some summary"), kbId);
         processor.run(holder);
         Assert.assertFalse(holder.isSinkable());
     }

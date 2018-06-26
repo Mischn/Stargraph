@@ -34,9 +34,17 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class GraphSearcher extends BaseSearcher {
+    protected String dbId;
+    protected BaseGraphModel graphModel;
 
-    public GraphSearcher(Stargraph stargraph) {
+    public GraphSearcher(Stargraph stargraph, String dbId, BaseGraphModel model) {
         super(stargraph);
+        this.dbId = dbId;
+        this.graphModel = model;
+    }
+
+    public GraphSearcher(Stargraph stargraph, String dbId) {
+        this(stargraph, dbId, stargraph.getKBCore(dbId).getGraphModel());
     }
 
     public abstract Map<String, List<LabeledEntity>> select(String sparqlQuery);

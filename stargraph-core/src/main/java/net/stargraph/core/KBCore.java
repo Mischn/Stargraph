@@ -213,6 +213,10 @@ public final class KBCore {
         return graphSearcher;
     }
 
+    public GraphSearcher getGraphSearcher(BaseGraphModel graphModel) {
+        return new JenaGraphSearcher(kbName, stargraph, graphModel);
+    }
+
     public SearchQueryGenerator getGraphSearchQueryGenerator() {
         if (graphSearchQueryGenerator == null) {
             graphSearchQueryGenerator = new JenaSearchQueryGenerator(stargraph, kbName);

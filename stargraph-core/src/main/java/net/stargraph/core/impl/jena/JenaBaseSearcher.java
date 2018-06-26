@@ -62,21 +62,25 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
-    private Namespace namespace;
-    private EntitySearcher entitySearcher;
-    protected BaseGraphModel graphModel;
-    private String dbId;
 
-    private HashMap<String, ResourceEntity> entityMap; // for avoiding redundant lookups
-    private HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
+    private final Namespace namespace;
+    private final EntitySearcher entitySearcher;
 
-    public JenaBaseSearcher(String dbId, Stargraph stargraph) {
-        super(stargraph);
-        this.dbId = Objects.requireNonNull(dbId);
+    private final HashMap<String, ResourceEntity> entityMap; // for avoiding redundant lookups
+    private final HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
+
+    public JenaBaseSearcher(Stargraph stargraph, String dbId, BaseGraphModel model) {
+        super(stargraph, dbId, model);
         this.entitySearcher = stargraph.getEntitySearcher();
-        this.graphModel = stargraph.getKBCore(dbId).getGraphModel();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
+        this.entityMap = new HashMap<>();
+        this.propertyMap = new HashMap<>();
+    }
 
+    public JenaBaseSearcher(Stargraph stargraph, String dbId) {
+        super(stargraph, dbId);
+        this.entitySearcher = stargraph.getEntitySearcher();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
         this.entityMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
     }

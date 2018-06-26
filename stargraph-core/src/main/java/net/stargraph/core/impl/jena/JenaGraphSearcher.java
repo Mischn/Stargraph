@@ -28,9 +28,8 @@ package net.stargraph.core.impl.jena;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.graph.GraphSearcher;
+import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.core.search.Searcher;
 import net.stargraph.model.*;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
@@ -48,8 +47,12 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("jena");
 
+    public JenaGraphSearcher(String dbId, Stargraph stargraph, BaseGraphModel model) {
+        super(stargraph, dbId, model);
+    }
+
     public JenaGraphSearcher(String dbId, Stargraph stargraph) {
-        super(dbId, stargraph);
+        super(stargraph, dbId);
     }
 
     @Override

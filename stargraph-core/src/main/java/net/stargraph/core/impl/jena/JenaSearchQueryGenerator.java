@@ -58,6 +58,16 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder documentsWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
     public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
 
@@ -122,6 +132,10 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         return new JenaQueryHolder(query, searchParams);
     }
 
+    @Override
+    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     public String cartesianTripleUnionPattern(String sVarName, String pVarName, String oVarName, List<String> sURIs, List<String> pURIs, List<String> oURIs, boolean addBindings) {
         List<String> sLst = (sURIs == null || sURIs.isEmpty())? Arrays.asList(sVarName) : sURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());

@@ -34,10 +34,7 @@ import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 import org.apache.lucene.search.join.ScoreMode;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.Operator;
-import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,8 +47,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
         super(stargraph, dbId);
     }
 
-    @Override
-    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+    private SearchQueryHolder withIds(List<String> idList, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
         QueryBuilder queryBuilder = termsQuery("id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()));
 
@@ -59,9 +55,29 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        return withIds(idList, searchParams);
+    }
+
+    @Override
     public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        return withIds(idList, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder documentsWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        return withIds(idList, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
-        QueryBuilder queryBuilder = termsQuery("id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()));
+        BoolQueryBuilder queryBuilder = boolQuery();
+        if (docTypes != null) {
+            queryBuilder.must(termsQuery("type", docTypes));
+        }
+        queryBuilder.should(termsQuery("entity", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList())))
+        .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
@@ -136,6 +152,30 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
             queryBuilder.should(nestedQuery("o", termQuery("o.id", id), ScoreMode.Max));
         }
         queryBuilder.minimumNumberShouldMatch(1);
+
+        return new ElasticQueryHolder(queryBuilder, searchParams);
+    }
+
+    @Override
+    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
+
+        String[] fields = {"text"};
+        String[] txts = texts.toArray(new String[texts.size()]);
+        MoreLikeThisQueryBuilder.Item[] items = null;
+
+        BoolQueryBuilder queryBuilder = boolQuery();
+        if (docTypes != null) {
+            queryBuilder.must(termsQuery("type", docTypes));
+        }
+        if (entityDocument) {
+            queryBuilder.must(existsQuery("entity")).mustNot(termQuery("entity", "null"));
+        }
+        queryBuilder.should(moreLikeThisQuery(fields, txts, items)
+                        .minTermFreq(1)
+                        .maxQueryTerms(12)
+                        .minDocFreq(1))
+                .minimumNumberShouldMatch(1);
+
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }

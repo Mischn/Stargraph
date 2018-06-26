@@ -39,6 +39,12 @@ public interface SearchQueryGenerator {
     // return property entities that match any of the given ids
     SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams);
 
+    // return documents that match any of the given ids
+    SearchQueryHolder documentsWithIds(List<String> idList, ModifiableSearchParams searchParams);
+
+    // return entity-documents that match any of the given entity-ids and their document-types
+    SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams);
+
     // return facts that represent an is-a relationship between arbitrary subjects and any object of the given ids
     SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
 
@@ -54,4 +60,6 @@ public interface SearchQueryGenerator {
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
     SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
 
+    // return documents that are similar to the searchTerm, matching docTypes
+    SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams);
 }

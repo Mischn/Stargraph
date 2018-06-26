@@ -25,8 +25,7 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         super(stargraph, dbId);
     }
 
-    @Override
-    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+    private SearchQueryHolder withIds(List<String> idList, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
 
         List<Term> terms = new ArrayList<>();
@@ -40,17 +39,23 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        return withIds(idList, searchParams);
+    }
+
+    @Override
     public SearchQueryHolder propertiesWithIds(List<String> idList, ModifiableSearchParams searchParams) {
-        Namespace namespace = getNamespace();
+        return withIds(idList, searchParams);
+    }
 
-        List<Term> terms = new ArrayList<>();
-        idList.stream().map(namespace::shrinkURI).forEach(id -> {
-            terms.add(new Term("id", id));
-        });
+    @Override
+    public SearchQueryHolder documentsWithIds(List<String> idList, ModifiableSearchParams searchParams) {
+        return withIds(idList, searchParams);
+    }
 
-        Query query = new TermsQuery(terms);
-
-        return new LuceneQueryHolder(query, searchParams);
+    @Override
+    public SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams) {
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
@@ -90,6 +95,11 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

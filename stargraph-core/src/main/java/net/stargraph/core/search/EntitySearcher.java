@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import javax.annotation.Resource;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -129,6 +128,71 @@ public class EntitySearcher {
         Scores scores = searcher.search(holder);
 
         return scores.stream().map(s -> (PropertyEntity)s.getEntry()).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns a document for the given id.
+     * @param dbId
+     * @param id
+     * @return
+     */
+    public Document getDocument(String dbId, String id) {
+        List<Document> res = getDocuments(dbId, Collections.singletonList(id));
+        if (res != null && !res.isEmpty()) {
+            return res.get(0);
+        }
+        return null;
+    }
+
+    /**
+     * Returns documents for the given ids.
+     * @param dbId
+     * @param ids
+     * @return
+     */
+    public List<Document> getDocuments(String dbId, List<String> ids) {
+        KBCore core = stargraph.getKBCore(dbId);
+
+        logger.info(marker, "Fetching ids={}", ids);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT);
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.documentsWithIds(ids, searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores.stream().map(s -> (Document)s.getEntry()).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns documents for the given entity-id.
+     * @param dbId
+     * @return
+     */
+    public List<Document> getDocumentsForResourceEntity(String dbId, String id, List<String> docTypes) {
+        return getDocumentsForResourceEntities(dbId, Arrays.asList(id), docTypes);
+    }
+
+    /**
+     * Returns documents for the given entity-ids.
+     * @param dbId
+     * @param ids
+     * @return
+     */
+    public List<Document> getDocumentsForResourceEntities(String dbId, List<String> ids, List<String> docTypes) {
+        KBCore core = stargraph.getKBCore(dbId);
+
+        logger.info(marker, "Fetching documents for entity-ids={} with document-types={}", ids, docTypes);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT);
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.documentsForEntityIds(ids, docTypes, searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores.stream().map(s -> (Document)s.getEntry()).collect(Collectors.toList());
     }
 
     /**
@@ -400,6 +464,52 @@ public class EntitySearcher {
 
         return result;
     }
+
+    public Scores similarDocumentSearch(String dbId, boolean entityDocument, List<String> docTypes, List<String> texts) {
+        KBCore core = stargraph.getKBCore(dbId);
+
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT);
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.findSimilarDocuments(docTypes, entityDocument, texts, searchParams);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores;
+    }
+
+
+
+    public Scores similarResourceSearch(String dbId, ResourceEntity entitiy, List<String> docTypes) {
+
+        // Search for entity-documents
+        List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entitiy.getId(), docTypes);
+        if (entityDocs.size() == 0) {
+            logger.warn(marker, "Did not find any documents for entity {}", entitiy.getId());
+            return new Scores();
+        }
+
+        List<String> texts = entityDocs.stream().map(d -> d.getText()).collect(Collectors.toList());
+        Scores scores = similarDocumentSearch(dbId, true, null, texts);
+
+        // now map documents back to their entities
+        Scores entitiyScores = new Scores();
+        for (Score score : scores) {
+            Document doc = (Document)score.getEntry();
+
+            // exclude documents from entityDocs
+            if (!entityDocs.contains(doc)) {
+                ResourceEntity ent = getResourceEntity(dbId, doc.getEntity());
+                if (ent != null) {
+                    entitiyScores.add(new Score(ent, score.getValue()));
+                }
+            }
+        }
+
+        return entitiyScores;
+    }
+
 
 
 

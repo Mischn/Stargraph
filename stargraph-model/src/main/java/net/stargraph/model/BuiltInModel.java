@@ -37,7 +37,8 @@ public enum BuiltInModel {
 
     FACT("facts", Fact.class),
     ENTITY("entities", ResourceEntity.class),
-    PROPERTY("relations", PropertyEntity.class);
+    PROPERTY("relations", PropertyEntity.class),
+    DOCUMENT("documents", Document.class);
 
     public Class cls;
     public String modelId;

@@ -51,6 +51,7 @@ public final class Processors {
             put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
             put(ValueGeneratorProcessor.name, ValueGeneratorProcessor.class);
+            put(ValueGeneratorFixedProcessor.name, ValueGeneratorFixedProcessor.class);
         }};
     }
 
@@ -96,6 +97,12 @@ public final class Processors {
 
             // use special constructor for ValueGeneratorProcessor
             if ((stargraph != null) && (c.equals(ValueGeneratorProcessor.class))) {
+                Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
+                return constructor.newInstance(stargraph, config);
+            }
+
+            // use special constructor for ValueGeneratorFixedProcessor
+            if ((stargraph != null) && (c.equals(ValueGeneratorFixedProcessor.class))) {
                 Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
                 return constructor.newInstance(stargraph, config);
             }

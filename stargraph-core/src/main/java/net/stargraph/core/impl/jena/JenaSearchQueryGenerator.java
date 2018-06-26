@@ -31,6 +31,7 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.ResourceEntity;
+import net.stargraph.query.Language;
 import net.stargraph.rank.ModifiableSearchParams;
 
 import java.util.ArrayList;
@@ -137,7 +138,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    public String cartesianTripleUnionPattern(String sVarName, String pVarName, String oVarName, List<String> sURIs, List<String> pURIs, List<String> oURIs, boolean addBindings) {
+    public static String cartesianTripleUnionPattern(String sVarName, String pVarName, String oVarName, List<String> sURIs, List<String> pURIs, List<String> oURIs, boolean addBindings) {
         List<String> sLst = (sURIs == null || sURIs.isEmpty())? Arrays.asList(sVarName) : sURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
         List<String> pLst = (pURIs == null || pURIs.isEmpty())? Arrays.asList(pVarName) : pURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
         List<String> oLst = (oURIs == null || oURIs.isEmpty())? Arrays.asList(oVarName) : oURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
@@ -167,7 +168,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         return stmtJoiner.toString();
     }
 
-    private List<String> cartesianProduct(List<String> x, List<String> y) {
+    private static List<String> cartesianProduct(List<String> x, List<String> y) {
         List<String> xy = new ArrayList<>();
         x.forEach(s1 -> y.forEach(s2 -> xy.add(s1.trim() + " " + s2.trim())));
         return xy;
@@ -176,6 +177,16 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     // this was used previously but it should be avoided due to performance (use UNIONs instead)
     public static String createFilter(String variable, List<String> URIs) {
         return "FILTER( " + URIs.stream().map(i ->  variable + " = <" + i + ">").collect(Collectors.joining(" || ")) + " )";
+    }
+
+    public static String createLangFilter(String variable, List<Language> languages, boolean includeNotSpecified) {
+        List<String> langTags = new ArrayList<>();
+        languages.forEach(l -> langTags.add(l.code.toLowerCase()));
+        if (includeNotSpecified) {
+            langTags.add("");
+        }
+
+        return "FILTER( " + langTags.stream().map(lang -> "lang(" + variable + ") = \"" + lang + "\"").collect(Collectors.joining(" || ")) + " )";
     }
 
     private static String createLimit(ModifiableSearchParams searchParams) {

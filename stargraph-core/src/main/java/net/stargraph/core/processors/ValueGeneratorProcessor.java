@@ -91,10 +91,11 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
             ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.min(threshold));
             Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rankParams, false, true, 1, true);
 
-            List<String> otherValues = scores.stream()
+            List<String> otherValues = (entity.getOtherValues() != null)? new ArrayList<>(entity.getOtherValues()) : new ArrayList<>();
+            scores.stream()
                     .filter(s -> s.getEntry() instanceof ValueEntity)
                     .map(s -> ((ValueEntity)s.getEntry()).getValue())
-                    .collect(Collectors.toList());
+                    .forEach(s -> otherValues.add(s));
 
             holder.set(new ResourceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
         }

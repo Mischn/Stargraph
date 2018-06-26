@@ -101,7 +101,7 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
             String entityUri = namespace.expandURI(entity.getId());
             String sparqlQuery = createSPARQLQuery(entityUri, language, props);
 
-            List<String> otherValues = new ArrayList<>();
+            List<String> otherValues = (entity.getOtherValues() != null)? new ArrayList<>(entity.getOtherValues()) : new ArrayList<>();
             graphSearcher.sparqlQuery(sparqlQuery, new JenaBaseSearcher.SparqlIteration() {
                 @Override
                 public void process(Binding binding) {

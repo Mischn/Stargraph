@@ -141,10 +141,10 @@ public class QueryEngine {
         if (!vars.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, queryBuilder);
 
-            Set<LabeledEntity> expanded = vars.get("VAR_1").stream()
-                    .map(e -> namespace.expand(e)).collect(Collectors.toSet());
+            Set<Score> entityAnswers = vars.get("VAR_1").stream()
+                    .map(e -> new Score(namespace.expand(e), 1)).collect(Collectors.toSet());
 
-            answerSet.setEntityAnswers(new ArrayList<>(expanded)); // convention, answer must be bound to the first var
+            answerSet.setEntityAnswers(new ArrayList<>(entityAnswers)); // convention, answer must be bound to the first var
             answerSet.setMappings(queryBuilder.getMappings());
             answerSet.setSPARQLQuery(sparqlQueryStr);
 
@@ -168,13 +168,8 @@ public class QueryEngine {
         Score instanceScore = resolveScoredInstance(query.getCoreEntity());
         ResourceEntity instance = (ResourceEntity) instanceScore.getEntry();
 
-        Set<ResourceEntity> entities = new HashSet<>();
-        Scores scores = entitySearcher.similarResourceSearch(dbId, instance, docTypes);
-        scores.forEach(s -> {
-            entities.add((ResourceEntity)s.getEntry());
-        });
-
-        if (!entities.isEmpty()) {
+        Scores entityScores = entitySearcher.similarResourceSearch(dbId, instance, docTypes);
+        if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
             // create mapping for core entity
@@ -185,7 +180,7 @@ public class QueryEngine {
             List<Document> docs = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), docTypes);
             answerSet.setDocuments(docs);
 
-            answerSet.setEntityAnswers(new ArrayList<>(entities));
+            answerSet.setEntityAnswers(entityScores);
             return answerSet;
         }
 
@@ -230,10 +225,10 @@ public class QueryEngine {
 //      Get documents containing the keywords
 //      Map<Document, Double> documents = core.getDocumentSearcher().searchDocuments(userQuery, 3);
 
-        Set<LabeledEntity> entities = new HashSet<>();
-        if(!entities.isEmpty()) {
+        Scores entityScores = new Scores();
+        if(!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
-            answerSet.setEntityAnswers(new ArrayList<>(entities));
+            answerSet.setEntityAnswers(entityScores);
             return answerSet;
         }
 

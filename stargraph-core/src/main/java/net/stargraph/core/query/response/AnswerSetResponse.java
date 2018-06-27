@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class AnswerSetResponse extends QueryResponse {
-    private List<LabeledEntity> entityAnswers;
+    private List<Score> entityAnswers;
     private List<String> textAnswers;
     private String sparqlQuery;
     private QueryType sparqlQueryType;
@@ -56,7 +56,7 @@ public final class AnswerSetResponse extends QueryResponse {
         this.sparqlQueryType = Objects.requireNonNull(sparqlQueryBuilder).getQueryType();
     }
 
-    public void setEntityAnswers(List<LabeledEntity> entityAnswers) {
+    public void setEntityAnswers(List<Score> entityAnswers) {
         this.entityAnswers = Objects.requireNonNull(entityAnswers);
     }
 
@@ -76,7 +76,7 @@ public final class AnswerSetResponse extends QueryResponse {
         this.sparqlQuery = Objects.requireNonNull(sparqlQuery);
     }
 
-    public List<LabeledEntity> getEntityAnswers() {
+    public List<Score> getEntityAnswers() {
         return entityAnswers;
     }
 

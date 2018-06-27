@@ -102,7 +102,7 @@ public final class QueryResourceImpl implements QueryResource {
 
             response.setSparqlQuery(answerSet.getSparqlQuery());
             response.setTextAnswers(answerSet.getTextAnswers());
-            List<EntityEntry> entityAnswers = (answerSet.getEntityAnswers() == null)? null : createEntityEntries(answerSet.getEntityAnswers(), dbId, namespace);
+            List<EntityEntry> entityAnswers = (answerSet.getEntityAnswers() == null)? null : createScoredEntityEntries(answerSet.getEntityAnswers(), dbId, namespace);
             response.setEntityAnswers(entityAnswers);
             List<DocumentEntry> documents = (answerSet.getDocuments() == null)? null : createDocumentEntries(answerSet.getDocuments(), dbId, namespace);
             response.setDocuments(documents);

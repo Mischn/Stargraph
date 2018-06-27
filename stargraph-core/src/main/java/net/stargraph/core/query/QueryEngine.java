@@ -83,6 +83,8 @@ public class QueryEngine {
         long startTime = System.currentTimeMillis();
         try {
             switch (mode) {
+                case SA_SPARQL: //TODO ?
+                case SA_SIMPLE_SPARQL: //TODO ?
                 case NLI:
                     response = nliQuery(query, language);
                     break;
@@ -260,13 +262,33 @@ public class QueryEngine {
         }
     }
 
+    private boolean isURI(String str) {
+        return (str.toLowerCase().startsWith("http://") || str.toLowerCase().startsWith("https://"));
+    }
+
+    private ResourceEntity resolveUri(String str) {
+        ResourceEntity instance = null;
+        if (isURI(str.trim())) {
+            instance = entitySearcher.getResourceEntity(dbId, str.trim());
+        }
+        return instance;
+    }
+
     private void resolveClass(DataModelBinding binding, SPARQLQueryBuilder builder) {
         if (binding.getModelType() == DataModelType.CLASS) {
             final int LIMIT = 3;
+            Scores scores;
 
-            logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
-            Scores scores = searchClass(binding);
-            logger.debug(marker, "Results: {}", scores);
+            // check for concrete URI
+            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            if (resolvedUri != null) {
+                scores = new Scores();
+                scores.add(new Score(resolvedUri, 1));
+            } else {
+                logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
+                scores = searchClass(binding);
+                logger.debug(marker, "Results: {}", scores);
+            }
 
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
             builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
@@ -283,10 +305,18 @@ public class QueryEngine {
         if ((binding.getModelType() == DataModelType.CLASS
                 || binding.getModelType() == DataModelType.PROPERTY) && !builder.isResolved(binding)) {
             final int LIMIT = 6;
+            Scores scores;
 
-            logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
-            Scores scores = searchPredicate(pivot, incomingEdges, outgoingEdges, binding);
-            logger.debug(marker, "Results: {}", scores);
+            // check for concrete URI
+            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            if (resolvedUri != null) {
+                scores = new Scores();
+                scores.add(new Score(resolvedUri, 1));
+            } else {
+                logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
+                scores = searchPredicate(pivot, incomingEdges, outgoingEdges, binding);
+                logger.debug(marker, "Results: {}", scores);
+            }
 
             logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
             builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
@@ -308,10 +338,18 @@ public class QueryEngine {
         }
 
         if (binding.getModelType() == DataModelType.INSTANCE) {
+            Scores scores;
 
-            logger.debug(marker, "Resolve pivot, searching for term '{}'", binding.getTerm());
-            Scores scores = searchPivot(binding);
-            logger.debug(marker, "Results: {}", scores);
+            // check for concrete URI
+            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            if (resolvedUri != null) {
+                scores = new Scores();
+                scores.add(new Score(resolvedUri, 1));
+            } else {
+                logger.debug(marker, "Resolve pivot, searching for term '{}'", binding.getTerm());
+                scores = searchPivot(binding);
+                logger.debug(marker, "Results: {}", scores);
+            }
 
             logger.debug(marker, "Map {} to binding {}", scores.get(0), binding);
             ResourceEntity instance = (ResourceEntity) scores.get(0).getEntry();
@@ -329,10 +367,18 @@ public class QueryEngine {
 
     private Scores resolveScoredInstance(String instanceTerm) {
         final int LIMIT = 6;
+        Scores scores;
 
-        logger.debug(marker, "Resolve instance/resource, searching for term '{}'", instanceTerm);
-        Scores scores = searchInstance(instanceTerm);
-        logger.debug(marker, "Results: {}", scores);
+        // check for concrete URI
+        ResourceEntity resolvedUri = resolveUri(instanceTerm);
+        if (resolvedUri != null) {
+            scores = new Scores();
+            scores.add(new Score(resolvedUri, 1));
+        } else {
+            logger.debug(marker, "Resolve instance/resource, searching for term '{}'", instanceTerm);
+            scores = searchInstance(instanceTerm);
+            logger.debug(marker, "Results: {}", scores);
+        }
 
         logger.debug(marker, "Return: {}", scores.stream().limit(LIMIT).collect(Collectors.toList()));
         return new Scores(scores.stream().limit(LIMIT).collect(Collectors.toList()));

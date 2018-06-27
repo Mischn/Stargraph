@@ -36,8 +36,9 @@ import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.ResourceEntity;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
@@ -160,21 +161,30 @@ public class QueryEngine {
     }
 
     private QueryResponse entitySimilarityQuery(String userQuery, Language language) {
+        List<String> docTypes = core.getDocTypes();
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, ENTITY_SIMILARITY);
-        ResourceEntity instance = resolveInstance(query.getCoreEntity());
+        Score instanceScore = resolveScoredInstance(query.getCoreEntity());
+        ResourceEntity instance = (ResourceEntity) instanceScore.getEntry();
 
-        Set<LabeledEntity> entities = new HashSet<>();
-        // \TODO Call mltSearch here
-        // mltSearch()
-        // mltSearch will return Set<LabeledEntity>
+        Set<ResourceEntity> entities = new HashSet<>();
+        Scores scores = entitySearcher.similarResourceSearch(dbId, instance, docTypes);
+        scores.forEach(s -> {
+            entities.add((ResourceEntity)s.getEntry());
+        });
 
-        if(!entities.isEmpty()) {
+        if (!entities.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
-            // \TODO define mappings for name entity
-            // answerSet.setMappings();
-            // answerSet.setMappings(); ->
+
+            // create mapping for core entity
+            Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), Arrays.asList(instanceScore));
+            answerSet.setMappings(mappings);
+
+            List<Document> docs = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), docTypes);
+            answerSet.setDocuments(docs);
+
             answerSet.setEntityAnswer(new ArrayList<>(entities));
             return answerSet;
         }
@@ -183,30 +193,30 @@ public class QueryEngine {
     }
 
     public QueryResponse definitionQuery(String userQuery, Language language) {
+        final List<String> definitionDocTypes = Arrays.asList("definition", "description"); //TODO remove magic strings
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, DEFINITION);
-        ResourceEntity instance = resolveInstance(query.getCoreEntity());
+        Score instanceScore = resolveScoredInstance(query.getCoreEntity());
+        ResourceEntity instance = (ResourceEntity) instanceScore.getEntry();
 
-        Set<LabeledEntity> entities = new HashSet<>();
-        Set<String> textAnswers = new HashSet<>();
-        // \TODO Call document search
-        // Document document = core.getDocumentSearcher().getDocument(entities.entrySet().iterator().next().getKey().getId());
-        // \TODO Equate document with normalized entity id
-        // final Entity def = new Entity(document.getId());
-        // Definition is the summary of the document
-        // document.getSummary()
-
-        if(!textAnswers.isEmpty()) {
+        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), definitionDocTypes);
+        if (!documents.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
-            // \TODO define mappings for name entity
-            // answerSet.setMappings(); ->
-            answerSet.setTextAnswer(new ArrayList<>(textAnswers));
+
+            // create mapping for core entity
+            Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), Arrays.asList(instanceScore));
+            answerSet.setMappings(mappings);
+
+            List<String> textAnswer = documents.stream().map(d -> d.getText()).collect(Collectors.toList());
+            answerSet.setTextAnswer(textAnswer);
+
+            answerSet.setDocuments(documents);
             return answerSet;
         }
 
-        return new NoResponse(NLI, userQuery);
-
+        return new NoResponse(DEFINITION, userQuery);
     }
 
     public QueryResponse clueQuery(String userQuery, Language language) {
@@ -323,13 +333,16 @@ public class QueryEngine {
     }
 
     private ResourceEntity resolveInstance(String instanceTerm) {
+        return (ResourceEntity) resolveScoredInstance(instanceTerm).getEntry();
+    }
+    private Score resolveScoredInstance(String instanceTerm) {
 
         logger.debug(marker, "Resolve instance/resource, searching for term '{}'", instanceTerm);
         Scores scores = searchInstance(instanceTerm);
         logger.debug(marker, "Results: {}", scores);
 
         logger.debug(marker, "Return: {}", scores.get(0));
-        return (ResourceEntity) scores.get(0).getEntry();
+        return scores.get(0);
     }
 
     protected Scores searchInstance(String instanceTerm) {

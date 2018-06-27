@@ -15,6 +15,7 @@ import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.Searcher;
 import net.stargraph.data.DataProvider;
 import net.stargraph.data.DataProviderFactory;
+import net.stargraph.model.BuiltInModel;
 import net.stargraph.model.KBId;
 import net.stargraph.query.Language;
 import net.stargraph.rank.ModifiableIndraParams;
@@ -222,6 +223,10 @@ public final class KBCore {
             graphSearchQueryGenerator = new JenaSearchQueryGenerator(stargraph, kbName);
         }
         return graphSearchQueryGenerator;
+    }
+
+    public List<String> getDocTypes() {
+        return stargraph.getDocTypes(kbName);
     }
 
     public KBLoader getLoader() {

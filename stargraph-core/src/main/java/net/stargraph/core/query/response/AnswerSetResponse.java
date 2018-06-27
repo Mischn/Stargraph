@@ -30,6 +30,7 @@ import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.rank.Score;
@@ -42,7 +43,8 @@ public final class AnswerSetResponse extends QueryResponse {
     private List<LabeledEntity> entityAnswer;
     private List<String> textAnswer;
     private String sparqlQuery;
-    private QueryType queryType;
+    private QueryType sparqlQueryType;
+    private List<Document> documents;
     private Map<DataModelBinding, List<Score>> mappings;
 
     public AnswerSetResponse(InteractionMode mode, String userQuery) {
@@ -51,7 +53,7 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public AnswerSetResponse(InteractionMode mode, String userQuery, SPARQLQueryBuilder sparqlQueryBuilder) {
         super(mode, userQuery);
-        this.queryType = Objects.requireNonNull(sparqlQueryBuilder).getQueryType();
+        this.sparqlQueryType = Objects.requireNonNull(sparqlQueryBuilder).getQueryType();
     }
 
     public void setEntityAnswer(List<LabeledEntity> entityAnswer) {
@@ -60,6 +62,10 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public void setTextAnswer(List<String> textAnswer) {
         this.textAnswer = textAnswer;
+    }
+
+    public void setDocuments(List<Document> documents) {
+        this.documents = documents;
     }
 
     public void setMappings(Map<DataModelBinding, List<Score>> mappings) {
@@ -78,8 +84,12 @@ public final class AnswerSetResponse extends QueryResponse {
         return textAnswer;
     }
 
-    public QueryType getQueryType() {
-        return queryType;
+    public List<Document> getDocuments() {
+        return documents;
+    }
+
+    public QueryType getSparqlQueryType() {
+        return sparqlQueryType;
     }
 
     public Map<DataModelBinding, List<Score>> getMappings() {

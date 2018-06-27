@@ -32,34 +32,18 @@ import net.stargraph.data.Indexable;
 import net.stargraph.model.KBId;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 /**
  * Encapsulates the logic to provide a stream of documents.
  */
-public final class DocumentProviderFactory extends BaseDocumentProviderFactory {
+public abstract class BaseDocumentProviderFactory extends BaseDataProviderFactory {
 
-    public DocumentProviderFactory(Stargraph stargraph) {
+    public BaseDocumentProviderFactory(Stargraph stargraph) {
         super(stargraph);
     }
 
-    @Override
-    public List<String> getDocTypes() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public DataProvider<Indexable> create(KBId kbId) {
-        return new DataProvider<Indexable>(
-                new FileDataSource(stargraph, kbId, "documents.json", null, false) {
-                    @Override
-                    protected Iterator createIterator(File file) {
-                        return new DocumentFileIterator(stargraph, kbId, file);
-                    }
-                }
-        );
-    }
+    public abstract List<String> getDocTypes();
 
 }

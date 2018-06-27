@@ -32,6 +32,7 @@ import com.typesafe.config.ConfigObject;
 import net.stargraph.ModelUtils;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.data.BaseDataProviderFactory;
+import net.stargraph.core.data.BaseDocumentProviderFactory;
 import net.stargraph.core.graph.BaseGraphModelProviderFactory;
 import net.stargraph.core.graph.DefaultGraphModelProviderFactory;
 import net.stargraph.core.graph.GraphModelProviderFactory;
@@ -44,6 +45,7 @@ import net.stargraph.core.search.Searcher;
 import net.stargraph.data.DataProviderFactory;
 import net.stargraph.data.processor.Processor;
 import net.stargraph.data.processor.ProcessorChain;
+import net.stargraph.model.BuiltInModel;
 import net.stargraph.model.KBId;
 import net.stargraph.query.Language;
 import org.slf4j.Logger;
@@ -229,6 +231,14 @@ public final class Stargraph {
         } catch (Exception e) {
             throw new StarGraphException("Fail to initialize graph model provider factory: " + dbid, e);
         }
+    }
+
+    public List<String> getDocTypes(String dbId) {
+        DataProviderFactory factory = getDataProviderFactory(KBId.of(dbId, BuiltInModel.DOCUMENT.modelId));
+        if (factory instanceof BaseDocumentProviderFactory) {
+            return ((BaseDocumentProviderFactory)factory).getDocTypes();
+        }
+        return Collections.emptyList();
     }
 
     IndicesFactory getIndicesFactory(KBId kbId) {

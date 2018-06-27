@@ -241,7 +241,7 @@ public class QueryEngine {
             ResourceEntity pivot = resolvePivot(triple.s, builder);
             if (pivot == null) {
                 subjPivot = false;
-                pivot : resolvePivot(triple.o, builder);
+                pivot = resolvePivot(triple.o, builder);
             }
 
             resolvePredicate(pivot, !subjPivot, subjPivot, triple.p, builder);

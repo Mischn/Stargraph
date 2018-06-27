@@ -40,8 +40,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class AnswerSetResponse extends QueryResponse {
-    private List<LabeledEntity> entityAnswer;
-    private List<String> textAnswer;
+    private List<LabeledEntity> entityAnswers;
+    private List<String> textAnswers;
     private String sparqlQuery;
     private QueryType sparqlQueryType;
     private List<Document> documents;
@@ -56,12 +56,12 @@ public final class AnswerSetResponse extends QueryResponse {
         this.sparqlQueryType = Objects.requireNonNull(sparqlQueryBuilder).getQueryType();
     }
 
-    public void setEntityAnswer(List<LabeledEntity> entityAnswer) {
-        this.entityAnswer = Objects.requireNonNull(entityAnswer);
+    public void setEntityAnswers(List<LabeledEntity> entityAnswers) {
+        this.entityAnswers = Objects.requireNonNull(entityAnswers);
     }
 
-    public void setTextAnswer(List<String> textAnswer) {
-        this.textAnswer = textAnswer;
+    public void setTextAnswers(List<String> textAnswers) {
+        this.textAnswers = textAnswers;
     }
 
     public void setDocuments(List<Document> documents) {
@@ -76,12 +76,12 @@ public final class AnswerSetResponse extends QueryResponse {
         this.sparqlQuery = Objects.requireNonNull(sparqlQuery);
     }
 
-    public List<LabeledEntity> getEntityAnswer() {
-        return entityAnswer;
+    public List<LabeledEntity> getEntityAnswers() {
+        return entityAnswers;
     }
 
-    public List<String> getTextAnswer() {
-        return textAnswer;
+    public List<String> getTextAnswers() {
+        return textAnswers;
     }
 
     public List<Document> getDocuments() {
@@ -102,9 +102,10 @@ public final class AnswerSetResponse extends QueryResponse {
 
     @Override
     public String toString() {
-        return "AnswerSet{" +
-                "entityAnswer=" + entityAnswer +
-                ", userQuery='" + getUserQuery() + '\'' +
+        return "AnswerSetResponse{" +
+                "entityAnswers=" + entityAnswers +
+                ", textAnswers=" + textAnswers +
+                ", sparqlQuery='" + sparqlQuery + '\'' +
                 '}';
     }
 }

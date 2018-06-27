@@ -12,10 +12,10 @@ package net.stargraph.rest;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,46 +26,59 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
-public class EntityEntry {
-    public enum EntityType {
-        INSTANCE,
-        LITERAL
+import net.stargraph.query.InteractionMode;
+
+import java.util.List;
+import java.util.Map;
+
+public final class AnswerSetUserResponse extends UserResponse {
+    private List<EntityEntry> entityAnswers;
+    private List<String> textAnswers;
+    private String sparqlQuery;
+    private List<DocumentEntry> documents;
+    private Map<String, List<EntityEntry>> mappings;
+
+    public AnswerSetUserResponse(String query, InteractionMode interactionMode) {
+        super(query, interactionMode);
     }
 
-    private String dbId;
-    private EntityType type;
-    private String id;
-    private String value;
-    private double score;
-
-    public EntityEntry(String dbId, EntityType type, String id, String value) {
-        this(dbId, type, id, value, 1);
-    }
-    public EntityEntry(String dbId, EntityType type, String id, String value, double score) {
-        this.dbId = dbId;
-        this.type = type;
-        this.id = id;
-        this.value = value;
-        this.score = score;
+    public void setEntityAnswers(List<EntityEntry> entityAnswers) {
+        this.entityAnswers = entityAnswers;
     }
 
-    public String getDbId() {
-        return dbId;
+    public void setTextAnswers(List<String> textAnswers) {
+        this.textAnswers = textAnswers;
     }
 
-    public EntityType getType() {
-        return type;
+    public void setSparqlQuery(String sparqlQuery) {
+        this.sparqlQuery = sparqlQuery;
     }
 
-    public String getId() {
-        return id;
+    public void setDocuments(List<DocumentEntry> documents) {
+        this.documents = documents;
     }
 
-    public String getValue() {
-        return value;
+    public void setMappings(Map<String, List<EntityEntry>> mappings) {
+        this.mappings = mappings;
     }
 
-    public double getScore() {
-        return score;
+    public List<EntityEntry> getEntityAnswers() {
+        return entityAnswers;
+    }
+
+    public List<String> getTextAnswers() {
+        return textAnswers;
+    }
+
+    public String getSparqlQuery() {
+        return sparqlQuery;
+    }
+
+    public List<DocumentEntry> getDocuments() {
+        return documents;
+    }
+
+    public Map<String, List<EntityEntry>> getMappings() {
+        return mappings;
     }
 }

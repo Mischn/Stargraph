@@ -50,7 +50,7 @@ public class ClueQueryTest {
 
         String clue = "This association of British insurance underwriters began in 1688.";
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query(clue);
-        Assert.assertTrue(response.getEntityAnswer().contains(new ResourceEntity("http://dbpedia.org/resource/Lloyd%27s_of_London", "Lloyd's of London")));
+        Assert.assertTrue(response.getEntityAnswers().contains(new ResourceEntity("http://dbpedia.org/resource/Lloyd%27s_of_London", "Lloyd's of London")));
 
     }
 

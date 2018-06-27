@@ -55,7 +55,7 @@ public class SchemaAgnosticQueryTest {
                         "}";
 
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query(sparqlString);
-        Assert.assertTrue(response.getEntityAnswer().contains(new ResourceEntity("http://dbpedia.org/resource/Mandolin", "Mandolin")));
+        Assert.assertTrue(response.getEntityAnswers().contains(new ResourceEntity("http://dbpedia.org/resource/Mandolin", "Mandolin")));
 
     }
 

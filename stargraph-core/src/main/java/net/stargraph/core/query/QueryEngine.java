@@ -144,7 +144,7 @@ public class QueryEngine {
             Set<LabeledEntity> expanded = vars.get("VAR_1").stream()
                     .map(e -> namespace.expand(e)).collect(Collectors.toSet());
 
-            answerSet.setEntityAnswer(new ArrayList<>(expanded)); // convention, answer must be bound to the first var
+            answerSet.setEntityAnswers(new ArrayList<>(expanded)); // convention, answer must be bound to the first var
             answerSet.setMappings(queryBuilder.getMappings());
             answerSet.setSPARQLQuery(sparqlQueryStr);
 
@@ -185,7 +185,7 @@ public class QueryEngine {
             List<Document> docs = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), docTypes);
             answerSet.setDocuments(docs);
 
-            answerSet.setEntityAnswer(new ArrayList<>(entities));
+            answerSet.setEntityAnswers(new ArrayList<>(entities));
             return answerSet;
         }
 
@@ -210,7 +210,7 @@ public class QueryEngine {
             answerSet.setMappings(mappings);
 
             List<String> textAnswer = documents.stream().map(d -> d.getText()).collect(Collectors.toList());
-            answerSet.setTextAnswer(textAnswer);
+            answerSet.setTextAnswers(textAnswer);
 
             answerSet.setDocuments(documents);
             return answerSet;
@@ -233,7 +233,7 @@ public class QueryEngine {
         Set<LabeledEntity> entities = new HashSet<>();
         if(!entities.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
-            answerSet.setEntityAnswer(new ArrayList<>(entities));
+            answerSet.setEntityAnswers(new ArrayList<>(entities));
             return answerSet;
         }
 

@@ -32,6 +32,7 @@ import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
+import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.model.ValueEntity;
 import net.stargraph.query.ExtQueryEngine;
@@ -84,6 +85,66 @@ public final class QueryResourceImpl implements QueryResource {
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
     }
 
+
+
+
+
+
+    public UserResponse buildUserResponse(QueryResponse queryResponse, String dbId, Namespace namespace) {
+
+        if (queryResponse instanceof NoResponse) {
+            return new NoUserResponse(queryResponse.getUserQuery(), queryResponse.getInteractionMode());
+        }
+        else if (queryResponse instanceof AnswerSetResponse) {
+            AnswerSetResponse answerSet = (AnswerSetResponse) queryResponse;
+
+            AnswerSetUserResponse response = new AnswerSetUserResponse(answerSet.getUserQuery(), answerSet.getInteractionMode());
+
+            response.setSparqlQuery(answerSet.getSparqlQuery());
+            response.setTextAnswers(answerSet.getTextAnswers());
+            List<EntityEntry> entityAnswers = (answerSet.getEntityAnswers() == null)? null : createEntityEntries(answerSet.getEntityAnswers(), dbId, namespace);
+            response.setEntityAnswers(entityAnswers);
+            List<DocumentEntry> documents = (answerSet.getDocuments() == null)? null : createDocumentEntries(answerSet.getDocuments(), dbId, namespace);
+            response.setDocuments(documents);
+
+            final Map<String, List<EntityEntry>> mappings = new HashMap<>();
+            answerSet.getMappings().forEach((modelBinding, scoreList) -> {
+                List<EntityEntry> entries = createScoredEntityEntries(scoreList, dbId, namespace);
+                mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
+            });
+            response.setMappings(mappings);
+
+            return response;
+        }
+        else if (queryResponse instanceof SPARQLSelectResponse) {
+            SPARQLSelectResponse selectResponse = (SPARQLSelectResponse)queryResponse;
+
+            final Map<String, List<EntityEntry>> bindings = new LinkedHashMap<>();
+            selectResponse.getBindings().entrySet().forEach(e -> {
+                List<EntityEntry> entries = createEntityEntries(e.getValue(), dbId, namespace);
+                bindings.put(e.getKey(), entries);
+            });
+
+            SPARQLSelectUserResponse response = new SPARQLSelectUserResponse(selectResponse.getUserQuery(), selectResponse.getInteractionMode());
+            response.setBindings(bindings);
+
+            return response;
+        }
+
+        throw new UnsupportedOperationException("Can't create REST response");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
     // expand URIs by convention
     public static List<EntityEntry> createEntityEntries(List<LabeledEntity> entities, String dbId, Namespace namespace) {
         return entities.stream().map(e -> createEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
@@ -111,43 +172,39 @@ public final class QueryResourceImpl implements QueryResource {
         );
     }
 
-    public UserResponse buildUserResponse(QueryResponse queryResponse, String dbId, Namespace namespace) {
+    // expand URIs by convention
+    public static List<DocumentEntry> createDocumentEntries(List<Document> documents, String dbId, Namespace namespace) {
+        return documents.stream().map(e -> createDocumentEntry(e, dbId, namespace)).collect(Collectors.toList());
+    }
+    public static DocumentEntry createDocumentEntry(Document document, String dbId, Namespace namespace) {
+        return new DocumentEntry(
+                dbId,
+                document.getType(),
+                document.getEntity(),
+                namespace.expandURI(document.getId()),
+                document.getTitle(),
+                document.getSummary(),
+                document.getText(),
+                createEntityEntries(document.getEntities(), dbId, namespace)
+        );
+    }
 
-        if (queryResponse instanceof NoResponse) {
-            return new NoUserResponse(queryResponse.getUserQuery(), queryResponse.getInteractionMode());
-        }
-        else if (queryResponse instanceof AnswerSetResponse) {
-            AnswerSetResponse answerSet = (AnswerSetResponse) queryResponse;
-            SchemaAgnosticUserResponse response =
-                    new SchemaAgnosticUserResponse(answerSet.getUserQuery(), answerSet.getInteractionMode(), answerSet.getSparqlQuery());
-
-            List<EntityEntry> answers = createEntityEntries(answerSet.getEntityAnswer(), dbId, namespace);
-            response.setAnswers(answers);
-
-            final Map<String, List<EntityEntry>> mappings = new HashMap<>();
-            answerSet.getMappings().forEach((modelBinding, scoreList) -> {
-                List<EntityEntry> entries = createScoredEntityEntries(scoreList, dbId, namespace);
-                mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
-            });
-
-            response.setMappings(mappings);
-            return response;
-        }
-        else if (queryResponse instanceof SPARQLSelectResponse) {
-            SPARQLSelectResponse selectResponse = (SPARQLSelectResponse)queryResponse;
-            final Map<String, List<EntityEntry>> bindings = new LinkedHashMap<>();
-            selectResponse.getBindings().entrySet().forEach(e -> {
-                List<EntityEntry> entries = createEntityEntries(e.getValue(), dbId, namespace);
-                bindings.put(e.getKey(), entries);
-            });
-
-            SPARQLSelectUserResponse response =
-                    new SPARQLSelectUserResponse(selectResponse.getUserQuery(), selectResponse.getInteractionMode());
-
-            response.setBindings(bindings);
-            return response;
-        }
-
-        throw new UnsupportedOperationException("Can't create REST response");
+    // expand URIs by convention
+    public static List<DocumentEntry> createScoredDocumentEntries(List<Score> documentScores, String dbId, Namespace namespace) {
+        return documentScores.stream().map(e -> createScoredDocumentEntry(e, dbId, namespace)).collect(Collectors.toList());
+    }
+    public static DocumentEntry createScoredDocumentEntry(Score documentScore, String dbId, Namespace namespace) {
+        Document document = (Document) documentScore.getEntry();
+        return new DocumentEntry(
+                dbId,
+                document.getType(),
+                document.getEntity(),
+                namespace.expandURI(document.getId()),
+                document.getTitle(),
+                document.getSummary(),
+                document.getText(),
+                createEntityEntries(document.getEntities(), dbId, namespace),
+                documentScore.getValue()
+        );
     }
 }

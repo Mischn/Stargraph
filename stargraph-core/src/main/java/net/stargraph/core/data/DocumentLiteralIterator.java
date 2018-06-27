@@ -41,7 +41,7 @@ import java.util.*;
 /**
  * Produces entity-documents from literals (selected by SPARQL-Query)
  */
-final class DocumentLiteralIterator implements Iterator<Indexable> {
+public final class DocumentLiteralIterator implements Iterator<Indexable> {
     private final JenaGraphSearcher graphSearcher;
     private final KBId kbId;
     private final String sparqlQuery;

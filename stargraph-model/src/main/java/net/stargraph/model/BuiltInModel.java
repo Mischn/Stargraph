@@ -36,7 +36,7 @@ import java.io.Serializable;
 public enum BuiltInModel {
 
     FACT("facts", Fact.class),
-    ENTITY("entities", ResourceEntity.class),
+    ENTITY("entities", InstanceEntity.class),
     PROPERTY("relations", PropertyEntity.class),
     DOCUMENT("documents", Document.class);
 

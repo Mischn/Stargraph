@@ -34,22 +34,16 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.jena.JenaBaseSearcher;
 import net.stargraph.core.impl.jena.JenaGraphSearcher;
 import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
-import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.data.Indexable;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
-import net.stargraph.model.Document;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.model.ValueEntity;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.query.Language;
-import net.stargraph.rank.*;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.engine.binding.Binding;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to create passages.
@@ -86,8 +80,8 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
          * One might consider avoiding redundant calculations for same entities here,
          * but when executed after a sink-duplicate processor, this should be okay.
          */
-        if (entry instanceof ResourceEntity) {
-            ResourceEntity entity = (ResourceEntity)entry;
+        if (entry instanceof InstanceEntity) {
+            InstanceEntity entity = (InstanceEntity)entry;
             Language language = stargraph.getKBCore(holder.getKBId().getId()).getLanguage();
             if (!properties.containsKey(language)) {
                 throw new StarGraphException("No properties specified for language: " + language);
@@ -114,7 +108,7 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
                 }
             });
 
-            holder.set(new ResourceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
+            holder.set(new InstanceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
         }
     }
 

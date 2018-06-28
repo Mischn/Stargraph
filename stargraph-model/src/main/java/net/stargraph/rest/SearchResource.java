@@ -38,10 +38,10 @@ import javax.ws.rs.core.Response;
 public interface SearchResource {
 
     @GET
-    @Path("{kbId}/search/resource")
-    Response resourceSearch(@PathParam("kbId") String dbId, @QueryParam("term") String resourceTerm,
-                                   @DefaultValue("LEVENSHTEIN") @QueryParam("model") String model,
-                                   @DefaultValue("10") @QueryParam("topk") int topk);
+    @Path("{kbId}/search/instance")
+    Response instanceSearch(@PathParam("kbId") String dbId, @QueryParam("term") String instanceTerm,
+                            @DefaultValue("LEVENSHTEIN") @QueryParam("model") String model,
+                            @DefaultValue("10") @QueryParam("topk") int topk);
 
     @GET
     @Path("{kbId}/search/class")

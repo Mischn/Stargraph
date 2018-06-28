@@ -32,9 +32,9 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.graph.GraphSearcher;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.model.PropertyEntity;
-import net.stargraph.model.ResourceEntity;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.impl.LiteralLabel;
 import org.apache.jena.query.QueryExecution;
@@ -50,7 +50,6 @@ import org.slf4j.MarkerFactory;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Objects;
 
 /**
  * Contains basic functionalities for querying the graph.
@@ -66,7 +65,7 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
     private final Namespace namespace;
     private final EntitySearcher entitySearcher;
 
-    private final HashMap<String, ResourceEntity> entityMap; // for avoiding redundant lookups
+    private final HashMap<String, InstanceEntity> entityMap; // for avoiding redundant lookups
     private final HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
 
     public JenaBaseSearcher(Stargraph stargraph, String dbId, BaseGraphModel model) {
@@ -105,19 +104,19 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
     public LabeledEntity asEntity(Node node, boolean lookup) {
         if (!node.isLiteral()) {
             String id = node.getURI();
-            ResourceEntity resourceEntity = null;
+            InstanceEntity instanceEntity = null;
 
             if (entityMap.containsKey(id)) {
-                resourceEntity = entityMap.get(id);
+                instanceEntity = entityMap.get(id);
             } else if (lookup) {
-                resourceEntity = entitySearcher.getResourceEntity(dbId, id);
-                entityMap.put(id, resourceEntity);
+                instanceEntity = entitySearcher.getInstanceEntity(dbId, id);
+                entityMap.put(id, instanceEntity);
             }
 
-            if (resourceEntity == null) {
-                resourceEntity = ModelCreator.createResource(id, namespace);
+            if (instanceEntity == null) {
+                instanceEntity = ModelCreator.createInstance(id, namespace);
             }
-            return resourceEntity;
+            return instanceEntity;
         } else {
             LiteralLabel lit = node.getLiteral();
             return ModelCreator.createValue(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());

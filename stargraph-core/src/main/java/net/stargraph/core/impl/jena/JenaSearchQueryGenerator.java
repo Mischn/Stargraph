@@ -30,7 +30,7 @@ import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.query.Language;
 import net.stargraph.rank.ModifiableSearchParams;
 
@@ -83,7 +83,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -98,7 +98,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         Namespace namespace = getNamespace();
 
         String id = namespace.expandURI(pivot.getId());

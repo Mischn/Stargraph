@@ -28,7 +28,7 @@ package net.stargraph.rest;
 
 public class EntityEntry {
     public enum EntityType {
-        INSTANCE,
+        RESOURCE,
         LITERAL
     }
 

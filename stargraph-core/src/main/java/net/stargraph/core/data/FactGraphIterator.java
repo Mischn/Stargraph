@@ -34,7 +34,7 @@ import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Statement;
 
 import static net.stargraph.core.ModelCreator.createProperty;
-import static net.stargraph.core.ModelCreator.createResource;
+import static net.stargraph.core.ModelCreator.createInstance;
 import static net.stargraph.core.ModelCreator.createValue;
 
 final class FactGraphIterator extends GraphIterator<Indexable> {
@@ -49,13 +49,13 @@ final class FactGraphIterator extends GraphIterator<Indexable> {
 
     @Override
     protected Indexable buildNext(Statement statement) {
-        ResourceEntity resourceEntity = createResource(statement.getSubject().getURI(), namespace);
+        InstanceEntity instanceEntity = createInstance(statement.getSubject().getURI(), namespace);
         PropertyEntity propertyEntity = createProperty(statement.getPredicate().getURI(), namespace);
 
         LabeledEntity labeledEntity;
 
         if (!statement.getObject().isLiteral()) {
-            labeledEntity = createResource(statement.getObject().asResource().getURI(), namespace);
+            labeledEntity = createInstance(statement.getObject().asResource().getURI(), namespace);
         } else {
             Literal literal = statement.getObject().asLiteral();
             String dataType = literal.getDatatypeURI();
@@ -65,6 +65,6 @@ final class FactGraphIterator extends GraphIterator<Indexable> {
         }
 
 
-        return new Indexable(new Fact(kbId, resourceEntity, propertyEntity, labeledEntity), kbId);
+        return new Indexable(new Fact(kbId, instanceEntity, propertyEntity, labeledEntity), kbId);
     }
 }

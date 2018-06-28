@@ -30,8 +30,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
-import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
@@ -39,13 +37,9 @@ import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.*;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
-import org.lambda3.text.simplification.discourse.utils.sentences.SentencesUtils;
 
-import javax.sql.rowset.Predicate;
 import java.io.Serializable;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to create passages.
@@ -79,8 +73,8 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
          * One might consider avoiding redundant calculations for same entities here,
          * but when executed after a sink-duplicate processor, this should be okay.
          */
-        if (entry instanceof ResourceEntity) {
-            ResourceEntity entity = (ResourceEntity)entry;
+        if (entry instanceof InstanceEntity) {
+            InstanceEntity entity = (InstanceEntity)entry;
             Language language = stargraph.getKBCore(holder.getKBId().getId()).getLanguage();
             if (!searchTerms.containsKey(language)) {
                 throw new StarGraphException("No search-term specified for language: " + language);
@@ -97,7 +91,7 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
                     .map(s -> ((ValueEntity)s.getEntry()).getValue())
                     .forEach(s -> otherValues.add(s));
 
-            holder.set(new ResourceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
+            holder.set(new InstanceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
         }
     }
 

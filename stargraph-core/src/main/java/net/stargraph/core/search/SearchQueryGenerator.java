@@ -26,7 +26,7 @@ package net.stargraph.core.search;
  * ==========================License-End===============================
  */
 
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 
 import java.util.List;
@@ -49,7 +49,7 @@ public interface SearchQueryGenerator {
     SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
 
     // return resource entities whose value or otherValues match the searchTerm
-    SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+    SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
 
     // return class resource entities whose value or otherValues match the searchTerm
     SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
@@ -58,7 +58,7 @@ public interface SearchQueryGenerator {
     SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
 
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
-    SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
+    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
 
     // return documents that are similar to the searchTerm, matching docTypes
     SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams);

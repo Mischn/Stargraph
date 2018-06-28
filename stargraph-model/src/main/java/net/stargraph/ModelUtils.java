@@ -28,20 +28,11 @@ package net.stargraph;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigRenderOptions;
-import net.stargraph.data.Indexable;
-import net.stargraph.data.processor.Holder;
-import net.stargraph.model.Fact;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.model.KBId;
-import net.stargraph.model.PropertyEntity;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.security.MessageDigest;
-import java.util.StringJoiner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Utilities used within the sys core.

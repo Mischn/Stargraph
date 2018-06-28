@@ -37,8 +37,8 @@ import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.Document;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.LabeledEntity;
-import net.stargraph.model.ResourceEntity;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
@@ -170,7 +170,7 @@ public class QueryEngine {
         Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
         Score coreEntityScore = coreEntityScores.get(0);
 
-        Scores entityScores = entitySearcher.similarResourceSearch(dbId, (ResourceEntity)coreEntityScore.getEntry(), docTypes);
+        Scores entityScores = entitySearcher.similarResourceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
@@ -197,7 +197,7 @@ public class QueryEngine {
         Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
         Score coreEntityScore = coreEntityScores.get(0);
 
-        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((ResourceEntity)coreEntityScore.getEntry()).getId(), definitionDocTypes);
+        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((InstanceEntity)coreEntityScore.getEntry()).getId(), definitionDocTypes);
         if (!documents.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
 
@@ -247,7 +247,7 @@ public class QueryEngine {
             logger.debug(marker, "Assume 'I (C|P) V' pattern");
 
             boolean subjPivot = true;
-            ResourceEntity pivot = resolvePivot(triple.s, builder);
+            InstanceEntity pivot = resolvePivot(triple.s, builder);
             if (pivot == null) {
                 subjPivot = false;
                 pivot = resolvePivot(triple.o, builder);
@@ -268,10 +268,10 @@ public class QueryEngine {
         return (str.toLowerCase().startsWith("http://") || str.toLowerCase().startsWith("https://"));
     }
 
-    private ResourceEntity resolveUri(String str) {
-        ResourceEntity instance = null;
+    private InstanceEntity resolveUri(String str) {
+        InstanceEntity instance = null;
         if (isURI(str.trim())) {
-            instance = entitySearcher.getResourceEntity(dbId, str.trim());
+            instance = entitySearcher.getInstanceEntity(dbId, str.trim());
         }
         return instance;
     }
@@ -282,7 +282,7 @@ public class QueryEngine {
             Scores scores;
 
             // check for concrete URI
-            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
             if (resolvedUri != null) {
                 scores = new Scores();
                 scores.add(new Score(resolvedUri, 1));
@@ -303,14 +303,14 @@ public class QueryEngine {
         return entitySearcher.classSearch(searchParams, rankParams);
     }
 
-    private void resolvePredicate(ResourceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding, SPARQLQueryBuilder builder) {
+    private void resolvePredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding, SPARQLQueryBuilder builder) {
         if ((binding.getModelType() == DataModelType.CLASS
                 || binding.getModelType() == DataModelType.PROPERTY) && !builder.isResolved(binding)) {
             final int LIMIT = 6;
             Scores scores;
 
             // check for concrete URI
-            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
             if (resolvedUri != null) {
                 scores = new Scores();
                 scores.add(new Score(resolvedUri, 1));
@@ -325,25 +325,25 @@ public class QueryEngine {
         }
     }
 
-    protected Scores searchPredicate(ResourceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
+    protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
         return entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
     }
 
-    private ResourceEntity resolvePivot(DataModelBinding binding, SPARQLQueryBuilder builder) {
+    private InstanceEntity resolvePivot(DataModelBinding binding, SPARQLQueryBuilder builder) {
         List<Score> mappings = builder.getMappings(binding);
         if (!mappings.isEmpty()) {
             logger.debug(marker, "Pivot was already resolved");
             logger.debug(marker, "Return " + mappings.get(0));
-            return (ResourceEntity)mappings.get(0).getEntry();
+            return (InstanceEntity)mappings.get(0).getEntry();
         }
 
         if (binding.getModelType() == DataModelType.INSTANCE) {
             Scores scores;
 
             // check for concrete URI
-            ResourceEntity resolvedUri = resolveUri(binding.getTerm());
+            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
             if (resolvedUri != null) {
                 scores = new Scores();
                 scores.add(new Score(resolvedUri, 1));
@@ -354,7 +354,7 @@ public class QueryEngine {
             }
 
             logger.debug(marker, "Map {} to binding {}", scores.get(0), binding);
-            ResourceEntity instance = (ResourceEntity) scores.get(0).getEntry();
+            InstanceEntity instance = (InstanceEntity) scores.get(0).getEntry();
             builder.addMapping(binding, Collections.singletonList(scores.get(0)));
             return instance;
         }
@@ -364,7 +364,7 @@ public class QueryEngine {
     protected Scores searchPivot(DataModelBinding binding) {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.resourceSearch(searchParams, rankParams);
+        return entitySearcher.instanceSearch(searchParams, rankParams);
     }
 
     private Scores resolveScoredInstance(String instanceTerm) {
@@ -372,7 +372,7 @@ public class QueryEngine {
         Scores scores;
 
         // check for concrete URI
-        ResourceEntity resolvedUri = resolveUri(instanceTerm);
+        InstanceEntity resolvedUri = resolveUri(instanceTerm);
         if (resolvedUri != null) {
             scores = new Scores();
             scores.add(new Score(resolvedUri, 1));
@@ -389,7 +389,7 @@ public class QueryEngine {
     protected Scores searchInstance(String instanceTerm) {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(instanceTerm);
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.resourceSearch(searchParams, rankParams);
+        return entitySearcher.instanceSearch(searchParams, rankParams);
     }
 
     private Triple asTriple(TriplePattern pattern, List<DataModelBinding> bindings) {

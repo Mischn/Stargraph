@@ -60,7 +60,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
                 if (ent.has("language")) {
                     entities.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
                 } else {
-                    entities.add(new ResourceEntity(entId, entValue));
+                    entities.add(new InstanceEntity(entId, entValue));
                 }
             }
         }

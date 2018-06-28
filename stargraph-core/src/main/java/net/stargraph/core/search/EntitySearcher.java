@@ -61,13 +61,13 @@ public class EntitySearcher {
     }
 
     /**
-     * Returns a resource for the given id.
+     * Returns an instance for the given id.
      * @param dbId
      * @param id
      * @return
      */
-    public ResourceEntity getResourceEntity(String dbId, String id) {
-        List<ResourceEntity> res = getResourceEntities(dbId, Collections.singletonList(id));
+    public InstanceEntity getInstanceEntity(String dbId, String id) {
+        List<InstanceEntity> res = getInstanceEntities(dbId, Collections.singletonList(id));
         if (res != null && !res.isEmpty()) {
             return res.get(0);
         }
@@ -75,12 +75,12 @@ public class EntitySearcher {
     }
 
     /**
-     * Returns resources for the given ids.
+     * Returns instances for the given ids.
      * @param dbId
      * @param ids
      * @return
      */
-    public List<ResourceEntity> getResourceEntities(String dbId, List<String> ids) {
+    public List<InstanceEntity> getInstanceEntities(String dbId, List<String> ids) {
         KBCore core = stargraph.getKBCore(dbId);
 
         logger.info(marker, "Fetching ids={}", ids);
@@ -92,7 +92,7 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        return scores.stream().map(s -> (ResourceEntity)s.getEntry()).collect(Collectors.toList());
+        return scores.stream().map(s -> (InstanceEntity)s.getEntry()).collect(Collectors.toList());
     }
 
     /**
@@ -201,7 +201,7 @@ public class EntitySearcher {
      * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassesForMember(ResourceEntity memberEntity, ModifiableSearchParams searchParams) {
+    public List<InstanceEntity> getClassesForMember(InstanceEntity memberEntity, ModifiableSearchParams searchParams) {
         return getClassesForMember(memberEntity.getId(), searchParams);
     }
 
@@ -211,7 +211,7 @@ public class EntitySearcher {
      * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassesForMember(String memberId, ModifiableSearchParams searchParams) {
+    public List<InstanceEntity> getClassesForMember(String memberId, ModifiableSearchParams searchParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
@@ -225,8 +225,8 @@ public class EntitySearcher {
         // We have to remap the facts to the classes.
         return scores.stream()
                 .map(s -> ((Fact)s.getEntry()).getObject())
-                .filter(x -> x instanceof ResourceEntity)
-                .map(x -> (ResourceEntity)x)
+                .filter(x -> x instanceof InstanceEntity)
+                .map(x -> (InstanceEntity)x)
                 .distinct()
                 .collect(Collectors.toList());
     }
@@ -237,7 +237,7 @@ public class EntitySearcher {
      * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassMembers(ResourceEntity classEntity, ModifiableSearchParams searchParams) {
+    public List<InstanceEntity> getClassMembers(InstanceEntity classEntity, ModifiableSearchParams searchParams) {
         return getClassMembers(classEntity.getId(), searchParams);
     }
 
@@ -247,7 +247,7 @@ public class EntitySearcher {
      * @param searchParams
      * @return
      */
-    public List<ResourceEntity> getClassMembers(String classId, ModifiableSearchParams searchParams) {
+    public List<InstanceEntity> getClassMembers(String classId, ModifiableSearchParams searchParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
@@ -261,24 +261,24 @@ public class EntitySearcher {
         // We have to remap the facts to the members.
         return scores.stream()
                 .map(s -> ((Fact)s.getEntry()).getSubject())
-                .filter(x -> x instanceof ResourceEntity)
-                .map(x -> (ResourceEntity)x)
+                .filter(x -> x instanceof InstanceEntity)
+                .map(x -> (InstanceEntity)x)
                 .distinct()
                 .collect(Collectors.toList());
     }
 
     /**
-     * Search resources by their value & otherValues (fuzzy match with searchTerm).
+     * Search instances by their value & otherValues (fuzzy match with searchTerm).
      * @param searchParams
      * @param rankParams
      * @return
      */
-    public Scores resourceSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
+    public Scores instanceSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findResourceInstances(searchParams, true, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -351,9 +351,9 @@ public class EntitySearcher {
      * @return
      */
     public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
-        return pivotedSearch(ModelCreator.createResource(pivotId, null), searchParams, rankParams, incomingEdges, outgoingEdges, range, returnBestMatchEntities);
+        return pivotedSearch(ModelCreator.createInstance(pivotId, null), searchParams, rankParams, incomingEdges, outgoingEdges, range, returnBestMatchEntities);
     }
-    public Scores pivotedSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         List<Route> neighbours = neighbourSearch(pivot, searchParams, range, incomingEdges, outgoingEdges, new PruningMethod() {
@@ -398,7 +398,7 @@ public class EntitySearcher {
     }
 
 
-    public Scores pivotedClassSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
+    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         List<Route> neighbours = neighbourSearch(pivot, searchParams, range, true, true, new PruningMethod() {
@@ -410,7 +410,7 @@ public class EntitySearcher {
         });
 
         // filter for resource entities
-        neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof ResourceEntity).collect(Collectors.toList());
+        neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());
 
         List<String> neighbourIds = neighbours.stream()
                 .map(n -> n.getLastWaypoint().getId())
@@ -426,14 +426,14 @@ public class EntitySearcher {
         Scores scores = searcher.search(holder);
 
         // maps classes to class-members
-        Map<ResourceEntity, List<ResourceEntity>> classMembers = new HashMap<>();
+        Map<InstanceEntity, List<InstanceEntity>> classMembers = new HashMap<>();
         scores.stream().forEach(s -> {
             Fact fact = (Fact)s.getEntry();
-            if (fact.getSubject() instanceof ResourceEntity && fact.getObject() instanceof ResourceEntity) { ;
-                ResourceEntity member = (ResourceEntity) fact.getSubject();
-                ResourceEntity clazz = (ResourceEntity) fact.getObject();
+            if (fact.getSubject() instanceof InstanceEntity && fact.getObject() instanceof InstanceEntity) { ;
+                InstanceEntity member = (InstanceEntity) fact.getSubject();
+                InstanceEntity clazz = (InstanceEntity) fact.getObject();
 
-                List<ResourceEntity> members = classMembers.getOrDefault(clazz, new ArrayList<>());
+                List<InstanceEntity> members = classMembers.getOrDefault(clazz, new ArrayList<>());
                 if (!members.contains(member)) {
                     members.add(member);
                 }
@@ -457,7 +457,7 @@ public class EntitySearcher {
                 return new Scores();
             }
             Score bestScore = rankedScores.get(0);
-            ResourceEntity bestClass = (ResourceEntity) bestScore.getEntry();
+            InstanceEntity bestClass = (InstanceEntity) bestScore.getEntry();
             logger.debug("Best match is {}, returning instances ..", bestClass);
             result = new Scores(classMembers.get(bestClass).stream().map(m -> new Score(m, bestScore.getValue())).collect(Collectors.toList()));
         }
@@ -481,7 +481,7 @@ public class EntitySearcher {
 
 
 
-    public Scores similarResourceSearch(String dbId, ResourceEntity entitiy, List<String> docTypes) {
+    public Scores similarResourceSearch(String dbId, InstanceEntity entitiy, List<String> docTypes) {
 
         // Search for entity-documents
         List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entitiy.getId(), docTypes);
@@ -500,7 +500,7 @@ public class EntitySearcher {
 
             // exclude documents from entityDocs
             if (!entityDocs.contains(doc)) {
-                ResourceEntity ent = getResourceEntity(dbId, doc.getEntity());
+                InstanceEntity ent = getInstanceEntity(dbId, doc.getEntity());
                 if (ent != null) {
                     entitiyScores.add(new Score(ent, score.getValue()));
                 }
@@ -527,7 +527,7 @@ public class EntitySearcher {
     }
 
     // direct neighbours only
-    private List<Route> directNeighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges) {
+    private List<Route> directNeighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
@@ -551,15 +551,15 @@ public class EntitySearcher {
         return result;
     }
 
-    private List<Route> neighbourSearch(ResourceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod) {
+    private List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
-        ResourceEntity myPivot = namespace.shrink(pivot);
+        InstanceEntity myPivot = namespace.shrink(pivot);
 
         if (range == 0) {
             return Arrays.asList(new Route(myPivot));
         }
 
-        Map<ResourceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
+        Map<InstanceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
         Map<Integer, List<Route>> neighbours = new HashMap<>();
         neighbourSearchRec(
                 new Route(myPivot),
@@ -576,12 +576,12 @@ public class EntitySearcher {
         return neighbours.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 
-    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod, Map<ResourceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
-        if (leftRange == 0 || !(route.getLastWaypoint() instanceof ResourceEntity)) {
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+        if (leftRange == 0 || !(route.getLastWaypoint() instanceof InstanceEntity)) {
             return;
         }
 
-        ResourceEntity currPivot = (ResourceEntity) route.getLastWaypoint();
+        InstanceEntity currPivot = (InstanceEntity) route.getLastWaypoint();
         List<Route> directNs;
         if (directNeighbours.containsKey(currPivot)) {
             directNs = directNeighbours.get(currPivot);

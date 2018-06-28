@@ -30,8 +30,7 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.InstanceEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -56,7 +55,7 @@ public class QueryEngineIT {
     @Test
     public void whoIsTheWifeOfBarackObamaTest() {
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query("Who is the wife of Barack Obama?");
-        Assert.assertTrue(response.getEntityAnswers().contains(new ResourceEntity("http://dbpedia.org/resource/Michelle_Obama", "Michelle Obama")));
+        Assert.assertTrue(response.getEntityAnswers().contains(new InstanceEntity("http://dbpedia.org/resource/Michelle_Obama", "Michelle Obama")));
     }
 
     @Test

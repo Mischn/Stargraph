@@ -28,7 +28,7 @@ public class EntityEntryCreator {
     public static EntityEntry createScoredEntityEntry(Score labeledEntityScore, String dbId, Namespace namespace) {
         return new EntityEntry(
                 dbId,
-                (labeledEntityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.INSTANCE,
+                (labeledEntityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
                 namespace.expandURI(labeledEntityScore.getRankableView().getId()),
                 labeledEntityScore.getRankableView().getValue(),
                 labeledEntityScore.getValue()

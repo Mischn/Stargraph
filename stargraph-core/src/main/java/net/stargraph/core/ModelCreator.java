@@ -143,9 +143,9 @@ public final class ModelCreator {
 
 
 
-    public static ResourceEntity createResource(String uri, Namespace namespace) {
+    public static InstanceEntity createInstance(String uri, Namespace namespace) {
         String shrinkedUri = applyNamespace(uri, namespace);
-        return new ResourceEntity(shrinkedUri, extractLabel(shrinkedUri, true));
+        return new InstanceEntity(shrinkedUri, extractLabel(shrinkedUri, true));
     }
 
     public static PropertyEntity createProperty(String uri, Namespace namespace) {
@@ -158,10 +158,10 @@ public final class ModelCreator {
     }
 
     public static Fact createFact(KBId kbId, String s, String p, String o, Namespace namespace) {
-        return new Fact(kbId, ModelCreator.createResource(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createResource(o, namespace));
+        return new Fact(kbId, ModelCreator.createInstance(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createInstance(o, namespace));
     }
 
     public static Fact createFact(KBId kbId, String s, String p, String value, String dataType, String langTag, Namespace namespace) {
-        return new Fact(kbId, ModelCreator.createResource(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createValue(value, dataType, langTag));
+        return new Fact(kbId, ModelCreator.createInstance(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createValue(value, dataType, langTag));
     }
 }

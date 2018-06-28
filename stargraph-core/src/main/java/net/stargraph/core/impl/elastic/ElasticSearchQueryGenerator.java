@@ -31,7 +31,7 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.*;
@@ -104,7 +104,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findResourceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
         QueryBuilder queryBuilder = boolQuery()
                 .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
                 .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
@@ -140,7 +140,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     // There is a clear performance-loss when both inSubject and inObject are enabled together.
-    public SearchQueryHolder findPivotFacts(ResourceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         Namespace namespace = getNamespace();
         String id = namespace.shrinkURI(pivot.getId());
 

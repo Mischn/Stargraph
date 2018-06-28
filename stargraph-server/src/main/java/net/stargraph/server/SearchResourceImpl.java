@@ -57,12 +57,12 @@ final class SearchResourceImpl implements SearchResource {
     }
 
     @Override
-    public Response resourceSearch(String dbId, String resourceTerm, String model, int topk) {
+    public Response instanceSearch(String dbId, String instanceTerm, String model, int topk) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(resourceTerm).limit(topk);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(instanceTerm).limit(topk);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.resourceSearch(searchParams, rankParams);
+        Scores scores = entitySearcher.instanceSearch(searchParams, rankParams);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();

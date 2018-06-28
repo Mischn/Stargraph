@@ -28,19 +28,19 @@ package net.stargraph.core.serializer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import net.stargraph.model.ResourceEntity;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.KBId;
 
 import java.io.IOException;
 
-class ResourceSerializer extends AbstractSerializer<ResourceEntity> {
+class InstanceSerializer extends AbstractSerializer<InstanceEntity> {
 
-    ResourceSerializer(KBId kbId) {
-        super(kbId, ResourceEntity.class);
+    InstanceSerializer(KBId kbId) {
+        super(kbId, InstanceEntity.class);
     }
 
     @Override
-    public void serialize(ResourceEntity value, JsonGenerator g, SerializerProvider provider) throws IOException {
+    public void serialize(InstanceEntity value, JsonGenerator g, SerializerProvider provider) throws IOException {
         g.writeStartObject();
         g.writeStringField("id", value.getId());
         g.writeStringField("value", value.getValue());

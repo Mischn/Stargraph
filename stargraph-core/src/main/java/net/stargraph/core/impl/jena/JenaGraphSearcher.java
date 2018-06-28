@@ -105,7 +105,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         throw new StarGraphException("?s ?p ?o variables need to be available in the query");
                     }
 
-                    ResourceEntity subject = (ResourceEntity) asEntity(varMap.get("s"), lookup);
+                    InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"), lookup);
                     PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
                     LabeledEntity object = asEntity(varMap.get("o"), lookup);
 
@@ -117,7 +117,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         throw new StarGraphException("?e variable need to be available in the query");
                     }
 
-                    ResourceEntity entity = (ResourceEntity) asEntity(varMap.get("e"), lookup);
+                    InstanceEntity entity = (InstanceEntity) asEntity(varMap.get("e"), lookup);
                     scores.add(new Score(entity, 0.0));
                 } else if (modelId.equals(BuiltInModel.PROPERTY.modelId)) {
                     // assume that '?p' variable is available in the query

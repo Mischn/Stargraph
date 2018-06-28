@@ -44,7 +44,7 @@ class FactDeSerializer extends AbstractDeserializer<Fact> {
         JsonNode node = parser.getCodec().readTree(parser);
 
         JsonNode s = node.get("s");
-        ResourceEntity subject = new ResourceEntity(s.get("id").asText(), s.get("value").asText());
+        InstanceEntity subject = new InstanceEntity(s.get("id").asText(), s.get("value").asText());
 
         JsonNode p = node.get("p");
         String propId = p.get("id").asText();
@@ -59,7 +59,7 @@ class FactDeSerializer extends AbstractDeserializer<Fact> {
         if (o.has("language")) {
             object = new ValueEntity(objId, objValue, o.get("dataType").asText(null), o.get("language").asText(null));
         } else {
-            object = new ResourceEntity(objId, objValue);
+            object = new InstanceEntity(objId, objValue);
         }
 
         return new Fact(getKbId(), subject, property, object);

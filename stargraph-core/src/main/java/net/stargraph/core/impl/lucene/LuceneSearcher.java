@@ -28,10 +28,9 @@ package net.stargraph.core.impl.lucene;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.search.BaseSearcher;
 import net.stargraph.core.search.SearchQueryHolder;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.KBId;
-import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 import org.apache.lucene.document.Document;
@@ -74,7 +73,7 @@ public final class LuceneSearcher extends net.stargraph.core.search.IndexSearche
                             boolean isClass = hitDoc.get("isClass").equals("true");
                             List<String> otherValues = Arrays.asList(hitDoc.getValues("otherValues"));
 
-                            ResourceEntity entity = new ResourceEntity(id, value, isClass, otherValues);
+                            InstanceEntity entity = new InstanceEntity(id, value, isClass, otherValues);
                             return new Score(entity, hit.score);
                         } catch (Exception e) {
                             logger.error(marker, "Fail to deserialize document {}", hit.doc, e);

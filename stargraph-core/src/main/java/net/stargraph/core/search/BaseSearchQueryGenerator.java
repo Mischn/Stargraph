@@ -28,10 +28,6 @@ package net.stargraph.core.search;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.rank.ModifiableSearchParams;
-
-import java.util.List;
 
 public abstract class BaseSearchQueryGenerator implements SearchQueryGenerator {
     protected Stargraph stargraph;

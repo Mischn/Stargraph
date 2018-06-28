@@ -4,9 +4,9 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.PropertyPath;
-import net.stargraph.model.ResourceEntity;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 import org.slf4j.Logger;
@@ -69,7 +69,7 @@ public class ExtQueryEngine extends QueryEngine {
 
             // lookup classes
             Scores scores = new Scores(betterMappings.get(binding.getTerm()).stream()
-                    .map(id -> entitySearcher.getResourceEntity(dbId, id))
+                    .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
                     .collect(Collectors.toList()));
@@ -83,7 +83,7 @@ public class ExtQueryEngine extends QueryEngine {
     }
 
     @Override
-    protected Scores searchPredicate(ResourceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
+    protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
         if (betterMappings.containsKey(binding.getTerm())) {
 
             // lookup property-paths
@@ -107,7 +107,7 @@ public class ExtQueryEngine extends QueryEngine {
 
             // lookup pivots
             Scores scores = new Scores(betterMappings.get(binding.getTerm()).stream()
-                    .map(id -> entitySearcher.getResourceEntity(dbId, id))
+                    .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
                     .collect(Collectors.toList()));
@@ -126,7 +126,7 @@ public class ExtQueryEngine extends QueryEngine {
 
             // lookup instances
             Scores scores = new Scores(betterMappings.get(instanceTerm).stream()
-                    .map(id -> entitySearcher.getResourceEntity(dbId, id))
+                    .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
                     .collect(Collectors.toList()));

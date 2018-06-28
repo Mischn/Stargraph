@@ -27,23 +27,15 @@ package net.stargraph.core.processors;
  */
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
-import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
-import net.stargraph.model.ResourceEntity;
-import net.stargraph.model.ValueEntity;
-import net.stargraph.query.Language;
+import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.*;
 
 import java.io.Serializable;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to identify classes.
@@ -62,13 +54,13 @@ public final class ClassIdentiferProcessor extends BaseProcessor {
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
 
-        if (entry instanceof ResourceEntity) {
-            ResourceEntity entity = (ResourceEntity)entry;
+        if (entry instanceof InstanceEntity) {
+            InstanceEntity entity = (InstanceEntity)entry;
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).lookup(false).limit(1);
             boolean isClass = entitySearcher.getClassMembers(entity, searchParams).size() > 0;
 
-            holder.set(new ResourceEntity(entity.getId(), entity.getValue(), isClass, entity.getOtherValues()));
+            holder.set(new InstanceEntity(entity.getId(), entity.getValue(), isClass, entity.getOtherValues()));
         }
     }
 

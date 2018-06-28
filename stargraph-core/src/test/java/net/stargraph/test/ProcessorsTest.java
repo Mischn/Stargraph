@@ -72,7 +72,7 @@ public final class ProcessorsTest {
         chain.run(holder);
         Fact processed = (Fact) holder.get();
 
-        Assert.assertEquals(((ResourceEntity) processed.getSubject()).getId(),
+        Assert.assertEquals(((InstanceEntity) processed.getSubject()).getId(),
                 "http://dbpedia.org/resource/FC_Oberlausitz_Neugersdorf");
         Assert.assertEquals(processed.getPredicate().getId(), FactClassifierProcessor.CLASS_RELATION_STR);
         Assert.assertEquals(processed.getObject().getId(),

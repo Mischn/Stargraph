@@ -167,22 +167,22 @@ public class QueryEngine {
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, ENTITY_SIMILARITY);
-        Scores instanceScores = resolveScoredInstance(query.getCoreEntity());
-        ResourceEntity instance = (ResourceEntity) instanceScores.get(0).getEntry();
+        Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
+        Score coreEntityScore = coreEntityScores.get(0);
 
-        Scores entityScores = entitySearcher.similarResourceSearch(dbId, instance, docTypes);
+        Scores entityScores = entitySearcher.similarResourceSearch(dbId, (ResourceEntity)coreEntityScore.getEntry(), docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
+            answerSet.setEntityAnswers(entityScores);
+            answerSet.setCoreEntity(coreEntityScore);
+            answerSet.setDocTypes(docTypes);
+
             // create mappings for core entity
             Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), instanceScores);
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), coreEntityScores);
             answerSet.setMappings(mappings);
 
-            List<Document> docs = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), docTypes);
-            answerSet.setDocuments(docs);
-
-            answerSet.setEntityAnswers(entityScores);
             return answerSet;
         }
 
@@ -194,22 +194,24 @@ public class QueryEngine {
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, DEFINITION);
-        Scores instanceScores = resolveScoredInstance(query.getCoreEntity());
-        ResourceEntity instance = (ResourceEntity) instanceScores.get(0).getEntry();
+        Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
+        Score coreEntityScore = coreEntityScores.get(0);
 
-        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, instance.getId(), definitionDocTypes);
+        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((ResourceEntity)coreEntityScore.getEntry()).getId(), definitionDocTypes);
         if (!documents.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
 
+            answerSet.setDocumentAnswers(documents.stream().map(d -> new Score(d, 1)).collect(Collectors.toList()));
+            answerSet.setTextAnswers(documents.stream().map(d -> d.getText()).collect(Collectors.toList()));
+
+            answerSet.setCoreEntity(coreEntityScore);
+            answerSet.setDocTypes(definitionDocTypes);
+
             // create mappings for core entity
             Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), instanceScores);
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), coreEntityScores);
             answerSet.setMappings(mappings);
 
-            List<String> textAnswer = documents.stream().map(d -> d.getText()).collect(Collectors.toList());
-            answerSet.setTextAnswers(textAnswer);
-
-            answerSet.setDocuments(documents);
             return answerSet;
         }
 

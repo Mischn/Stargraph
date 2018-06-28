@@ -100,12 +100,18 @@ public final class QueryResourceImpl implements QueryResource {
 
             AnswerSetUserResponse response = new AnswerSetUserResponse(answerSet.getUserQuery(), answerSet.getInteractionMode());
 
-            response.setSparqlQuery(answerSet.getSparqlQuery());
+            if (answerSet.getEntityAnswers() != null) {
+                response.setEntityAnswers(createScoredEntityEntries(answerSet.getEntityAnswers(), dbId, namespace));
+            }
+            if (answerSet.getDocumentAnswers() != null) {
+                response.setDocumentAnswers(createScoredDocumentEntries(answerSet.getDocumentAnswers(), dbId, namespace));
+            }
             response.setTextAnswers(answerSet.getTextAnswers());
-            List<EntityEntry> entityAnswers = (answerSet.getEntityAnswers() == null)? null : createScoredEntityEntries(answerSet.getEntityAnswers(), dbId, namespace);
-            response.setEntityAnswers(entityAnswers);
-            List<DocumentEntry> documents = (answerSet.getDocuments() == null)? null : createDocumentEntries(answerSet.getDocuments(), dbId, namespace);
-            response.setDocuments(documents);
+            response.setSparqlQuery(answerSet.getSparqlQuery());
+            if (answerSet.getCoreEntity() != null) {
+                response.setCoreEntity(createScoredEntityEntry(answerSet.getCoreEntity(), dbId, namespace));
+            }
+            response.setDocTypes(answerSet.getDocTypes());
 
             final Map<String, List<EntityEntry>> mappings = new HashMap<>();
             answerSet.getMappings().forEach((modelBinding, scoreList) -> {

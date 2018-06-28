@@ -30,8 +30,6 @@ import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.nli.DataModelBinding;
-import net.stargraph.model.Document;
-import net.stargraph.model.LabeledEntity;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.rank.Score;
 
@@ -40,11 +38,18 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class AnswerSetResponse extends QueryResponse {
+
+    // Answers
     private List<Score> entityAnswers;
+    private List<Score> documentAnswers;
     private List<String> textAnswers;
+
+    // Evidences/Explanation
     private String sparqlQuery;
+    private Score coreEntity;
     private QueryType sparqlQueryType;
-    private List<Document> documents;
+    private List<String> docTypes;
+
     private Map<DataModelBinding, List<Score>> mappings;
 
     public AnswerSetResponse(InteractionMode mode, String userQuery) {
@@ -60,12 +65,20 @@ public final class AnswerSetResponse extends QueryResponse {
         this.entityAnswers = Objects.requireNonNull(entityAnswers);
     }
 
+    public void setDocumentAnswers(List<Score> documentAnswers) {
+        this.documentAnswers = documentAnswers;
+    }
+
     public void setTextAnswers(List<String> textAnswers) {
         this.textAnswers = textAnswers;
     }
 
-    public void setDocuments(List<Document> documents) {
-        this.documents = documents;
+    public void setCoreEntity(Score coreEntity) {
+        this.coreEntity = coreEntity;
+    }
+
+    public void setDocTypes(List<String> docTypes) {
+        this.docTypes = docTypes;
     }
 
     public void setMappings(Map<DataModelBinding, List<Score>> mappings) {
@@ -80,12 +93,20 @@ public final class AnswerSetResponse extends QueryResponse {
         return entityAnswers;
     }
 
+    public List<Score> getDocumentAnswers() {
+        return documentAnswers;
+    }
+
     public List<String> getTextAnswers() {
         return textAnswers;
     }
 
-    public List<Document> getDocuments() {
-        return documents;
+    public Score getCoreEntity() {
+        return coreEntity;
+    }
+
+    public List<String> getDocTypes() {
+        return docTypes;
     }
 
     public QueryType getSparqlQueryType() {
@@ -104,8 +125,11 @@ public final class AnswerSetResponse extends QueryResponse {
     public String toString() {
         return "AnswerSetResponse{" +
                 "entityAnswers=" + entityAnswers +
+                ", documentAnswers=" + documentAnswers +
                 ", textAnswers=" + textAnswers +
                 ", sparqlQuery='" + sparqlQuery + '\'' +
+                ", coreEntity=" + coreEntity +
+                ", docTypes=" + docTypes +
                 '}';
     }
 }

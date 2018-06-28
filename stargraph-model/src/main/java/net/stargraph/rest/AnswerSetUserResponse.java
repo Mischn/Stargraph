@@ -32,10 +32,17 @@ import java.util.List;
 import java.util.Map;
 
 public final class AnswerSetUserResponse extends UserResponse {
+
+    // Answers
     private List<EntityEntry> entityAnswers;
+    private List<DocumentEntry> documentAnswers;
     private List<String> textAnswers;
+
+    // Evidences/Explanation
     private String sparqlQuery;
-    private List<DocumentEntry> documents;
+    private EntityEntry coreEntity;
+    private List<String> docTypes;
+
     private Map<String, List<EntityEntry>> mappings;
 
     public AnswerSetUserResponse(String query, InteractionMode interactionMode) {
@@ -46,6 +53,10 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.entityAnswers = entityAnswers;
     }
 
+    public void setDocumentAnswers(List<DocumentEntry> documentAnswers) {
+        this.documentAnswers = documentAnswers;
+    }
+
     public void setTextAnswers(List<String> textAnswers) {
         this.textAnswers = textAnswers;
     }
@@ -54,8 +65,12 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.sparqlQuery = sparqlQuery;
     }
 
-    public void setDocuments(List<DocumentEntry> documents) {
-        this.documents = documents;
+    public void setCoreEntity(EntityEntry coreEntity) {
+        this.coreEntity = coreEntity;
+    }
+
+    public void setDocTypes(List<String> docTypes) {
+        this.docTypes = docTypes;
     }
 
     public void setMappings(Map<String, List<EntityEntry>> mappings) {
@@ -66,16 +81,24 @@ public final class AnswerSetUserResponse extends UserResponse {
         return entityAnswers;
     }
 
+    public List<DocumentEntry> getDocumentAnswers() {
+        return documentAnswers;
+    }
+
     public List<String> getTextAnswers() {
         return textAnswers;
+    }
+
+    public EntityEntry getCoreEntity() {
+        return coreEntity;
     }
 
     public String getSparqlQuery() {
         return sparqlQuery;
     }
 
-    public List<DocumentEntry> getDocuments() {
-        return documents;
+    public List<String> getDocTypes() {
+        return docTypes;
     }
 
     public Map<String, List<EntityEntry>> getMappings() {

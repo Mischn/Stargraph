@@ -12,10 +12,10 @@ package net.stargraph.core.query;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -59,17 +59,11 @@ public final class InteractionModeSelector {
                 mode = InteractionMode.SIMPLE_SPARQL;
             } else if (queryString.contains(":")) {
                 mode = InteractionMode.SA_SIMPLE_SPARQL;
-            }
-
-            if (isEntitySimilarityQuery(queryString)) {
+            } else if (isEntitySimilarityQuery(queryString)) {
                 mode = InteractionMode.ENTITY_SIMILARITY;
-            }
-
-            if (isDefinitionQuery(queryString)) {
+            } else if (isDefinitionQuery(queryString)) {
                 mode = InteractionMode.DEFINITION;
-            }
-
-            if (isClueQuery(queryString)) {
+            } else if (isClueQuery(queryString)) {
                 mode = InteractionMode.CLUE;
             }
         }
@@ -89,20 +83,23 @@ public final class InteractionModeSelector {
     }
 
     private boolean isDefinitionQuery(String queryString){
+        boolean b = true;
+        String q = queryString.trim().toLowerCase();
 
-        queryString = queryString.replace("Who is", "").replace("Who are", "").
-                replace("What is", "").replace("What are", "").trim();
+        b &= q.contains("who is") || q.contains("who are") || q.contains("what is") || q.contains("what are");
 
-        queryString = queryString.replaceAll("\\.", "").replaceAll("\\?", "").replaceAll("\\!", "");
-        for(String word : queryString.split(" ")) {
+        q = q.replace("who is", "").replace("who are", "").
+                replace("what is", "").replace("what are", "");
+        q = q.replaceAll("\\.", "").replaceAll("\\?", "").replaceAll("\\!", "");
+        /*
+        for(String word : q.split(" ")) {
             if (!Character.isUpperCase(word.charAt(0)))
                 return false;
         }
+        */
+        b &= !q.contains("like");
 
-        if(queryString.contains("like"))
-            return false;
-
-        return true;
+        return b;
     }
 
     private boolean isClueQuery(String queryString){

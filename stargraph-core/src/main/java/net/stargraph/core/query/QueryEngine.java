@@ -229,12 +229,12 @@ public class QueryEngine {
 
         Scores entityScores = new Scores();
         if(!entityScores.isEmpty()) {
-            AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
+            AnswerSetResponse answerSet = new AnswerSetResponse(CLUE, userQuery);
             answerSet.setEntityAnswers(entityScores);
             return answerSet;
         }
 
-        return new NoResponse(NLI, userQuery);
+        return new NoResponse(CLUE, userQuery);
     }
 
     private void resolve(Triple triple, SPARQLQueryBuilder builder) {

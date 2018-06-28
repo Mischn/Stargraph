@@ -36,7 +36,7 @@ public class EntityEntryCreator {
         return new EntityEntry(
                 dbId,
                 (entityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
-                namespace.expandURI(entityScore.getRankableView().getId()),
+                (entityScore.getEntry() instanceof ValueEntity)? entityScore.getRankableView().getId() : namespace.expandURI(entityScore.getRankableView().getId()),
                 entityScore.getRankableView().getValue(),
                 entityScore.getValue()
         );

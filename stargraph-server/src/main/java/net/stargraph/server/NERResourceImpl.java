@@ -65,7 +65,7 @@ public final class NERResourceImpl implements NERResource {
         // convert to LinkedEntityEntries (expand IDs by convention)
         List<LinkedEntityEntry> linkedEntityEntries = new ArrayList<>();
         for (LinkedNamedEntity linkedEntity : linkedNamedEntities) {
-            EntityEntry entity = (linkedEntity.isLinked())? QueryResourceImpl.createEntityEntry(linkedEntity.getEntity(), dbId, namespace) : null;
+            EntityEntry entity = (linkedEntity.isLinked())? EntityEntryCreator.createEntityEntry(linkedEntity.getEntity(), dbId, namespace) : null;
             double score = (linkedEntity.isLinked())? linkedEntity.getScore() : -1;
             linkedEntityEntries.add(new LinkedEntityEntry(linkedEntity.getValue(), linkedEntity.getCat(), linkedEntity.getStart(), linkedEntity.getEnd(), entity, score));
         }

@@ -122,7 +122,7 @@ public final class QueryResourceImpl implements QueryResource {
 
             final Map<String, List<EntityEntry>> bindings = new LinkedHashMap<>();
             selectResponse.getBindings().entrySet().forEach(e -> {
-                List<EntityEntry> entries = EntityEntryCreator.createEntityEntries(e.getValue(), dbId, namespace);
+                List<EntityEntry> entries = EntityEntryCreator.createLabeledEntityEntries(e.getValue(), dbId, namespace);
                 bindings.put(e.getKey(), entries);
             });
 

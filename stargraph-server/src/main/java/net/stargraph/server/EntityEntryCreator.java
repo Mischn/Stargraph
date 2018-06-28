@@ -3,6 +3,7 @@ package net.stargraph.server;
 import net.stargraph.core.Namespace;
 import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.ValueEntity;
 import net.stargraph.rank.Score;
 import net.stargraph.rest.DocumentEntry;
@@ -16,22 +17,28 @@ public class EntityEntryCreator {
     // ATTENTION: EXPAND ALL URIS BY CONVENTION
 
     // EntityEntries
-    public static List<EntityEntry> createEntityEntries(List<LabeledEntity> labeledEntities, String dbId, Namespace namespace) {
-        return labeledEntities.stream().map(e -> createEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
+    public static List<EntityEntry> createPropertyEntityEntries(List<PropertyEntity> propertyEntities, String dbId, Namespace namespace) {
+        return propertyEntities.stream().map(e -> createPropertyEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
     }
-    public static EntityEntry createEntityEntry(LabeledEntity labeledEntity, String dbId, Namespace namespace) {
+    public static EntityEntry createPropertyEntityEntry(PropertyEntity propertyEntity, String dbId, Namespace namespace) {
+        return createScoredEntityEntry(new Score(propertyEntity, 1), dbId, namespace);
+    }
+    public static List<EntityEntry> createLabeledEntityEntries(List<LabeledEntity> labeledEntities, String dbId, Namespace namespace) {
+        return labeledEntities.stream().map(e -> createLabeledEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
+    }
+    public static EntityEntry createLabeledEntityEntry(LabeledEntity labeledEntity, String dbId, Namespace namespace) {
         return createScoredEntityEntry(new Score(labeledEntity, 1), dbId, namespace);
     }
-    public static List<EntityEntry> createScoredEntityEntries(List<Score> labeledEntityScores, String dbId, Namespace namespace) {
-        return labeledEntityScores.stream().map(e -> createScoredEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
+    public static List<EntityEntry> createScoredEntityEntries(List<Score> entityScores, String dbId, Namespace namespace) {
+        return entityScores.stream().map(e -> createScoredEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
     }
-    public static EntityEntry createScoredEntityEntry(Score labeledEntityScore, String dbId, Namespace namespace) {
+    public static EntityEntry createScoredEntityEntry(Score entityScore, String dbId, Namespace namespace) {
         return new EntityEntry(
                 dbId,
-                (labeledEntityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
-                namespace.expandURI(labeledEntityScore.getRankableView().getId()),
-                labeledEntityScore.getRankableView().getValue(),
-                labeledEntityScore.getValue()
+                (entityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
+                namespace.expandURI(entityScore.getRankableView().getId()),
+                entityScore.getRankableView().getValue(),
+                entityScore.getValue()
         );
     }
 
@@ -56,7 +63,7 @@ public class EntityEntryCreator {
                 document.getTitle(),
                 document.getSummary(),
                 document.getText(),
-                createEntityEntries(document.getEntities(), dbId, namespace),
+                createLabeledEntityEntries(document.getEntities(), dbId, namespace),
                 documentScore.getValue()
         );
     }

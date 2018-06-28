@@ -43,6 +43,7 @@ public interface SearchQueryGenerator {
     SearchQueryHolder documentsWithIds(List<String> idList, ModifiableSearchParams searchParams);
 
     // return entity-documents that match any of the given entity-ids and their document-types
+    // if docTypes is null, return for all docTypes
     SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams);
 
     // return facts that represent an is-a relationship between arbitrary subjects and any object of the given ids

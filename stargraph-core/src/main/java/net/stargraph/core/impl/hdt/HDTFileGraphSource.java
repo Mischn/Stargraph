@@ -62,7 +62,6 @@ public class HDTFileGraphSource extends BatchFileGraphSource {
         HDTGraph graph = new HDTGraph(hdt);
         Model other = ModelFactory.createModelForGraph(graph);
 
-        // Attention: The HDT file is fully loaded into memory
         MGraphModel otherModel = new MGraphModel(other);
         graphModel.add(otherModel);
     }

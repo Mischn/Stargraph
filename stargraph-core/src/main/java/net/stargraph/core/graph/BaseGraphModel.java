@@ -28,6 +28,8 @@ package net.stargraph.core.graph;
 
 import net.stargraph.model.GraphModel;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 
 import java.io.IOException;
 
@@ -50,7 +52,13 @@ public abstract class BaseGraphModel implements GraphModel {
                 other.doRead(new ReadTransaction() {
                     @Override
                     public void readTransaction(Model otherModel) {
-                        thisModel.add(otherModel);
+                        // thisModel.add(otherModel); // this crashed when loading large HDT Graphs
+
+                        StmtIterator iter = otherModel.listStatements();
+                        while (iter.hasNext()) {
+                            Statement stmt = iter.nextStatement();
+                            thisModel.add(stmt);
+                        }
                     }
                 });
 

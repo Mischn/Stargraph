@@ -101,9 +101,9 @@ public class SGraphModel extends BaseGraphModel {
             throw new StarGraphException(e);
         } finally {
             if (initTransaction) {
-                dataset.end();
                 model = null;
                 transactionState = null;
+                dataset.end();
             }
         }
     }
@@ -144,11 +144,21 @@ public class SGraphModel extends BaseGraphModel {
             throw new StarGraphException(e);
         } finally {
             if (initTransaction) {
-                dataset.end();
                 model = null;
                 transactionState = null;
+                dataset.end();
+                flush();
             }
         }
+    }
+
+    private void flush() {
+        if (dataset != null) {
+            dataset.close();
+            TDBFactory.release(dataset);
+            dataset = null;
+        }
+        dataset = TDBFactory.createDataset(directory.getAbsolutePath());
     }
 
     @Override

@@ -48,6 +48,46 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
         super(stargraph, dbId);
     }
 
+    private static String escapeLexicalNT(String lexical) {
+        return lexical.replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
+                .replaceAll("\\\\(?![\\\"nrt])", "\\\\\\\\");
+    }
+
+    // Corrected version of HDT's TripleString.dumpNtriple(Appendable out)
+    private static void formatTriple(TripleString tripleString, Appendable out) throws IOException {
+        final String subject = tripleString.getSubject().toString().trim();
+        final String predicate = tripleString.getPredicate().toString().trim();
+        final String object = tripleString.getObject().toString().trim();
+
+        char s0 = subject.charAt(0);
+        if (s0 != '_' && s0 != '<') {
+            out.append('<').append(subject).append('>');
+        } else {
+            out.append(subject);
+        }
+
+        char p0 = predicate.charAt(0);
+        if (p0 == '<') {
+            out.append(' ').append(predicate).append(' ');
+        } else {
+            out.append(" <").append(predicate).append("> ");
+        }
+
+        char o0 = object.charAt(0);
+        if (o0 == '"') {
+            // the HDT's UnicodeEscape.escapeString(object.toString()) produced incorrect escape sequences!
+            String lex = object.substring(object.indexOf("\"")+1, object.lastIndexOf("\""));
+            out.append("\"" + escapeLexicalNT(lex) + "\"").append(" .\n");
+        } else if (o0 != '_' && o0 != '<') {
+            out.append('<').append(object).append("> .\n");
+        } else {
+            out.append(object).append(" .\n");
+        }
+    }
+
     public void convertToNTFile(File HDTFile, File outFile) throws Exception {
         logger.info(marker, "Fully convert HDT file {} into NTriple file {}", HDTFile.getAbsolutePath(), outFile.getAbsolutePath());
         PrintStream out = new PrintStream(outFile, "UTF-8");
@@ -63,9 +103,14 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
             StringBuilder build = new StringBuilder(1024);
             while(it.hasNext()) {
                 TripleString triple = it.next();
+
                 build.delete(0, build.length());
-                triple.dumpNtriple(build);
-                out.print(build);
+                try {
+                    formatTriple(triple, build);
+                } catch (Exception e) {
+                    logger.error(marker, "Could not format Triple: {}", triple.toString());
+                }
+                out.print(build.toString());
             }
             out.close();
         } finally {
@@ -76,6 +121,8 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
     }
 
     /*
+    // Problem using this method: resulting NT-file contained error-triples (when loading dbpedia-dump).
+    // E.g: <#> <http://dbpedia.org/resource/Étienne_de_Boré> <http://xmlns.com/foaf/0.1/depiction> <BAD URI: Illegal character in path at index 58: http://commons.wikimedia.org/wiki/Special:FilePath/Etienne de Bor%C3%A9.gif> .
     private void convertToNTFile2(File HDTFile, File outFile, boolean useIndex) throws IOException {
         logger.info(marker, "Fully convert HDT file {} into NTriple file {}", HDTFile.getAbsolutePath(), outFile.getAbsolutePath());
         HDT hdt = useIndex ? HDTManager.mapIndexedHDT(HDTFile.getAbsolutePath(), null) : HDTManager.loadHDT(HDTFile.getAbsolutePath(), null);

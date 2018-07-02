@@ -108,12 +108,14 @@ public final class QueryResourceImpl implements QueryResource {
             }
             response.setDocTypes(answerSet.getDocTypes());
 
-            final Map<String, List<EntityEntry>> mappings = new HashMap<>();
-            answerSet.getMappings().forEach((modelBinding, scoreList) -> {
-                List<EntityEntry> entries = EntityEntryCreator.createScoredEntityEntries(scoreList, dbId, namespace);
-                mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
-            });
-            response.setMappings(mappings);
+            if (answerSet.getMappings() != null) {
+                final Map<String, List<EntityEntry>> mappings = new HashMap<>();
+                answerSet.getMappings().forEach((modelBinding, scoreList) -> {
+                    List<EntityEntry> entries = EntityEntryCreator.createScoredEntityEntries(scoreList, dbId, namespace);
+                    mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
+                });
+                response.setMappings(mappings);
+            }
 
             return response;
         }

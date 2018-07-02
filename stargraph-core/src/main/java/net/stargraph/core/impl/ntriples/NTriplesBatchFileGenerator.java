@@ -20,7 +20,7 @@ public class NTriplesBatchFileGenerator extends BaseBatchFileGenerator {
     private BaseBatchStreamRDF createBatchStreamRDF(File directory, long maxEntriesInFile, String batchFileNamePrefix) {
         return new BaseBatchStreamRDF(directory, maxEntriesInFile, batchFileNamePrefix) {
             private String formatTriple(Triple triple) {
-                return formatNT(triple.getSubject()) + " " + formatNT(triple.getPredicate()) + " " + formatNT(triple.getObject()) + " .";
+                return formatNodeNT(triple.getSubject()) + " " + formatNodeNT(triple.getPredicate()) + " " + formatNodeNT(triple.getObject()) + " .";
             }
 
             @Override

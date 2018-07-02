@@ -2,7 +2,8 @@ package net.stargraph.core.graph.batch;
 
 import net.stargraph.StarGraphException;
 import org.apache.jena.graph.Node;
-import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.out.CharSpace;
+import org.apache.jena.riot.out.NodeFormatterNT;
 import org.apache.jena.riot.system.StreamRDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,9 @@ import java.util.List;
  * Converts an RDF-file into a batch of (smaller) RDF-files.
  */
 public abstract class BaseBatchStreamRDF implements StreamRDF {
-    private static final String DEFAULT_DATATYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+    private static final NodeFormatterNT NODE_FORMATTER_NT = new NodeFormatterNT(CharSpace.UTF8);
+    private static final BatchUtils.AStringWriter FORMAT_NODE_WRITER = new BatchUtils.AStringWriter();
+
     private static Logger logger = LoggerFactory.getLogger(BaseBatchStreamRDF.class);
     private static Marker marker = MarkerFactory.getMarker("core");
 
@@ -40,33 +43,10 @@ public abstract class BaseBatchStreamRDF implements StreamRDF {
         this.outFiles = new ArrayList<>();
     }
 
-    private static String escapeLexicalNT(String lexical) {
-        return lexical.replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t")
-                .replaceAll("(?<!\\\\)\\\\(?![\\\\\\\"nrt])", "\\\\\\\\");
-    }
-
-    protected static String formatNT(Node node) {
-        if (node.isBlank()) {
-            return "_:" + node.toString();
-        }
-        if (node.isURI()) {
-            return "<" + node.toString() + ">";
-        }
-        if (node.isVariable()) {
-            throw new AssertionError("Variables should not occur");
-        }
-        if (node.isLiteral()) {
-            String lexicalStr = "\"" + escapeLexicalNT(node.getLiteralLexicalForm()) + "\"";
-            String languageStr = (node.getLiteralLanguage().length() <= 0)? "" : "@" + node.getLiteralLanguage();
-            String datatypeStr = (node.getLiteralDatatypeURI().length() <= 0 || node.getLiteralDatatypeURI().toLowerCase().equals(DEFAULT_DATATYPE.toLowerCase()))? "" : "^^<" + node.getLiteralDatatypeURI() + ">";
-
-            return lexicalStr + languageStr + datatypeStr;
-        }
-
-        return node.toString();
+    protected static String formatNodeNT(Node node) {
+        FORMAT_NODE_WRITER.clear();
+        NODE_FORMATTER_NT.format(FORMAT_NODE_WRITER, node);
+        return FORMAT_NODE_WRITER.toString();
     }
 
     protected abstract String getFileExtension();

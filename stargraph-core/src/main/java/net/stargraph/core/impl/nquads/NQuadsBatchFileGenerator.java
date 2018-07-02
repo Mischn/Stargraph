@@ -3,6 +3,7 @@ package net.stargraph.core.impl.nquads;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.batch.BaseBatchFileGenerator;
 import net.stargraph.core.graph.batch.BaseBatchStreamRDF;
+import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.sparql.core.Quad;
@@ -20,11 +21,17 @@ public class NQuadsBatchFileGenerator extends BaseBatchFileGenerator {
     private BaseBatchStreamRDF createBatchStreamRDF(File directory, long maxEntriesInFile, String batchFileNamePrefix) {
         return new BaseBatchStreamRDF(directory, maxEntriesInFile, batchFileNamePrefix) {
             private String formatTriple(Triple triple) {
-                return formatNT(triple.getSubject()) + " " + formatNT(triple.getPredicate()) + " " + formatNT(triple.getObject()) + " .";
+                return formatNodeNT(triple.getSubject()) + " " + formatNodeNT(triple.getPredicate()) + " " + formatNodeNT(triple.getObject()) + " .";
+            }
+            private boolean outputGraphSlot(Node g) {
+                return (g != null && g != Quad.tripleInQuad && !Quad.isDefaultGraph(g)) ;
             }
             private String formatQuad(Quad quad) {
-                String graphStr = (quad.getGraph() != null)? " " + formatNT(quad.getGraph()) : "";
-                return formatNT(quad.getSubject()) + " " + formatNT(quad.getPredicate()) + " " + formatNT(quad.getObject()) + graphStr + " .";
+                if (outputGraphSlot(quad.getGraph())) {
+                    return formatNodeNT(quad.getSubject()) + " " + formatNodeNT(quad.getPredicate()) + " " + formatNodeNT(quad.getObject()) + " " + formatNodeNT(quad.getGraph())+ " .";
+                } else {
+                    return formatNodeNT(quad.getSubject()) + " " + formatNodeNT(quad.getPredicate()) + " " + formatNodeNT(quad.getObject()) + " .";
+                }
             }
 
             @Override

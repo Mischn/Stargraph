@@ -47,6 +47,11 @@ public final class InteractionModeSelector {
     public InteractionMode detect(String queryString) {
         InteractionMode mode = NLI;
 
+        // TODO
+        if (queryString.trim().startsWith("#")) {
+            return InteractionMode.LIKE_THIS;
+        }
+
         if (queryString.contains("SELECT") || queryString.contains("ASK") || queryString.contains("CONSTRUCT")) {
             if (queryString.contains("PREFIX ") || queryString.contains("http:")) {
                 mode = InteractionMode.SPARQL;
@@ -55,12 +60,12 @@ public final class InteractionModeSelector {
                 //mode = InteractionMode.SA_SPARQL; //TODO re-activate?
             }
         } else {
-            if (queryString.contains("http:")) {
+            if (isEntitySimilarityQuery(queryString)) {
+                mode = InteractionMode.ENTITY_SIMILARITY;
+            } else if (queryString.contains("http:")) {
                 mode = InteractionMode.SIMPLE_SPARQL;
             } else if (queryString.contains(":")) {
                 mode = InteractionMode.SA_SIMPLE_SPARQL;
-            } else if (isEntitySimilarityQuery(queryString)) {
-                mode = InteractionMode.ENTITY_SIMILARITY;
             } else if (isDefinitionQuery(queryString)) {
                 mode = InteractionMode.DEFINITION;
             } else if (isClueQuery(queryString)) {

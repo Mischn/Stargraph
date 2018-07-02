@@ -479,9 +479,24 @@ public class EntitySearcher {
         return scores;
     }
 
+    public Scores likeThisInstanceSearch(String dbId, List<String> docTypes, List<String> texts) {
+        Scores scores = similarDocumentSearch(dbId, true, docTypes, texts);
 
+        // now map documents back to their entities
+        Scores entitiyScores = new Scores();
+        for (Score score : scores) {
+            Document doc = (Document)score.getEntry();
 
-    public Scores similarResourceSearch(String dbId, InstanceEntity entitiy, List<String> docTypes) {
+            InstanceEntity ent = getInstanceEntity(dbId, doc.getEntity());
+            if (ent != null) {
+                entitiyScores.add(new Score(ent, score.getValue()));
+            }
+        }
+
+        return entitiyScores;
+    }
+
+    public Scores similarInstanceSearch(String dbId, InstanceEntity entitiy, List<String> docTypes) {
 
         // Search for entity-documents
         List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entitiy.getId(), docTypes);

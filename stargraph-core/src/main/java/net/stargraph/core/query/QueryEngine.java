@@ -94,6 +94,9 @@ public class QueryEngine {
                 case ENTITY_SIMILARITY:
                     response = entitySimilarityQuery(query, language);
                     break;
+                case LIKE_THIS:
+                    response = likeThisQuery(query, language);
+                    break;
                 case DEFINITION:
                     response = definitionQuery(query, language);
                     break;
@@ -170,7 +173,7 @@ public class QueryEngine {
         Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
         Score coreEntityScore = coreEntityScores.get(0);
 
-        Scores entityScores = entitySearcher.similarResourceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes);
+        Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
@@ -216,6 +219,22 @@ public class QueryEngine {
         }
 
         return new NoResponse(DEFINITION, userQuery);
+    }
+
+    private QueryResponse likeThisQuery(String userQuery, Language language) {
+        List<String> docTypes = core.getDocTypes();
+
+        Scores entityScores = entitySearcher.likeThisInstanceSearch(dbId, docTypes, Arrays.asList(userQuery));
+        if (!entityScores.isEmpty()) {
+            AnswerSetResponse answerSet = new AnswerSetResponse(LIKE_THIS, userQuery);
+
+            answerSet.setEntityAnswers(entityScores);
+            answerSet.setDocTypes(docTypes);
+
+            return answerSet;
+        }
+
+        return new NoResponse(LIKE_THIS, userQuery);
     }
 
     public QueryResponse clueQuery(String userQuery, Language language) {

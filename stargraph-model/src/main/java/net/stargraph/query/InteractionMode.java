@@ -35,5 +35,6 @@ public enum InteractionMode {
     INDUCTION,
     ENTITY_SIMILARITY,
     CLUE,
-    DEFINITION
+    DEFINITION,
+    LIKE_THIS
 }

@@ -30,13 +30,13 @@ public class NTriplesBatchFileGenerator extends BaseBatchFileGenerator {
 
             @Override
             public void triple(Triple triple) {
-                write(formatTriple(triple));
+                dumpLine(formatTriple(triple));
             }
 
             @Override
             public void quad(Quad quad) {
                 // WARNING: this ignores the named graphs
-                write(formatTriple(quad.asTriple()));
+                dumpLine(formatTriple(quad.asTriple()));
             }
 
             @Override

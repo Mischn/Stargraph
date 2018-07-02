@@ -41,12 +41,12 @@ public class NQuadsBatchFileGenerator extends BaseBatchFileGenerator {
 
             @Override
             public void triple(Triple triple) {
-                write(formatTriple(triple));
+                dumpLine(formatTriple(triple));
             }
 
             @Override
             public void quad(Quad quad) {
-                write(formatQuad(quad));
+                dumpLine(formatQuad(quad));
             }
 
             @Override

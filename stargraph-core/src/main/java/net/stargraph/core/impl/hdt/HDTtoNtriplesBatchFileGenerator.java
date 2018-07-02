@@ -28,7 +28,7 @@ package net.stargraph.core.impl.hdt;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.batch.BaseBatchFileGenerator;
-import net.stargraph.core.impl.ntriples.NTriplesBatchFileGenerator;
+import net.stargraph.core.impl.hdt.batch.BaseBatchStreamHDT;
 import org.rdfhdt.hdt.hdt.HDT;
 import org.rdfhdt.hdt.hdt.HDTManager;
 import org.rdfhdt.hdt.listener.ProgressListener;
@@ -37,13 +37,9 @@ import org.rdfhdt.hdt.triples.TripleString;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.util.List;
 
 public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
-    private NTriplesBatchFileGenerator nTriplesBatchFileGenerator;
-
     public HDTtoNtriplesBatchFileGenerator(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
     }
@@ -57,42 +53,67 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
     }
 
     // Corrected version of HDT's TripleString.dumpNtriple(Appendable out)
-    private static void formatTriple(TripleString tripleString, Appendable out) throws IOException {
+    private static String formatTriple(TripleString tripleString, StringBuilder strb) throws IOException {
+        strb.delete(0, strb.length());
+
         final String subject = tripleString.getSubject().toString().trim();
         final String predicate = tripleString.getPredicate().toString().trim();
         final String object = tripleString.getObject().toString().trim();
 
         char s0 = subject.charAt(0);
         if (s0 != '_' && s0 != '<') {
-            out.append('<').append(subject).append('>');
+            strb.append('<').append(subject).append('>');
         } else {
-            out.append(subject);
+            strb.append(subject);
         }
 
         char p0 = predicate.charAt(0);
         if (p0 == '<') {
-            out.append(' ').append(predicate).append(' ');
+            strb.append(' ').append(predicate).append(' ');
         } else {
-            out.append(" <").append(predicate).append("> ");
+            strb.append(" <").append(predicate).append("> ");
         }
 
         char o0 = object.charAt(0);
         if (o0 == '"') {
             // the HDT's UnicodeEscape.escapeString(object.toString()) produced incorrect escape sequences!
             String lex = object.substring(object.indexOf("\"")+1, object.lastIndexOf("\""));
-            out.append("\"" + escapeLexicalNT(lex) + "\"").append(" .\n");
+            strb.append("\"" + escapeLexicalNT(lex) + "\"").append(" .");
         } else if (o0 != '_' && o0 != '<') {
-            out.append('<').append(object).append("> .\n");
+            strb.append('<').append(object).append("> .");
         } else {
-            out.append(object).append(" .\n");
+            strb.append(object).append(" .");
         }
+
+        return strb.toString();
     }
 
-    public void convertToNTFile(File HDTFile, File outFile) throws Exception {
-        logger.info(marker, "Fully convert HDT file {} into NTriple file {}", HDTFile.getAbsolutePath(), outFile.getAbsolutePath());
-        PrintStream out = new PrintStream(outFile, "UTF-8");
+    private BaseBatchStreamHDT createBatchStreamHDT(File directory, long maxEntriesInFile, String batchFileNamePrefix) {
+        return new BaseBatchStreamHDT(directory, maxEntriesInFile, batchFileNamePrefix) {
+            private StringBuilder strb = new StringBuilder();
 
-        HDT hdt = HDTManager.mapHDT(HDTFile.getAbsolutePath(), new ProgressListener() {
+            @Override
+            public void triple(TripleString tripleString) {
+                try {
+                    dumpLine(formatTriple(tripleString, strb));
+                } catch (Exception e) {
+                    logger.error(marker, "Could not format and dump Triple: {}", tripleString.toString());
+                }
+            }
+
+            @Override
+            protected String getFileExtension() {
+                return ".nt";
+            }
+        };
+    }
+
+    @Override
+    protected List<File> generateBatches(File batchDirectory, File file, long maxEntriesInFile) throws Exception {
+        BaseBatchStreamHDT baseBatchStreamHDT = createBatchStreamHDT(batchDirectory, maxEntriesInFile, file.getName());
+        baseBatchStreamHDT.start();
+
+        HDT hdt = HDTManager.mapHDT(file.getAbsolutePath(), new ProgressListener() {
             @Override
             public void notifyProgress(float level, String message) {
                 System.out.println(message + "\t"+ Float.toString(level));
@@ -100,63 +121,17 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
         });
         try {
             IteratorTripleString it = hdt.search("","","");
-            StringBuilder build = new StringBuilder(1024);
-            while(it.hasNext()) {
-                TripleString triple = it.next();
-
-                build.delete(0, build.length());
-                try {
-                    formatTriple(triple, build);
-                } catch (Exception e) {
-                    logger.error(marker, "Could not format Triple: {}", triple.toString());
-                }
-                out.print(build.toString());
+            while (it.hasNext()) {
+                TripleString tripleString = it.next();
+                baseBatchStreamHDT.triple(tripleString);
             }
-            out.close();
         } finally {
             if (hdt!=null){
                 hdt.close();
             }
+            baseBatchStreamHDT.finish();
         }
-    }
 
-    /*
-    // Problem using this method: resulting NT-file contained error-triples (when loading dbpedia-dump).
-    // E.g: <#> <http://dbpedia.org/resource/Étienne_de_Boré> <http://xmlns.com/foaf/0.1/depiction> <BAD URI: Illegal character in path at index 58: http://commons.wikimedia.org/wiki/Special:FilePath/Etienne de Bor%C3%A9.gif> .
-    private void convertToNTFile2(File HDTFile, File outFile, boolean useIndex) throws IOException {
-        logger.info(marker, "Fully convert HDT file {} into NTriple file {}", HDTFile.getAbsolutePath(), outFile.getAbsolutePath());
-        HDT hdt = useIndex ? HDTManager.mapIndexedHDT(HDTFile.getAbsolutePath(), null) : HDTManager.loadHDT(HDTFile.getAbsolutePath(), null);
-        HDTGraph graph = new HDTGraph(hdt);
-        //Model other = ModelFactory.createModelForGraph(graph);
-
-        FileOutputStream fos = new FileOutputStream(outFile);
-        RDFDataMgr.write(fos, graph, RDFFormat.NT);
-    }
-    */
-
-    @Override
-    public void start() throws IOException {
-        nTriplesBatchFileGenerator = new NTriplesBatchFileGenerator(stargraph, dbId);
-        nTriplesBatchFileGenerator.start();
-        super.start();
-    }
-
-    @Override
-    protected List<File> generateBatches(File batchDirectory, File file, long maxEntriesInFile) throws Exception {
-        // fully convert HDT to NTriples
-        File ntriplesFile = Paths.get(batchDirectory.getAbsolutePath(), "HDTtriples.nt").toFile();
-
-        //convertToNTFile2(file, ntriplesFile, useIndex);
-        convertToNTFile(file, ntriplesFile);
-
-        // batch-load nt-file
-        return nTriplesBatchFileGenerator.generateBatches(ntriplesFile, maxEntriesInFile);
-    }
-
-    @Override
-    public void end() throws IOException {
-        super.end();
-        nTriplesBatchFileGenerator.end();
-
+        return baseBatchStreamHDT.getOutFiles();
     }
 }

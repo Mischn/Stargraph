@@ -1,8 +1,8 @@
-package net.stargraph.core.serializer;
+package net.stargraph.model;
 
 /*-
  * ==========================License-Start=============================
- * stargraph-core
+ * stargraph-model
  * --------------------------------------------------------------------
  * Copyright (C) 2017 Lambda^3
  * --------------------------------------------------------------------
@@ -12,10 +12,10 @@ package net.stargraph.core.serializer;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,42 +26,33 @@ package net.stargraph.core.serializer;
  * ==========================License-End===============================
  */
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import net.stargraph.model.Document;
-import net.stargraph.model.Fact;
-import net.stargraph.model.KBId;
+import java.util.List;
 
-import java.io.IOException;
+/**
+ * Represents a passage that can be digested by the StarGraph database.
+ */
+public final class Passage {
+    private String text;
+    private List<LabeledEntity> entities;
 
-class DocumentSerializer extends AbstractSerializer<Document> {
+    public Passage(String text, List<LabeledEntity> entities) {
+        this.text = text;
+        this.entities = entities;
+    }
 
-    DocumentSerializer(KBId kbId) {
-        super(kbId, Document.class);
+    public String getText() {
+        return text;
+    }
+
+    public List<LabeledEntity> getEntities() {
+        return entities;
     }
 
     @Override
-    public void serialize(Document value, JsonGenerator g, SerializerProvider provider) throws IOException {
-        g.writeStartObject();
-        g.writeObjectField("id", value.getId());
-        g.writeObjectField("type", value.getType());
-        if (value.getEntity() != null) {
-            g.writeObjectField("entity", value.getEntity());
-        }
-        g.writeObjectField("title", value.getTitle());
-        if (value.getSummary() != null) {
-            g.writeObjectField("summary", value.getSummary());
-        }
-        g.writeObjectField("text", value.getText());
-        if (!value.getEntities().isEmpty()) {
-            g.writeObjectField("entities", value.getEntities());
-        }
-        if (!value.getPassages().isEmpty()) {
-            g.writeObjectField("passages", value.getPassages());
-        }
-        if (!value.getExtractions().isEmpty()) {
-            g.writeObjectField("extractions", value.getExtractions());
-        }
-        g.writeEndObject();
+    public String toString() {
+        return "Passage{" +
+                "text='" + text + '\'' +
+                ", entities=" + entities +
+                '}';
     }
 }

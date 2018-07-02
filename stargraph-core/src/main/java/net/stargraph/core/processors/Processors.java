@@ -50,6 +50,7 @@ public final class Processors {
             put(CoreferenceResolutionProcessor.name, CoreferenceResolutionProcessor.class);
             put(OpenIEProcessor.name, OpenIEProcessor.class);
             put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
+            put(PassageProcessor.name, PassageProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
             put(ValueGeneratorProcessor.name, ValueGeneratorProcessor.class);
             put(ValueGeneratorFixedProcessor.name, ValueGeneratorFixedProcessor.class);
@@ -83,27 +84,13 @@ public final class Processors {
         }
 
         try {
-
-            // use special constructor for DocumentLNERProcessor
-            if ((stargraph != null) && (c.equals(DocumentLNERProcessor.class))) {
-                Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
-                return constructor.newInstance(stargraph, config);
-            }
-
-            // use special constructor for ClassIdentiferProcessor
-            if ((stargraph != null) && (c.equals(ClassIdentiferProcessor.class))) {
-                Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
-                return constructor.newInstance(stargraph, config);
-            }
-
-            // use special constructor for ValueGeneratorProcessor
-            if ((stargraph != null) && (c.equals(ValueGeneratorProcessor.class))) {
-                Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
-                return constructor.newInstance(stargraph, config);
-            }
-
-            // use special constructor for ValueGeneratorFixedProcessor
-            if ((stargraph != null) && (c.equals(ValueGeneratorFixedProcessor.class))) {
+            // use special constructor (stargraph, config)
+            if ((c.equals(DocumentLNERProcessor.class)
+                    || c.equals(PassageProcessor.class)
+                    || c.equals(ClassIdentiferProcessor.class)
+                    || c.equals(ValueGeneratorProcessor.class)
+                    || c.equals(ValueGeneratorFixedProcessor.class)
+                    ) && (stargraph != null)) {
                 Constructor<? extends Processor> constructor = c.getConstructor(Stargraph.class, Config.class);
                 return constructor.newInstance(stargraph, config);
             }

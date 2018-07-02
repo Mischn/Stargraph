@@ -27,48 +27,55 @@ package net.stargraph.core.processors;
  */
 
 import com.typesafe.config.Config;
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NER;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
-import net.stargraph.model.Extraction;
-import org.lambda3.graphene.core.Graphene;
-import org.lambda3.graphene.core.relation_extraction.model.ExContent;
+import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.Passage;
+import org.lambda3.text.simplification.discourse.utils.sentences.SentencesUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * Can be placed in the workflow to create extractions for documents.
+ * Can be placed in the workflow to create passages.
  */
-public final class OpenIEProcessor extends BaseProcessor {
-    public static String name = "oie-extractor";
+public final class PassageProcessor extends BaseProcessor {
+    public static String name = "passage-processor";
 
-    private Graphene graphene;
+    private Stargraph stargraph;
 
-    public OpenIEProcessor(Config config) {
+    public PassageProcessor(Stargraph stargraph, Config config) {
         super(config);
-        graphene = new Graphene(getConfig());
+        this.stargraph = Objects.requireNonNull(stargraph);
     }
 
     @Override
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
+        NER ner = stargraph.getKBCore(holder.getKBId().getId()).getNER();
 
         if (entry instanceof Document) {
-            Document document = (Document) entry;
-            List<Extraction> extractions = new ArrayList();
+            Document document = (Document)entry;
 
-            ExContent ec = graphene.doRelationExtraction(document.getText(), false, false);
-            ec.getExtractions().stream().forEach(e -> {
-                List<String> args = new ArrayList<>();
-                args.add(e.getArg1());
-                args.add(e.getArg2());
-                e.getSimpleContexts().forEach(sc -> args.add(sc.getText()));
+            List<Passage> passages = new ArrayList<>();
+            for (String sentence : SentencesUtils.splitIntoSentences(document.getText())) {
+                List<LinkedNamedEntity> lners = ner.searchAndLink(sentence);
 
-                extractions.add(new Extraction(e.getId(), e.getRelation(), args));
-            });
+                // only add linked entities
+                List<LabeledEntity> entities = lners.parallelStream()
+                        .filter(e -> e.isLinked())
+                        .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
+
+                passages.add(new Passage(sentence, entities));
+            }
 
             holder.set(new Document(
                     document.getId(),
@@ -78,8 +85,8 @@ public final class OpenIEProcessor extends BaseProcessor {
                     document.getSummary(),
                     document.getText(),
                     document.getEntities(),
-                    document.getPassages(),
-                    extractions
+                    passages,
+                    document.getExtractions()
             ));
         }
     }

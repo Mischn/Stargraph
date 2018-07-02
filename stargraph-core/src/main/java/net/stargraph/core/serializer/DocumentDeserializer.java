@@ -65,6 +65,27 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
+        List<Passage> passages = new ArrayList();
+        if (node.has("passages")) {
+            for (final JsonNode pass : node.get("passages")) {
+                String passText = pass.get("text").asText();
+                List<LabeledEntity> passageEntities = new ArrayList<>();
+                if (pass.has("entities")) {
+                    for (final JsonNode ent : pass.get("entities")) {
+                        String entId = ent.get("id").asText();
+                        String entValue = ent.get("value").asText();
+
+                        if (ent.has("language")) {
+                            passageEntities.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
+                        } else {
+                            passageEntities.add(new InstanceEntity(entId, entValue));
+                        }
+                    }
+                }
+                passages.add(new Passage(passText, passageEntities));
+            }
+        }
+
         List<Extraction> extractions = new ArrayList<>();
         if (node.has("extractions")) {
             for (final JsonNode ex : node.get("extractions")) {
@@ -80,7 +101,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
-        return new Document(id, type, entity, title, summary, text, entities, extractions);
+        return new Document(id, type, entity, title, summary, text, entities, passages, extractions);
     }
 
 

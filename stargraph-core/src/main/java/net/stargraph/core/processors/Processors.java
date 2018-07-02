@@ -48,6 +48,7 @@ public final class Processors {
             put(StopPropertyFilterProcessor.name, StopPropertyFilterProcessor.class);
             put(LengthFilterProcessor.name, LengthFilterProcessor.class);
             put(CoreferenceResolutionProcessor.name, CoreferenceResolutionProcessor.class);
+            put(OpenIEProcessor.name, OpenIEProcessor.class);
             put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
             put(ValueGeneratorProcessor.name, ValueGeneratorProcessor.class);

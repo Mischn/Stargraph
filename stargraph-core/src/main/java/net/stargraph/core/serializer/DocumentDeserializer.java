@@ -65,7 +65,22 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
-        return new Document(id, type, entity, title, summary, text, entities);
+        List<Extraction> extractions = new ArrayList<>();
+        if (node.has("extractions")) {
+            for (final JsonNode ex : node.get("extractions")) {
+                String exId = ex.get("id").asText();
+                String exRelation = ex.get("relation").asText();
+                List<String> exArgs = new ArrayList<>();
+                if (ex.has("arguments")) {
+                    for (final JsonNode arg : ex.get("arguments")) {
+                        exArgs.add(arg.asText());
+                    }
+                }
+                extractions.add(new Extraction(exId, exRelation, exArgs));
+            }
+        }
+
+        return new Document(id, type, entity, title, summary, text, entities, extractions);
     }
 
 

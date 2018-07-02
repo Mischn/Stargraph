@@ -27,47 +27,48 @@ package net.stargraph.core.processors;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
-import net.stargraph.core.ner.NER;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.Extraction;
+import org.lambda3.graphene.core.Graphene;
+import org.lambda3.graphene.core.relation_extraction.model.ExContent;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
- * Can be placed in the workflow to create linked named entities.
+ * Can be placed in the workflow to create extractions for documents.
  */
-public final class DocumentLNERProcessor extends BaseProcessor {
-    public static String name = "document-lner-processor";
+public final class OpenIEProcessor extends BaseProcessor {
+    public static String name = "oie-extractor";
 
-    private Stargraph stargraph;
+    private Graphene graphene;
 
-    public DocumentLNERProcessor(Stargraph stargraph, Config config) {
+    public OpenIEProcessor(Config config) {
         super(config);
-        this.stargraph = Objects.requireNonNull(stargraph);
+        graphene = new Graphene(getConfig());
     }
 
     @Override
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
-        NER ner = stargraph.getKBCore(holder.getKBId().getId()).getNER();
 
         if (entry instanceof Document) {
-            Document document = (Document)entry;
+            Document document = (Document) entry;
+            List<Extraction> extractions = new ArrayList();
 
-            List<LinkedNamedEntity> lners = ner.searchAndLink(document.getText());
+            ExContent ec = graphene.doRelationExtraction(document.getText(), false, false);
+            ec.getExtractions().stream().forEach(e -> {
+                List<String> args = new ArrayList<>();
+                args.add(e.getArg1());
+                args.add(e.getArg2());
+                e.getSimpleContexts().forEach(sc -> args.add(sc.getText()));
 
-            // only add linked entities
-            List<LabeledEntity> entities = lners.parallelStream()
-                    .filter(e -> e.isLinked())
-                    .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
+                extractions.add(new Extraction(e.getId(), e.getRelation(), args));
+            });
 
             holder.set(new Document(
                     document.getId(),
@@ -76,8 +77,8 @@ public final class DocumentLNERProcessor extends BaseProcessor {
                     document.getTitle(),
                     document.getSummary(),
                     document.getText(),
-                    entities,
-                    document.getExtractions()
+                    document.getEntities(),
+                    extractions
             ));
         }
     }

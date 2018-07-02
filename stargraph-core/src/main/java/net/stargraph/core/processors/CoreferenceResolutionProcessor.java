@@ -64,9 +64,13 @@ public final class CoreferenceResolutionProcessor extends BaseProcessor {
 
                 holder.set(new Document(
                         document.getId(),
+                        document.getType(),
+                        document.getEntity(),
                         document.getTitle(),
                         document.getSummary(),
-                        resolved
+                        resolved,
+                        document.getEntities(),
+                        document.getExtractions()
                 ));
             }
             catch (Exception e) {

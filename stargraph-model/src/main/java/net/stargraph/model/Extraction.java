@@ -1,8 +1,8 @@
-package net.stargraph.core.serializer;
+package net.stargraph.model;
 
 /*-
  * ==========================License-Start=============================
- * stargraph-core
+ * stargraph-model
  * --------------------------------------------------------------------
  * Copyright (C) 2017 Lambda^3
  * --------------------------------------------------------------------
@@ -26,39 +26,48 @@ package net.stargraph.core.serializer;
  * ==========================License-End===============================
  */
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import net.stargraph.model.Document;
-import net.stargraph.model.Fact;
-import net.stargraph.model.KBId;
+import net.stargraph.data.processor.Hashable;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
-class DocumentSerializer extends AbstractSerializer<Document> {
+/**
+ * An OpenIE extraction.
+ */
+public final class Extraction implements Hashable {
+    private String id;
+    private String relation;
+    private List<String> arguments;
 
-    DocumentSerializer(KBId kbId) {
-        super(kbId, Document.class);
+    public Extraction(String id, String relation, List<String> arguments) {
+        this.id = id;
+        this.relation = relation;
+        this.arguments = arguments;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getRelation() {
+        return relation;
+    }
+
+    public List<String> getArguments() {
+        return arguments;
     }
 
     @Override
-    public void serialize(Document value, JsonGenerator g, SerializerProvider provider) throws IOException {
-        g.writeStartObject();
-        g.writeObjectField("id", value.getId());
-        g.writeObjectField("type", value.getType());
-        if (value.getEntity() != null) {
-            g.writeObjectField("entity", value.getEntity());
-        }
-        g.writeObjectField("title", value.getTitle());
-        if (value.getSummary() != null) {
-            g.writeObjectField("summary", value.getSummary());
-        }
-        g.writeObjectField("text", value.getText());
-        if (!value.getEntities().isEmpty()) {
-            g.writeObjectField("entities", value.getEntities());
-        }
-        if (!value.getExtractions().isEmpty()) {
-            g.writeObjectField("extractions", value.getExtractions());
-        }
-        g.writeEndObject();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Extraction document = (Extraction) o;
+        return id.equals(document.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

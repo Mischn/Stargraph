@@ -43,23 +43,25 @@ public final class Document implements Hashable {
     private String summary; // optional
     private String text;
     private List<LabeledEntity> entities;
+    private List<Extraction> extractions;
 
     public Document(String id, String title, String summary, String text) {
         this(id, "unknown", title, summary, text, null);
     }
 
     public Document(String id, String type, String entity, String title, String summary, String text) {
-        this(id, type, entity, title, summary, text, null);
+        this(id, type, entity, title, summary, text, null, null);
     }
 
-    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities) {
+    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities, List<Extraction> extractions) {
         this.id = Objects.requireNonNull(id);
         this.type = type;
         this.entity = entity;
         this.title = Objects.requireNonNull(title);
         this.text = Objects.requireNonNull(text);
         this.summary = summary;
-        this.entities = (entities != null) ? entities : new ArrayList<>() ;
+        this.entities = (entities != null) ? entities : new ArrayList<>();
+        this.extractions = (extractions != null) ? extractions : new ArrayList<>();
     }
 
     public String getId() {
@@ -90,6 +92,10 @@ public final class Document implements Hashable {
         return entities;
     }
 
+    public List<Extraction> getExtractions() {
+        return extractions;
+    }
+
     @Override
     public String toString() {
         String abbrevSummary = (summary == null) ? "NULL" : (summary.length() > 30)? text.substring(0, 30-3) + "..." : text;
@@ -102,6 +108,7 @@ public final class Document implements Hashable {
                 ", summary='" + abbrevSummary + '\'' +
                 ", text='" + abbrevText + '\'' +
                 ", entities=" + entities +
+                ", extractions=" + extractions +
                 '}';
     }
 

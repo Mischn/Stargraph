@@ -26,6 +26,7 @@ package net.stargraph.core.impl.hdt;
  * ==========================License-End===============================
  */
 
+import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.batch.BaseBatchFileGenerator;
 import net.stargraph.core.impl.hdt.batch.BaseBatchStreamHDT;
@@ -53,36 +54,40 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
     }
 
     // Corrected version of HDT's TripleString.dumpNtriple(Appendable out)
-    private static String formatTriple(TripleString tripleString, StringBuilder strb) throws IOException {
+    private static String formatTriple(TripleString tripleString, StringBuilder strb) throws Exception {
         strb.delete(0, strb.length());
 
-        final String subject = tripleString.getSubject().toString().trim();
-        final String predicate = tripleString.getPredicate().toString().trim();
-        final String object = tripleString.getObject().toString().trim();
+        char t0 = tripleString.toString().charAt(0);
+        if (t0 == '#') {
+            // ERROR
+            throw new StarGraphException("Invalid triple: " + tripleString.toString());
+        }
 
-        char s0 = subject.charAt(0);
+        char s0 = tripleString.getSubject().charAt(0);
         if (s0 != '_' && s0 != '<') {
-            strb.append('<').append(subject).append('>');
+            strb.append('<').append(tripleString.getSubject()).append('>');
         } else {
-            strb.append(subject);
+            strb.append(tripleString.getSubject());
         }
 
-        char p0 = predicate.charAt(0);
+        char p0 = tripleString.getPredicate().charAt(0);
         if (p0 == '<') {
-            strb.append(' ').append(predicate).append(' ');
+            strb.append(' ').append(tripleString.getPredicate()).append(' ');
         } else {
-            strb.append(" <").append(predicate).append("> ");
+            strb.append(" <").append(tripleString.getPredicate()).append("> ");
         }
 
-        char o0 = object.charAt(0);
+        char o0 = tripleString.getObject().charAt(0);
         if (o0 == '"') {
             // the HDT's UnicodeEscape.escapeString(object.toString()) produced incorrect escape sequences!
-            String lex = object.substring(object.indexOf("\"")+1, object.lastIndexOf("\""));
+            String objectStr = tripleString.getObject().toString();
+            String lex = objectStr.substring(objectStr.indexOf("\"")+1, objectStr.lastIndexOf("\""));
+
             strb.append("\"" + escapeLexicalNT(lex) + "\"").append(" .");
         } else if (o0 != '_' && o0 != '<') {
-            strb.append('<').append(object).append("> .");
+            strb.append('<').append(tripleString.getObject()).append("> .");
         } else {
-            strb.append(object).append(" .");
+            strb.append(tripleString.getObject()).append(" .");
         }
 
         return strb.toString();
@@ -108,17 +113,27 @@ public class HDTtoNtriplesBatchFileGenerator extends BaseBatchFileGenerator {
         };
     }
 
+    private class MyProgressListener implements ProgressListener {
+
+        @Override
+        public void notifyProgress(float level, String message) {
+            System.out.println(message + "\t"+ Float.toString(level));
+        }
+    }
+
     @Override
     protected List<File> generateBatches(File batchDirectory, File file, long maxEntriesInFile) throws Exception {
         BaseBatchStreamHDT baseBatchStreamHDT = createBatchStreamHDT(batchDirectory, maxEntriesInFile, file.getName());
         baseBatchStreamHDT.start();
 
-        HDT hdt = HDTManager.mapHDT(file.getAbsolutePath(), new ProgressListener() {
-            @Override
-            public void notifyProgress(float level, String message) {
-                System.out.println(message + "\t"+ Float.toString(level));
-            }
-        });
+        HDT hdt;
+        final boolean loadInMemory = false;
+        if(loadInMemory) {
+            hdt = HDTManager.loadIndexedHDT(file.getAbsolutePath(), new MyProgressListener());
+        } else {
+            hdt= HDTManager.mapIndexedHDT(file.getAbsolutePath(), new MyProgressListener());
+        }
+
         try {
             IteratorTripleString it = hdt.search("","","");
             while (it.hasNext()) {

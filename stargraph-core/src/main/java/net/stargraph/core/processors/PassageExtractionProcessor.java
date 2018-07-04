@@ -79,14 +79,12 @@ public final class PassageExtractionProcessor extends BaseProcessor {
 
                 List<LinkedNamedEntity> lners = ner.searchAndLink(concArgStr);
 
-                // only add linked entities
-                List<LabeledEntity> entities = lners.parallelStream()
-                        .filter(e -> e.isLinked())
-                        .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
+                List<String> namedEntities = lners.parallelStream()
+                        .map(LinkedNamedEntity::getValue).collect(Collectors.toList());
 
                 List<TimeRange> temporals = TIME_PARSER.parse(concArgStr);
 
-                passageExtractions.add(new PassageExtraction(relation, entities, temporals));
+                passageExtractions.add(new PassageExtraction(relation, namedEntities, temporals));
             }
 
 

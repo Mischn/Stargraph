@@ -35,12 +35,12 @@ import java.util.List;
  */
 public final class PassageExtraction {
     private String relation;
-    private List<LabeledEntity> entities;
+    private List<String> namedEntities;
     private List<TimeRange> temporals;
 
-    public PassageExtraction(String relation, List<LabeledEntity> entities, List<TimeRange> temporals) {
+    public PassageExtraction(String relation, List<String> namedEntities, List<TimeRange> temporals) {
         this.relation = relation;
-        this.entities = entities;
+        this.namedEntities = namedEntities;
         this.temporals = temporals;
     }
 
@@ -48,8 +48,8 @@ public final class PassageExtraction {
         return relation;
     }
 
-    public List<LabeledEntity> getEntities() {
-        return entities;
+    public List<String> getNamedEntities() {
+        return namedEntities;
     }
 
     public List<TimeRange> getTemporals() {
@@ -60,7 +60,7 @@ public final class PassageExtraction {
     public String toString() {
         return "PassageExtraction{" +
                 "relation='" + relation + '\'' +
-                ", entities=" + entities +
+                ", namedEntities=" + namedEntities +
                 ", temporals=" + temporals +
                 '}';
     }

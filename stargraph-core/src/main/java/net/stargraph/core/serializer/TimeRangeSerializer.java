@@ -26,29 +26,24 @@ package net.stargraph.core.serializer;
  * ==========================License-End===============================
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import net.stargraph.model.*;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import net.stargraph.model.KBId;
 import net.stargraph.model.date.TimeRange;
 
-/**
- * The standard Serializer
- */
-public final class ObjectSerializer {
+import java.io.IOException;
 
-    public static ObjectMapper createMapper(KBId kbId) {
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(Fact.class, new FactSerializer(kbId));
-        module.addDeserializer(Fact.class, new FactDeSerializer(kbId));
-        module.addSerializer(PropertyEntity.class, new PropertySerializer(kbId));
-        module.addDeserializer(PropertyEntity.class, new PropertyDeserializer(kbId));
-        module.addSerializer(InstanceEntity.class, new InstanceSerializer(kbId));
-        module.addDeserializer(InstanceEntity.class, new InstanceDeserializer(kbId));
-        module.addSerializer(Document.class, new DocumentSerializer(kbId));
-        module.addDeserializer(Document.class, new DocumentDeserializer(kbId));
-        module.addSerializer(TimeRange.class, new TimeRangeSerializer(kbId));
-        mapper.registerModule(module);
-        return mapper;
+class TimeRangeSerializer extends AbstractSerializer<TimeRange> {
+
+    TimeRangeSerializer(KBId kbId) {
+        super(kbId, TimeRange.class);
+    }
+
+    @Override
+    public void serialize(TimeRange value, JsonGenerator g, SerializerProvider provider) throws IOException {
+        g.writeStartObject();
+        g.writeNumberField("from", value.getFrom().getTime());
+        g.writeNumberField("to", value.getTo().getTime());
+        g.writeEndObject();
     }
 }

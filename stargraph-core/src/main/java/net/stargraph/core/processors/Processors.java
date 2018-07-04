@@ -51,6 +51,7 @@ public final class Processors {
             put(OpenIEProcessor.name, OpenIEProcessor.class);
             put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
             put(PassageProcessor.name, PassageProcessor.class);
+            put(PassageExtractionProcessor.name, PassageExtractionProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
             put(ValueGeneratorProcessor.name, ValueGeneratorProcessor.class);
             put(ValueGeneratorFixedProcessor.name, ValueGeneratorFixedProcessor.class);
@@ -87,6 +88,7 @@ public final class Processors {
             // use special constructor (stargraph, config)
             if ((c.equals(DocumentLNERProcessor.class)
                     || c.equals(PassageProcessor.class)
+                    || c.equals(PassageExtractionProcessor.class)
                     || c.equals(ClassIdentiferProcessor.class)
                     || c.equals(ValueGeneratorProcessor.class)
                     || c.equals(ValueGeneratorFixedProcessor.class)

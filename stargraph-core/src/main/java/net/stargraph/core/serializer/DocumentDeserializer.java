@@ -30,15 +30,51 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import net.stargraph.model.*;
+import net.stargraph.model.date.TimeRange;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 class DocumentDeserializer extends AbstractDeserializer<Document> {
 
     DocumentDeserializer(KBId kbId) {
         super(kbId, PropertyEntity.class);
+    }
+
+    private static List<LabeledEntity> deserializeLabeledEntities(JsonNode entitiesNode) {
+        List<LabeledEntity> res = new ArrayList<>();
+
+        if (entitiesNode.has("entities")) {
+            for (final JsonNode ent : entitiesNode.get("entities")) {
+                String entId = ent.get("id").asText();
+                String entValue = ent.get("value").asText();
+
+                if (ent.has("language")) {
+                    res.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
+                } else {
+                    res.add(new InstanceEntity(entId, entValue));
+                }
+            }
+        }
+
+        return res;
+    }
+
+    private static List<TimeRange> deserializeTemporals(JsonNode temporalsNode) {
+        List<TimeRange> res = new ArrayList<>();
+
+        if (temporalsNode.has("temporals")) {
+            for (final JsonNode temp : temporalsNode.get("temporals")) {
+                long from = temp.get("from").asLong();
+                long to = temp.get("to").asLong();
+                TimeRange temporal = TimeRange.fromTo(from, to);
+                res.add(temporal);
+            }
+        }
+
+        return res;
     }
 
     @Override
@@ -51,42 +87,30 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         String summary = (node.has("summary"))? node.get("summary").asText() : null;
         String text = node.get("text").asText();
 
-        List<LabeledEntity> entities = new ArrayList<>();
-        if (node.has("entities")) {
-            for (final JsonNode ent : node.get("entities")) {
-                String entId = ent.get("id").asText();
-                String entValue = ent.get("value").asText();
-
-                if (ent.has("language")) {
-                    entities.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
-                } else {
-                    entities.add(new InstanceEntity(entId, entValue));
-                }
-            }
-        }
+        List<LabeledEntity> entities = deserializeLabeledEntities(node);
 
         List<Passage> passages = new ArrayList();
         if (node.has("passages")) {
             for (final JsonNode pass : node.get("passages")) {
                 String passText = pass.get("text").asText();
-                List<LabeledEntity> passageEntities = new ArrayList<>();
-                if (pass.has("entities")) {
-                    for (final JsonNode ent : pass.get("entities")) {
-                        String entId = ent.get("id").asText();
-                        String entValue = ent.get("value").asText();
+                List<LabeledEntity> passEntities = deserializeLabeledEntities(pass);
 
-                        if (ent.has("language")) {
-                            passageEntities.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
-                        } else {
-                            passageEntities.add(new InstanceEntity(entId, entValue));
-                        }
-                    }
-                }
-                passages.add(new Passage(passText, passageEntities));
+                passages.add(new Passage(passText, passEntities));
             }
         }
 
-        List<Extraction> extractions = new ArrayList<>();
+        List<PassageExtraction> passageExtractions = new ArrayList();
+        if (node.has("passageExtractions")) {
+            for (final JsonNode pass : node.get("passageExtractions")) {
+                String passRelation = pass.get("relation").asText();
+                List<LabeledEntity> passEntities = deserializeLabeledEntities(pass);
+                List<TimeRange> passTemporals = deserializeTemporals(pass);
+
+                passageExtractions.add(new PassageExtraction(passRelation, passEntities, passTemporals));
+            }
+        }
+
+        List<Extraction> extractions =  new ArrayList<>();
         if (node.has("extractions")) {
             for (final JsonNode ex : node.get("extractions")) {
                 String exId = ex.get("id").asText();
@@ -101,7 +125,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
-        return new Document(id, type, entity, title, summary, text, entities, passages, extractions);
+        return new Document(id, type, entity, title, summary, text, entities, passages, passageExtractions, extractions);
     }
 
 

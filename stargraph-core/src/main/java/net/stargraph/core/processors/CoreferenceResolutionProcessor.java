@@ -71,8 +71,8 @@ public final class CoreferenceResolutionProcessor extends BaseProcessor {
                         resolved,
                         document.getEntities(),
                         document.getPassages(),
-                        document.getExtractions()
-                ));
+                        document.getPassageExtractions(),
+                        document.getExtractions()));
             }
             catch (Exception e) {
                 if (e.getCause() instanceof UnknownHostException) {

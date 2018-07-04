@@ -29,7 +29,6 @@ package net.stargraph.core.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import net.stargraph.model.Document;
-import net.stargraph.model.Fact;
 import net.stargraph.model.KBId;
 
 import java.io.IOException;
@@ -58,6 +57,9 @@ class DocumentSerializer extends AbstractSerializer<Document> {
         }
         if (!value.getPassages().isEmpty()) {
             g.writeObjectField("passages", value.getPassages());
+        }
+        if (!value.getPassageExtractions().isEmpty()) {
+            g.writeObjectField("passageExtractions", value.getPassageExtractions());
         }
         if (!value.getExtractions().isEmpty()) {
             g.writeObjectField("extractions", value.getExtractions());

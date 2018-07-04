@@ -78,8 +78,8 @@ public final class DocumentLNERProcessor extends BaseProcessor {
                     document.getText(),
                     entities,
                     document.getPassages(),
-                    document.getExtractions()
-            ));
+                    document.getPassageExtractions(),
+                    document.getExtractions()));
         }
     }
 

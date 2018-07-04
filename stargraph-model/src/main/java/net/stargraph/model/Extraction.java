@@ -26,6 +26,7 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
+import net.stargraph.IDGenerator;
 import net.stargraph.data.processor.Hashable;
 
 import java.util.ArrayList;
@@ -40,10 +41,18 @@ public final class Extraction implements Hashable {
     private String relation;
     private List<String> arguments;
 
+    public Extraction(String relation) {
+        this(relation, new ArrayList<>());
+    }
+
     public Extraction(String id, String relation, List<String> arguments) {
         this.id = id;
         this.relation = relation;
         this.arguments = arguments;
+    }
+
+    public Extraction(String relation, List<String> arguments) {
+        this(IDGenerator.generateUUID(), relation, arguments);
     }
 
     public String getId() {
@@ -52,6 +61,12 @@ public final class Extraction implements Hashable {
 
     public String getRelation() {
         return relation;
+    }
+
+    public void addArgument(String argument) {
+        if (!this.arguments.contains(argument)) {
+            this.arguments.add(argument);
+        }
     }
 
     public List<String> getArguments() {
@@ -69,5 +84,14 @@ public final class Extraction implements Hashable {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Extraction{" +
+                "id='" + id + '\'' +
+                ", relation='" + relation + '\'' +
+                ", arguments=" + arguments +
+                '}';
     }
 }

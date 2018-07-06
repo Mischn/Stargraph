@@ -34,7 +34,6 @@ import net.stargraph.model.date.TimeRange;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 class DocumentDeserializer extends AbstractDeserializer<Document> {
@@ -43,38 +42,68 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         super(kbId, PropertyEntity.class);
     }
 
-    private static List<LabeledEntity> deserializeLabeledEntities(JsonNode entitiesNode) {
-        List<LabeledEntity> res = new ArrayList<>();
+    private static LabeledEntity deserializeLabeledEntity(JsonNode node) {
+        String id = node.get("id").asText();
+        String value = node.get("value").asText();
 
-        if (entitiesNode.has("entities")) {
-            for (final JsonNode ent : entitiesNode.get("entities")) {
-                String entId = ent.get("id").asText();
-                String entValue = ent.get("value").asText();
-
-                if (ent.has("language")) {
-                    res.add(new ValueEntity(entId, entValue, ent.get("dataType").asText(null), ent.get("language").asText(null)));
-                } else {
-                    res.add(new InstanceEntity(entId, entValue));
-                }
-            }
+        if (node.has("language")) {
+            return new ValueEntity(id, value, node.get("dataType").asText(null), node.get("language").asText(null));
+        } else {
+            return new InstanceEntity(id, value);
         }
-
-        return res;
     }
 
-    private static List<TimeRange> deserializeTemporals(JsonNode temporalsNode) {
-        List<TimeRange> res = new ArrayList<>();
+    private static Passage deserializePassage(JsonNode node) {
+        String text = node.get("text").asText();
 
-        if (temporalsNode.has("temporals")) {
-            for (final JsonNode temp : temporalsNode.get("temporals")) {
-                long from = temp.get("from").asLong();
-                long to = temp.get("to").asLong();
-                TimeRange temporal = TimeRange.fromTo(from, to);
-                res.add(temporal);
+        List<LabeledEntity> entities = new ArrayList<>();
+        if (node.has("entities")) {
+            for (final JsonNode ent : node.get("entities")) {
+                entities.add(deserializeLabeledEntity(ent));
             }
         }
 
-        return res;
+        return new Passage(text, entities);
+    }
+
+    private static PassageExtraction deserializePassageExtraction(JsonNode node) {
+        String id = node.get("id").asText();
+        String relation = node.get("relation").asText();
+
+        List<String> namedEntities = new ArrayList<>();
+        if (node.has("namedEntities")) {
+            for (final JsonNode nent : node.get("namedEntities")) {
+                namedEntities.add(nent.asText());
+            }
+        }
+
+        List<TimeRange> temporals = new ArrayList<>();
+        if (node.has("temporals")) {
+            for (final JsonNode tmp : node.get("temporals")) {
+                temporals.add(deserializeTemporal(tmp));
+            }
+        }
+
+        return new PassageExtraction(id, relation, namedEntities, temporals);
+    }
+
+    private static Extraction deserializeExtraction(JsonNode node) {
+        String id = node.get("id").asText();
+        String relation = node.get("relation").asText();
+
+        List<String> args = new ArrayList<>();
+        if (node.has("arguments")) {
+            for (final JsonNode arg : node.get("arguments")) {
+                args.add(arg.asText());
+            }
+        }
+        return new Extraction(id, relation, args);
+    }
+
+    private static TimeRange deserializeTemporal(JsonNode node) {
+            long from = node.get("from").asLong();
+            long to = node.get("to").asLong();
+            return TimeRange.fromTo(from, to);
     }
 
     @Override
@@ -87,45 +116,35 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         String summary = (node.has("summary"))? node.get("summary").asText() : null;
         String text = node.get("text").asText();
 
-        List<LabeledEntity> entities = deserializeLabeledEntities(node);
+        // named entities
+        List<LabeledEntity> entities = new ArrayList<>();
+        if (node.has("entities")) {
+            for (final JsonNode nent : node.get("entities")) {
+                entities.add(deserializeLabeledEntity(nent));
+            }
+        }
 
+        // passages
         List<Passage> passages = new ArrayList();
         if (node.has("passages")) {
             for (final JsonNode pass : node.get("passages")) {
-                String passText = pass.get("text").asText();
-                List<LabeledEntity> passEntities = deserializeLabeledEntities(pass);
-
-                passages.add(new Passage(passText, passEntities));
+                passages.add(deserializePassage(pass));
             }
         }
 
+        // passageExtractions
         List<PassageExtraction> passageExtractions = new ArrayList();
         if (node.has("passageExtractions")) {
-            for (final JsonNode pass : node.get("passageExtractions")) {
-                String passId = pass.get("id").asText();
-                String passRelation = pass.get("relation").asText();
-                List<String> passNamedEntities = new ArrayList<>();
-                for (final JsonNode namedEntity : pass.get("namedEntities")) {
-                    passNamedEntities.add(namedEntity.asText());
-                }
-                List<TimeRange> passTemporals = deserializeTemporals(pass);
-
-                passageExtractions.add(new PassageExtraction(passId, passRelation, passNamedEntities, passTemporals));
+            for (final JsonNode passEx : node.get("passageExtractions")) {
+                passageExtractions.add(deserializePassageExtraction(passEx));
             }
         }
 
+        // extractions
         List<Extraction> extractions =  new ArrayList<>();
         if (node.has("extractions")) {
             for (final JsonNode ex : node.get("extractions")) {
-                String exId = ex.get("id").asText();
-                String exRelation = ex.get("relation").asText();
-                List<String> exArgs = new ArrayList<>();
-                if (ex.has("arguments")) {
-                    for (final JsonNode arg : ex.get("arguments")) {
-                        exArgs.add(arg.asText());
-                    }
-                }
-                extractions.add(new Extraction(exId, exRelation, exArgs));
+                extractions.add(deserializeExtraction(ex));
             }
         }
 

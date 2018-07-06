@@ -12,10 +12,10 @@ package net.stargraph.rank.impl;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,6 +40,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -76,16 +77,21 @@ public final class IndraRanker extends BaseRanker {
                 .post(Entity.entity(request, MediaType.APPLICATION_JSON_TYPE), RelatednessResponse.class);
 
         Scores rescored = new Scores(inputScores.size());
-        response.getPairs().forEach(p -> rescored.addAll(find(inputScores, p.t1, p.score)));
-
+        List<Score> found = new ArrayList<>();
+        response.getPairs().forEach(p -> {rescored.add(find(inputScores, found, p.t1, p.score));});
         rescored.sort(true);
+
         return rescored;
     }
 
-    private List<Score> find(Scores scores, String text, double v) {
-        return scores.stream()
-                .map(Score::getRankableView)
-                .filter(s -> s.getValue().equals(text))
-                .map(r -> new Score(r, v)).collect(Collectors.toList());
+    private Score find(Scores scores, List<Score> found, String text, double v) {
+        for (Score score : scores) {
+            if (!found.contains(score) && score.getRankableView().getValue().equals(text)) {
+                Score res = new Score(score.getRankableView(), v);
+                found.add(score);
+                return res;
+            }
+        }
+        return null;
     }
 }

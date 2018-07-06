@@ -34,10 +34,19 @@ import java.util.List;
 public interface NER {
 
     /**
-     * Recognizes and try to link with known entities.
+     * Recognizes named entities and try to link with known entities.
      *
      * @param text The text to be analyzed.
      * @return List of Named Entities recognized and possibly linked/resolved.
      */
     List<LinkedNamedEntity> searchAndLink(String text);
+
+    /**
+     * Recognizes named entities.
+     *
+     * @param text The text to be analyzed.
+     * @return List of Named Entities recognized (unresolved).
+     */
+    List<LinkedNamedEntity> searchWithoutLink(String text);
+
 }

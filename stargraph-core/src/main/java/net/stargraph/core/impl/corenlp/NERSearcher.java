@@ -61,18 +61,31 @@ public final class NERSearcher implements NER {
 
     @Override
     public List<LinkedNamedEntity> searchAndLink(String text) {
-        logger.debug(marker, "'{}'", text);
-        List<LinkedNamedEntity> linked = null;
+        return search(text, true);
+    }
+
+    @Override
+    public List<LinkedNamedEntity> searchWithoutLink(String text) {
+        return search(text, false);
+    }
+
+    public List<LinkedNamedEntity> search(String text, boolean link) {
+        logger.debug(marker, "Search for named entities (link={}) in text: '{}'", link, text);
         long start = System.nanoTime();
+        List<LinkedNamedEntity> namedEntities = new ArrayList<>();
         try {
             final List<List<CoreLabel>> sentences = ner.classify(text); //TODO: Improve decoupling, still tied to CoreNLP
             logger.trace(marker, "NER output: {}", sentences);
-            linked = postProcessFoundNamedEntities(sentences);
-            return linked;
+            namedEntities = postProcessFoundNamedEntities(sentences);
+            if (link) {
+                logger.debug(marker, "link entities");
+                linkNamedEntities(namedEntities);
+            }
+            return namedEntities;
         }
         finally {
             double elapsedInMillis = (System.nanoTime() - start) / 1000_000;
-            logger.debug(marker, "Took {}ms, entities: {}, text: '{}'", elapsedInMillis, linked, text);
+            logger.debug(marker, "Took {}ms, entities: {}, text: '{}'", elapsedInMillis, namedEntities, text);
         }
     }
 
@@ -90,7 +103,13 @@ public final class NERSearcher implements NER {
             return Collections.emptyList();
         }
 
-        return linkNamedEntities(sentenceList);
+        // Flat map
+        final List<LinkedNamedEntity> allNamedEntities = new ArrayList<>();
+        for (List<LinkedNamedEntity> p : sentenceList) {
+            allNamedEntities.addAll(p);
+        }
+
+        return allNamedEntities;
     }
 
     /**
@@ -153,36 +172,28 @@ public final class NERSearcher implements NER {
         return sentenceList.stream().filter(s -> s.size() > 0).collect(Collectors.toList());
     }
 
-    private List<LinkedNamedEntity> linkNamedEntities(List<List<LinkedNamedEntity>> sentenceList) {
-        List<LinkedNamedEntity> allNamedEntities = new ArrayList<>();
+    private void linkNamedEntities(List<LinkedNamedEntity> namedEntities) {
+        List<LinkedNamedEntity> linkedNamedEntities = new ArrayList<>(); // these are really linked
 
-        for (List<LinkedNamedEntity> p : sentenceList) {
-            for (LinkedNamedEntity namedEntity : p) {
+        for (LinkedNamedEntity namedEntity : namedEntities) {
+            /*
+            Find reference in previous named entities.
+            -> When found: Use that ID, etc.
+            -> Not found: Search in database.
+             */
+            Optional<LinkedNamedEntity> reference = findReference(linkedNamedEntities, namedEntity.getValue());
+            if (reference.isPresent()) {
+                namedEntity.link(reference.get().getEntity(), reference.get().getScore());
+            } else {
+                tryLink(namedEntity);
+            }
 
-	            /*
-	            Find reference in previous named entities.
-	            -> When found: Use that ID, etc.
-	            -> Not found: Search in database.
-	             */
-                Optional<LinkedNamedEntity> reference = findReference(allNamedEntities, namedEntity.getValue());
-
-                if (!reference.isPresent()) {
-                    // no reference in previous NEs
-                    tryLink(namedEntity);
-                }
-                else {
-                    if (reference.get().isLinked()) {
-                        namedEntity.link(reference.get().getEntity(), reference.get().getScore());
-                    }
-                }
-
-                allNamedEntities.add(namedEntity);
+            if (namedEntity.isLinked()) {
+                linkedNamedEntities.add(namedEntity);
             }
         }
 
-        logger.trace(marker, "Linked {} entities.", allNamedEntities.size());
-
-        return allNamedEntities;
+        logger.trace(marker, "Linked {} out of {} named-entities.", linkedNamedEntities.size(), namedEntities.size());
     }
 
     private void tryLink(LinkedNamedEntity namedEntity) {

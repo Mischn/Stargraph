@@ -1,5 +1,6 @@
 package net.stargraph.model.date;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,6 +21,7 @@ public class TimeParser {
     private static String BC_PATTERN = PREF + "(?<bc>\\d+)\\s+bc" + SUFF;
     private static String AD_PATTERN1 = PREF + "(?<ad1>\\d+)\\s+ad" + SUFF;
     private static String AD_PATTERN2 = PREF + "ad\\s+(?<ad2>\\d+)" + SUFF;
+    private static String DECADE_PATTERN1 = PREF + "(?<decade>(?:\\d\\d)?\\d\\d)s" + SUFF;
     private static String CENTURY_PATTERN1 = PREF + "(?<century1>1)\\s*st\\s+century" + SUFF;
     private static String CENTURY_PATTERN2 = PREF + "(?<century2>2)\\s*nd\\s+century" + SUFF;
     private static String CENTURY_PATTERN3 = PREF + "(?<century3>3)\\s*rd\\s+century" + SUFF;
@@ -32,6 +34,7 @@ public class TimeParser {
                 BC_PATTERN,
                 AD_PATTERN1,
                 AD_PATTERN2,
+                DECADE_PATTERN1,
                 CENTURY_PATTERN1,
                 CENTURY_PATTERN2,
                 CENTURY_PATTERN3,
@@ -56,44 +59,49 @@ public class TimeParser {
             + ")";
 
 
-    private static TimeRange parseYear(Calendar cal, String text) {
+    private static TimeRange parseYear(String text) {
         int x = Integer.parseInt(text);
-        cal.set(x, Calendar.JANUARY, 1);
-        Date from = cal.getTime();
-        cal.set(x, Calendar.DECEMBER, 31);
-        Date to = cal.getTime();
+        LocalDate from = LocalDate.of(x, 1, 1);
+        LocalDate to = LocalDate.of(x, 12, 31);
         return TimeRange.fromTo(from, to);
     }
 
-    private static TimeRange parseDay(Calendar cal, String day, String month, String year) {
+    private static TimeRange parseDay(String day, String month, String year) {
         int d = Integer.parseInt(day);
         int m = Integer.parseInt(month);
         int y = Integer.parseInt(year);
 
-        cal.set(y, m-1, d);
-        Date from = cal.getTime();
-        Date to = cal.getTime();
+        LocalDate from = LocalDate.of(y, m, d);
+        LocalDate to = LocalDate.of(y, m, d);
         return TimeRange.fromTo(from, to);
     }
 
-    private static TimeRange parseCentury(Calendar cal, String text) {
+    private static TimeRange parseDecade(String text) {
+        if (text.length() == 2) {
+            text = "19" + text;
+        }
         int x = Integer.parseInt(text);
-        cal.set((100*(x-1))+1, Calendar.JANUARY, 1);
-        Date from = cal.getTime();
-        cal.set(100*x, Calendar.DECEMBER, 31);
-        Date to = cal.getTime();
+        LocalDate from = LocalDate.of(x, 1, 1);
+        LocalDate to = LocalDate.of(x+99, 12, 31);
         return TimeRange.fromTo(from, to);
     }
 
-    private static TimeRange parseSimple(Calendar cal, Matcher matcher, String prefix) {
+    private static TimeRange parseCentury(String text) {
+        int x = Integer.parseInt(text);
+        LocalDate from = LocalDate.of((100*(x-1))+1, 1, 1);
+        LocalDate to = LocalDate.of(100*x, 12, 31);
+        return TimeRange.fromTo(from, to);
+    }
+
+    private static TimeRange parseSimple(Matcher matcher, String prefix) {
         try {
             if (matcher.group(prefix + "year") != null) {
-                return parseYear(cal, matcher.group(prefix + "year"));
+                return parseYear(matcher.group(prefix + "year"));
             }
         } catch (Exception e) {}
         try {
             if (matcher.group(prefix + "dd") != null || matcher.group(prefix + "mm") != null || matcher.group(prefix + "yyyy") != null) {
-                return parseDay(cal, matcher.group(prefix + "dd"), matcher.group(prefix + "mm"), matcher.group(prefix + "yyyy"));
+                return parseDay(matcher.group(prefix + "dd"), matcher.group(prefix + "mm"), matcher.group(prefix + "yyyy"));
             }
         } catch (Exception e) {}
         try {
@@ -112,23 +120,28 @@ public class TimeParser {
             }
         } catch (Exception e) {}
         try {
+            if (matcher.group(prefix + "decade") != null) {
+                return parseDecade(matcher.group(prefix + "decade"));
+            }
+        } catch (Exception e) {}
+        try {
             if (matcher.group(prefix + "century1") != null) {
-                return parseCentury(cal, matcher.group(prefix + "century1"));
+                return parseCentury(matcher.group(prefix + "century1"));
             }
         } catch (Exception e) {}
         try {
             if (matcher.group(prefix + "century2") != null) {
-                return parseCentury(cal, matcher.group(prefix + "century2"));
+                return parseCentury(matcher.group(prefix + "century2"));
             }
         } catch (Exception e) {}
         try {
             if (matcher.group(prefix + "century3") != null) {
-                return parseCentury(cal, matcher.group(prefix + "century3"));
+                return parseCentury(matcher.group(prefix + "century3"));
             }
         } catch (Exception e) {}
         try {
             if (matcher.group(prefix + "century4") != null) {
-                return parseCentury(cal, matcher.group(prefix + "century4"));
+                return parseCentury(matcher.group(prefix + "century4"));
             }
         } catch (Exception e) {}
 
@@ -144,33 +157,33 @@ public class TimeParser {
 
         while (matcher.find()) {
             if (matcher.group("range1") != null) {
-                TimeRange start = parseSimple(cal, matcher, "rangestart1");
-                TimeRange end = parseSimple(cal, matcher, "rangeend1");
+                TimeRange start = parseSimple( matcher, "rangestart1");
+                TimeRange end = parseSimple(matcher, "rangeend1");
                 if (start != null || end != null) {
                     res.add(TimeRange.fromTo(start.getFrom(), end.getTo()));
                 }
             }
             if (matcher.group("range2") != null) {
-                TimeRange start = parseSimple(cal, matcher, "rangestart2");
-                TimeRange end = parseSimple(cal, matcher, "rangeend2");
+                TimeRange start = parseSimple(matcher, "rangestart2");
+                TimeRange end = parseSimple(matcher, "rangeend2");
                 if (start != null || end != null) {
                     res.add(TimeRange.fromTo(start.getFrom(), end.getTo()));
                 }
             }
             if (matcher.group("before") != null) {
-                TimeRange timeRange = parseSimple(cal, matcher, "before");
+                TimeRange timeRange = parseSimple(matcher, "before");
                 if (timeRange != null) {
                     res.add(TimeRange.before(timeRange.getFrom()));
                 }
             }
             if (matcher.group("after") != null) {
-                TimeRange timeRange = parseSimple(cal, matcher, "after");
+                TimeRange timeRange = parseSimple(matcher, "after");
                 if (timeRange != null) {
                     res.add(TimeRange.after(timeRange.getTo()));
                 }
             }
             if (matcher.group("simple") != null) {
-                TimeRange timeRange = parseSimple(cal, matcher, "simple");
+                TimeRange timeRange = parseSimple(matcher, "simple");
                 if (timeRange != null) {
                     res.add(timeRange);
                 }

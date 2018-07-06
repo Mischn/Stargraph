@@ -39,7 +39,7 @@ public interface NER {
      * @param text The text to be analyzed.
      * @return List of Named Entities recognized and possibly linked/resolved.
      */
-    List<LinkedNamedEntity> searchAndLink(String text);
+    List<NamedEntity> searchAndLink(String text);
 
     /**
      * Recognizes named entities.
@@ -47,6 +47,6 @@ public interface NER {
      * @param text The text to be analyzed.
      * @return List of Named Entities recognized (unresolved).
      */
-    List<LinkedNamedEntity> searchWithoutLink(String text);
+    List<NamedEntity> searchWithoutLink(String text);
 
 }

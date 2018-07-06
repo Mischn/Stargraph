@@ -28,7 +28,7 @@ package net.stargraph.core.processors;
 
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
 import net.stargraph.data.processor.BaseProcessor;
@@ -37,7 +37,6 @@ import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.*;
 import net.stargraph.model.date.TimeParser;
 import net.stargraph.model.date.TimeRange;
-import org.lambda3.text.simplification.discourse.utils.sentences.SentencesUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -67,7 +66,7 @@ public final class PassageExtractionProcessor extends BaseProcessor {
         List<String> namedEntities = new ArrayList<>();
         List<TimeRange> temporals = new ArrayList<>();
         if (concArgStr.length() > 0) {
-            List<LinkedNamedEntity> lners = ner.searchWithoutLink(concArgStr);
+            List<NamedEntity> lners = ner.searchWithoutLink(concArgStr);
 
             namedEntities = lners.parallelStream()
                     .filter(l -> !l.getCat().equals("DATE"))

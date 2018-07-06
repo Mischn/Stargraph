@@ -28,7 +28,7 @@ package net.stargraph.core.processors;
 
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
@@ -67,12 +67,12 @@ public final class PassageProcessor extends BaseProcessor {
 
             List<Passage> passages = new ArrayList<>();
             for (String sentence : SentencesUtils.splitIntoSentences(document.getText())) {
-                List<LinkedNamedEntity> lners = ner.searchAndLink(sentence);
+                List<NamedEntity> lners = ner.searchAndLink(sentence);
 
                 // only add linked entities
                 List<LabeledEntity> entities = lners.parallelStream()
                         .filter(e -> e.isLinked())
-                        .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
+                        .map(NamedEntity::getEntity).collect(Collectors.toList());
 
                 passages.add(new Passage(sentence, entities));
             }

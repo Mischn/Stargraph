@@ -29,7 +29,7 @@ package net.stargraph.test.it;
 import com.typesafe.config.ConfigFactory;
 import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -50,14 +50,14 @@ public final class NERAndLinkingIT {
 
     @Test
     public void linkObamaTest() {
-        List<LinkedNamedEntity> entities = ner.searchAndLink("Barack Obama");
+        List<NamedEntity> entities = ner.searchAndLink("Barack Obama");
         Assert.assertEquals(entities.get(0).getEntity(), ModelCreator.createInstance("dbr:Barack_Obama", null));
     }
 
     @Test
     public void NoEntitiesTest() {
         final String text = "Moreover, they were clearly meant to be exemplary invitations to revolt. And of course this will not make any sense.";
-        List<LinkedNamedEntity> entities = ner.searchAndLink(text);
+        List<NamedEntity> entities = ner.searchAndLink(text);
         Assert.assertTrue(entities.isEmpty());
     }
 
@@ -67,7 +67,7 @@ public final class NERAndLinkingIT {
                 "Benjamin Tucker defined anarchism as opposition to authority as follows `` They found that they must " +
                 "turn either to the right or to the left , -- follow either the path of Authority or the path of Liberty .";
 
-        List<LinkedNamedEntity> entities = ner.searchAndLink(text);
+        List<NamedEntity> entities = ner.searchAndLink(text);
         System.out.println(entities);
     }
 }

@@ -28,7 +28,7 @@ package net.stargraph.core.impl.corenlp;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.LabeledEntity;
@@ -60,19 +60,19 @@ public final class NERSearcher implements NER {
     }
 
     @Override
-    public List<LinkedNamedEntity> searchAndLink(String text) {
+    public List<NamedEntity> searchAndLink(String text) {
         return search(text, true);
     }
 
     @Override
-    public List<LinkedNamedEntity> searchWithoutLink(String text) {
+    public List<NamedEntity> searchWithoutLink(String text) {
         return search(text, false);
     }
 
-    public List<LinkedNamedEntity> search(String text, boolean link) {
+    public List<NamedEntity> search(String text, boolean link) {
         logger.debug(marker, "Search for named entities (link={}) in text: '{}'", link, text);
         long start = System.nanoTime();
-        List<LinkedNamedEntity> namedEntities = new ArrayList<>();
+        List<NamedEntity> namedEntities = new ArrayList<>();
         try {
             final List<List<CoreLabel>> sentences = ner.classify(text); //TODO: Improve decoupling, still tied to CoreNLP
             logger.trace(marker, "NER output: {}", sentences);
@@ -89,12 +89,12 @@ public final class NERSearcher implements NER {
         }
     }
 
-    private List<LinkedNamedEntity> postProcessFoundNamedEntities(List<List<CoreLabel>> sentences) {
-        final List<List<LinkedNamedEntity>> sentenceList = mergeConsecutiveNamedEntities(sentences);
+    private List<NamedEntity> postProcessFoundNamedEntities(List<List<CoreLabel>> sentences) {
+        final List<List<NamedEntity>> sentenceList = mergeConsecutiveNamedEntities(sentences);
 
         if (this.reverseNameOrder) {
             sentenceList.forEach(sentence -> {
-                sentence.forEach(LinkedNamedEntity::reverseValue);
+                sentence.forEach(NamedEntity::reverseValue);
             });
         }
 
@@ -104,8 +104,8 @@ public final class NERSearcher implements NER {
         }
 
         // Flat map
-        final List<LinkedNamedEntity> allNamedEntities = new ArrayList<>();
-        for (List<LinkedNamedEntity> p : sentenceList) {
+        final List<NamedEntity> allNamedEntities = new ArrayList<>();
+        for (List<NamedEntity> p : sentenceList) {
             allNamedEntities.addAll(p);
         }
 
@@ -121,14 +121,14 @@ public final class NERSearcher implements NER {
      * @param sentences List of lists of CoreLabels
      * @return List of ScoredNamedEntities where consecutive named entities are combined
      */
-    private static List<List<LinkedNamedEntity>> mergeConsecutiveNamedEntities(List<List<CoreLabel>> sentences) {
-        final List<List<LinkedNamedEntity>> sentenceList = new ArrayList<>();
+    private static List<List<NamedEntity>> mergeConsecutiveNamedEntities(List<List<CoreLabel>> sentences) {
+        final List<List<NamedEntity>> sentenceList = new ArrayList<>();
 
         for (List<CoreLabel> sentence : sentences) {
 
-            List<LinkedNamedEntity> namedEntities = new ArrayList<>();
+            List<NamedEntity> namedEntities = new ArrayList<>();
             String previousCat = null;
-            LinkedNamedEntity currentNamedEntity = null;
+            NamedEntity currentNamedEntity = null;
 
             /*
                 A named entity is composed of multiple words, most of the time.
@@ -144,12 +144,12 @@ public final class NERSearcher implements NER {
                 String currentCat = coreLabel.get(CoreAnnotations.AnswerAnnotation.class);
 
                 if (currentNamedEntity == null) {
-                    currentNamedEntity = new LinkedNamedEntity(currentWord, currentCat, coreLabel.beginPosition(), coreLabel.endPosition());
+                    currentNamedEntity = new NamedEntity(currentWord, currentCat, coreLabel.beginPosition(), coreLabel.endPosition());
                 } else if (currentCat.equals(previousCat)) {
                     currentNamedEntity.merge(currentNamedEntity.getValue() + " " + currentWord, coreLabel.endPosition());
                 } else {
                     namedEntities.add(currentNamedEntity);
-                    currentNamedEntity = new LinkedNamedEntity(currentWord, currentCat, coreLabel.beginPosition(), coreLabel.endPosition());
+                    currentNamedEntity = new NamedEntity(currentWord, currentCat, coreLabel.beginPosition(), coreLabel.endPosition());
                 }
 
                 previousCat = currentCat;
@@ -172,16 +172,16 @@ public final class NERSearcher implements NER {
         return sentenceList.stream().filter(s -> s.size() > 0).collect(Collectors.toList());
     }
 
-    private void linkNamedEntities(List<LinkedNamedEntity> namedEntities) {
-        List<LinkedNamedEntity> linkedNamedEntities = new ArrayList<>(); // these are really linked
+    private void linkNamedEntities(List<NamedEntity> namedEntities) {
+        List<NamedEntity> linkedNamedEntities = new ArrayList<>(); // these are really linked
 
-        for (LinkedNamedEntity namedEntity : namedEntities) {
+        for (NamedEntity namedEntity : namedEntities) {
             /*
             Find reference in previous named entities.
             -> When found: Use that ID, etc.
             -> Not found: Search in database.
              */
-            Optional<LinkedNamedEntity> reference = findReference(linkedNamedEntities, namedEntity.getValue());
+            Optional<NamedEntity> reference = findReference(linkedNamedEntities, namedEntity.getValue());
             if (reference.isPresent()) {
                 namedEntity.link(reference.get().getEntity(), reference.get().getScore());
             } else {
@@ -196,7 +196,7 @@ public final class NERSearcher implements NER {
         logger.trace(marker, "Linked {} out of {} named-entities.", linkedNamedEntities.size(), namedEntities.size());
     }
 
-    private void tryLink(LinkedNamedEntity namedEntity) {
+    private void tryLink(NamedEntity namedEntity) {
         if (!namedEntity.getCat().equalsIgnoreCase("DATE")) {
             //TODO: Limit reduce network latency but can hurt precision in some cases
             ModifiableSearchParams searchParams =
@@ -215,9 +215,9 @@ public final class NERSearcher implements NER {
         }
     }
 
-    private static Optional<LinkedNamedEntity> findReference(List<LinkedNamedEntity> namedEntities, String namedEntity) {
-        LinkedNamedEntity found = null;
-        for (LinkedNamedEntity sne : namedEntities) {
+    private static Optional<NamedEntity> findReference(List<NamedEntity> namedEntities, String namedEntity) {
+        NamedEntity found = null;
+        for (NamedEntity sne : namedEntities) {
             if (sne.getValue().contains(namedEntity)) {
                 // use the first occurrence of a substring
                 found = sne;

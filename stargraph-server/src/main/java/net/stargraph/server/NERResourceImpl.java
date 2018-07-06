@@ -28,7 +28,7 @@ package net.stargraph.server;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.query.Language;
 import net.stargraph.rest.EntityEntry;
@@ -60,11 +60,11 @@ public final class NERResourceImpl implements NERResource {
         Language lang = Language.valueOf(language.toUpperCase());
         NER ner = core.createNER(lang, dbId);
 
-        List<LinkedNamedEntity> linkedNamedEntities = ner.searchAndLink(userText.text);
+        List<NamedEntity> linkedNamedEntities = ner.searchAndLink(userText.text);
 
         // convert to LinkedEntityEntries (expand IDs by convention)
         List<LinkedEntityEntry> linkedEntityEntries = new ArrayList<>();
-        for (LinkedNamedEntity linkedEntity : linkedNamedEntities) {
+        for (NamedEntity linkedEntity : linkedNamedEntities) {
             EntityEntry entity = (linkedEntity.isLinked())? EntityEntryCreator.createLabeledEntityEntry(linkedEntity.getEntity(), dbId, namespace) : null;
             double score = (linkedEntity.isLinked())? linkedEntity.getScore() : -1;
             linkedEntityEntries.add(new LinkedEntityEntry(linkedEntity.getValue(), linkedEntity.getCat(), linkedEntity.getStart(), linkedEntity.getEnd(), entity, score));

@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public final class LinkedNamedEntity {
+public final class NamedEntity {
 
     private String value;
     private String cat;
@@ -41,11 +41,11 @@ public final class LinkedNamedEntity {
     private LabeledEntity entity; // optional
     private double score; // optional
 
-    public LinkedNamedEntity(String value, String cat, int start, int end) {
+    public NamedEntity(String value, String cat, int start, int end) {
         this(value, cat, start, end, null, -1);
     }
 
-    public LinkedNamedEntity(String value, String cat, int start, int end, LabeledEntity entity, double score) {
+    public NamedEntity(String value, String cat, int start, int end, LabeledEntity entity, double score) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("NamedEntity `value` can't be null or empty");
         }
@@ -110,7 +110,7 @@ public final class LinkedNamedEntity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        LinkedNamedEntity that = (LinkedNamedEntity) o;
+        NamedEntity that = (NamedEntity) o;
         return start == that.start &&
                 end == that.end &&
                 Objects.equals(entity, that.entity) &&

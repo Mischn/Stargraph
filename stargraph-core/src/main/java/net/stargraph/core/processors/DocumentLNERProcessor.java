@@ -28,7 +28,7 @@ package net.stargraph.core.processors;
 
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.LinkedNamedEntity;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
@@ -62,12 +62,12 @@ public final class DocumentLNERProcessor extends BaseProcessor {
         if (entry instanceof Document) {
             Document document = (Document)entry;
 
-            List<LinkedNamedEntity> lners = ner.searchAndLink(document.getText());
+            List<NamedEntity> lners = ner.searchAndLink(document.getText());
 
             // only add linked entities
             List<LabeledEntity> entities = lners.parallelStream()
                     .filter(e -> e.isLinked())
-                    .map(LinkedNamedEntity::getEntity).collect(Collectors.toList());
+                    .map(NamedEntity::getEntity).collect(Collectors.toList());
 
             holder.set(new Document(
                     document.getId(),

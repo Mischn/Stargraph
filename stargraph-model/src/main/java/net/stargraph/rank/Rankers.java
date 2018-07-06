@@ -48,6 +48,24 @@ public final class Rankers {
         return ThresholdFilter.filter(rescores, rankParams.getThreshold());
     }
 
+    public static double similarity(String t1, String t2, ModifiableRankParams rankParams) {
+        Ranker ranker = createRanker(rankParams);
+        return ranker.similarity(t1, t2);
+    }
+
+    // will return null if the similarity is below the threshold
+    public static Double matchSimilarity(String t1, String t2, ModifiableRankParams rankParams) {
+        Ranker ranker = createRanker(rankParams);
+        double similarity = ranker.similarity(t1, t2);
+        switch (rankParams.getThreshold().type) {
+            case MIN:
+                return (similarity > rankParams.getThreshold().value)? similarity : null;
+            case MAX:
+                return (similarity < rankParams.getThreshold().value)? similarity : null;
+        }
+        return null;
+    }
+
     private static Ranker createRanker(ModifiableRankParams params) {
         switch (params.getRankingModel()) {
             case JACCARD:

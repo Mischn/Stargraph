@@ -33,6 +33,7 @@ import net.stargraph.rank.Scores;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.lambda3.indra.client.RelatednessRequest;
 import org.lambda3.indra.client.RelatednessResponse;
+import org.lambda3.indra.client.ScoredTextPair;
 import org.lambda3.indra.client.TextPair;
 
 import javax.ws.rs.client.Client;
@@ -41,6 +42,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -53,6 +55,25 @@ public final class IndraRanker extends BaseRanker {
     public IndraRanker(ModifiableIndraParams params) {
         this.params = Objects.requireNonNull(params);
         client = ClientBuilder.newClient().register(JacksonFeature.class);
+    }
+
+    @Override
+    public double similarity(CharSequence t1, CharSequence t2) {
+        TextPair textPair = new TextPair(t1.toString(), t2.toString());
+
+        RelatednessRequest request = new RelatednessRequest()
+                .corpus(params.getCorpus())
+                .language(params.getLanguage())
+                .scoreFunction(params.getScoreFunction())
+                .model(params.getRankingModel().name())
+                .pairs(Arrays.asList(textPair));
+
+        WebTarget webTarget = client.target(params.getUrl());
+        RelatednessResponse response = webTarget.request()
+                .post(Entity.entity(request, MediaType.APPLICATION_JSON_TYPE), RelatednessResponse.class);
+
+        List<ScoredTextPair> scoredTextPairs = new ArrayList<>(response.getPairs());
+        return scoredTextPairs.get(0).score;
     }
 
     @Override

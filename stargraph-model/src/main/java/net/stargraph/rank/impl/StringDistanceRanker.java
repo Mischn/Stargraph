@@ -26,11 +26,14 @@ package net.stargraph.rank.impl;
  * ==========================License-End===============================
  */
 
-import net.stargraph.rank.Rankable;
-import net.stargraph.rank.Score;
-import net.stargraph.rank.Scores;
+import net.stargraph.rank.*;
 
 public abstract class StringDistanceRanker extends BaseRanker {
+
+    @Override
+    public double similarity(CharSequence t1, CharSequence t2) {
+        return computeStringDistance(t1, t2);
+    }
 
     @Override
     final Scores doScore(Scores inputScores, Rankable target) {
@@ -42,6 +45,7 @@ public abstract class StringDistanceRanker extends BaseRanker {
         });
 
         rescored.sort(true);
+
         return rescored;
     }
 

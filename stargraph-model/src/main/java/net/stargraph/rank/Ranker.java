@@ -28,6 +28,8 @@ package net.stargraph.rank;
 
 public interface Ranker {
 
+    double similarity(CharSequence t1, CharSequence t2);
+
     Scores score(Scores inputScores, Rankable target);
 
 }

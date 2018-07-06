@@ -29,12 +29,17 @@ package net.stargraph.rank;
 import net.stargraph.model.BuiltInModel;
 import net.stargraph.model.KBId;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public final class ModifiableSearchParams {
 
     private int limit;
     private String dbId;
     private String modelId;
     private String searchTerm;
+    private List<String> searchTerms;
     private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
@@ -46,6 +51,13 @@ public final class ModifiableSearchParams {
 
     public final ModifiableSearchParams term(String searchTerm) {
         this.searchTerm = searchTerm;
+        this.searchTerms = Arrays.asList(searchTerm);
+        return this;
+    }
+
+    public final ModifiableSearchParams terms(List<String> searchTerms) {
+        this.searchTerms = searchTerms;
+        this.searchTerm = searchTerms.stream().collect(Collectors.joining(" "));
         return this;
     }
 
@@ -84,6 +96,10 @@ public final class ModifiableSearchParams {
 
     public final String getSearchTerm() {
         return searchTerm;
+    }
+
+    public List<String> getSearchTerms() {
+        return searchTerms;
     }
 
     public boolean isLookup() {

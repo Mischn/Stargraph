@@ -26,19 +26,29 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
+import net.stargraph.IDGenerator;
+import net.stargraph.data.processor.Hashable;
 import net.stargraph.model.date.TimeRange;
+import net.stargraph.rank.Rankable;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a passage-extraction that can be digested by the StarGraph database.
  */
-public final class PassageExtraction {
+public final class PassageExtraction implements Rankable, Hashable {
+    private String id;
     private String relation;
     private List<String> namedEntities;
     private List<TimeRange> temporals;
 
     public PassageExtraction(String relation, List<String> namedEntities, List<TimeRange> temporals) {
+        this(IDGenerator.generateUUID(), relation, namedEntities, temporals);
+    }
+
+    public PassageExtraction(String id, String relation, List<String> namedEntities, List<TimeRange> temporals) {
+        this.id = id;
         this.relation = relation;
         this.namedEntities = namedEntities;
         this.temporals = temporals;
@@ -57,9 +67,33 @@ public final class PassageExtraction {
     }
 
     @Override
+    public String getValue() {
+        return relation;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PassageExtraction passageExtraction = (PassageExtraction) o;
+        return id.equals(passageExtraction.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
     public String toString() {
         return "PassageExtraction{" +
-                "relation='" + relation + '\'' +
+                "id='" + id + '\'' +
+                ", relation='" + relation + '\'' +
                 ", namedEntities=" + namedEntities +
                 ", temporals=" + temporals +
                 '}';

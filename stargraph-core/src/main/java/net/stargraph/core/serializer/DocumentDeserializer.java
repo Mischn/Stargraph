@@ -102,14 +102,15 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         List<PassageExtraction> passageExtractions = new ArrayList();
         if (node.has("passageExtractions")) {
             for (final JsonNode pass : node.get("passageExtractions")) {
+                String passId = pass.get("id").asText();
                 String passRelation = pass.get("relation").asText();
                 List<String> passNamedEntities = new ArrayList<>();
-                for (final JsonNode namedEntity : node.get("namedEntities")) {
+                for (final JsonNode namedEntity : pass.get("namedEntities")) {
                     passNamedEntities.add(namedEntity.asText());
                 }
                 List<TimeRange> passTemporals = deserializeTemporals(pass);
 
-                passageExtractions.add(new PassageExtraction(passRelation, passNamedEntities, passTemporals));
+                passageExtractions.add(new PassageExtraction(passId, passRelation, passNamedEntities, passTemporals));
             }
         }
 

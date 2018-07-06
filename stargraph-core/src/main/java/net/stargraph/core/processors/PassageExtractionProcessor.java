@@ -60,6 +60,25 @@ public final class PassageExtractionProcessor extends BaseProcessor {
         this.stargraph = Objects.requireNonNull(stargraph);
     }
 
+    public static PassageExtraction convert(Extraction extraction, NER ner) {
+        String relation = extraction.getRelation();
+        String concArgStr = extraction.getArguments().stream().collect(Collectors.joining(" ")).trim();
+
+        List<String> namedEntities = new ArrayList<>();
+        List<TimeRange> temporals = new ArrayList<>();
+        if (concArgStr.length() > 0) {
+            List<LinkedNamedEntity> lners = ner.searchWithoutLink(concArgStr);
+
+            namedEntities = lners.parallelStream()
+                    .filter(l -> !l.getCat().equals("DATE"))
+                    .map(l -> l.getValue()).collect(Collectors.toList());
+
+            temporals = TIME_PARSER.parse(concArgStr);
+        }
+
+        return new PassageExtraction(extraction.getId(), relation, namedEntities, temporals);
+    }
+
     @Override
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
@@ -68,25 +87,7 @@ public final class PassageExtractionProcessor extends BaseProcessor {
         if (entry instanceof Document) {
             Document document = (Document)entry;
 
-            List<PassageExtraction> passageExtractions = new ArrayList<>();
-
-            List<Extraction> extractions = SIMPLE_IE.extract(document.getText());
-
-            // convert extractions into passage-extractions
-            for (Extraction extraction : extractions) {
-                String relation = extraction.getRelation();
-                String concArgStr = extraction.getArguments().stream().collect(Collectors.joining(" "));
-
-                List<LinkedNamedEntity> lners = ner.searchAndLink(concArgStr);
-
-                List<String> namedEntities = lners.parallelStream()
-                        .map(LinkedNamedEntity::getValue).collect(Collectors.toList());
-
-                List<TimeRange> temporals = TIME_PARSER.parse(concArgStr);
-
-                passageExtractions.add(new PassageExtraction(relation, namedEntities, temporals));
-            }
-
+            List<PassageExtraction> passageExtractions = SIMPLE_IE.extract(document.getText()).stream().map(e -> convert(e, ner)).collect(Collectors.toList());
 
             holder.set(new Document(
                     document.getId(),

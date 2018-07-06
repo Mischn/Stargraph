@@ -28,6 +28,7 @@ package net.stargraph.model;
 
 import net.stargraph.IDGenerator;
 import net.stargraph.data.processor.Hashable;
+import net.stargraph.rank.Rankable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,7 @@ import java.util.Objects;
 /**
  * An OpenIE extraction.
  */
-public final class Extraction implements Hashable {
+public final class Extraction implements Rankable, Hashable {
     private String id;
     private String relation;
     private List<String> arguments;
@@ -55,10 +56,6 @@ public final class Extraction implements Hashable {
         this(IDGenerator.generateUUID(), relation, arguments);
     }
 
-    public String getId() {
-        return id;
-    }
-
     public String getRelation() {
         return relation;
     }
@@ -71,6 +68,16 @@ public final class Extraction implements Hashable {
 
     public List<String> getArguments() {
         return arguments;
+    }
+
+    @Override
+    public String getValue() {
+        return relation;
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 
     @Override

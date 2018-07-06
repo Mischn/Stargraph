@@ -51,8 +51,8 @@ public final class SPARQLQueryBuilder {
     private Namespace namespace;
     private int tmpVarCounter;
 
-    public SPARQLQueryBuilder(Stargraph stargraph, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
-        this.classURIs = stargraph.getClassRelations();
+    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
+        this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
         this.triplePatterns = Objects.requireNonNull(triplePatterns);
         this.bindings = Objects.requireNonNull(bindings);

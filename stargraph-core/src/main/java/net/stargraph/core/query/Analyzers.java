@@ -39,13 +39,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class Analyzers {
     private Stargraph stargraph;
+    private String dbId;
     private Rules rules;
     private Annotator annotator;
     private ConcurrentHashMap<Language, QuestionAnalyzer> questionAnalyzers;
 
-    public Analyzers(Stargraph stargraph) {
+    public Analyzers(Stargraph stargraph, String dbId) {
         Config config = stargraph.getMainConfig();
         this.stargraph = stargraph;
+        this.dbId = dbId;
         this.rules = new Rules(config);
         AnnotatorFactory factory = createAnnotatorFactory(config);
         this.annotator = factory.create();
@@ -53,7 +55,7 @@ public final class Analyzers {
     }
 
     public QuestionAnalyzer getQuestionAnalyzer(Language language) {
-        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, lang, annotator, rules));
+        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, dbId, lang, annotator, rules));
     }
 
     public static AnnotatorFactory createAnnotatorFactory(Config config) {

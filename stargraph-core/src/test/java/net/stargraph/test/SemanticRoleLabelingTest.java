@@ -26,7 +26,6 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
-import com.typesafe.config.ConfigFactory;
 import net.stargraph.core.Stargraph;
 import net.stargraph.query.Language;
 import net.stargraph.core.query.Analyzers;
@@ -45,7 +44,7 @@ public final class  SemanticRoleLabelingTest {
     @BeforeClass
     public void beforeClass() {
         Stargraph stargraph = new Stargraph();
-        Analyzers analyzers = new Analyzers(stargraph);
+        Analyzers analyzers = new Analyzers(stargraph, "dbpedia-2016");
         analyzer = analyzers.getQuestionAnalyzer(Language.EN);
     }
 

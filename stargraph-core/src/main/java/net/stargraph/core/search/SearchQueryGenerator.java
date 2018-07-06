@@ -58,9 +58,12 @@ public interface SearchQueryGenerator {
     // return properties whose hyponyms, hypernyms or synonyms match the searchTerm (why not including the value?)
     SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
 
+    // return documents whose text matches the searchTerm
+    SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits);
+
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
     SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
 
-    // return documents that are similar to the searchTerm, matching docTypes
-    SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams);
+    // return documents that are similar to the searchTerm
+    SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument);
 }

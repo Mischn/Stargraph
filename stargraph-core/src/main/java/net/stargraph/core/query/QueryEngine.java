@@ -31,6 +31,7 @@ import net.stargraph.core.KBCore;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.GraphSearcher;
+import net.stargraph.core.ner.NER;
 import net.stargraph.core.query.nli.*;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
@@ -64,16 +65,18 @@ public class QueryEngine {
     protected InteractionModeSelector modeSelector;
     protected Namespace namespace;
     protected Language language;
+    protected NER ner;
 
     public QueryEngine(String dbId, Stargraph stargraph) {
         this.dbId = Objects.requireNonNull(dbId);
         this.core = Objects.requireNonNull(stargraph.getKBCore(dbId));
-        this.analyzers = new Analyzers(stargraph);
+        this.analyzers = new Analyzers(stargraph, dbId);
         this.graphSearcher = core.getGraphSearcher();
         this.entitySearcher = stargraph.getEntitySearcher();
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
         this.modeSelector = new InteractionModeSelector(stargraph.getMainConfig(), language);
+        this.ner = core.getNER();
     }
 
     public QueryResponse query(String query) {
@@ -173,7 +176,7 @@ public class QueryEngine {
         Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
         Score coreEntityScore = coreEntityScores.get(0);
 
-        Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes);
+        Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes, null);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
@@ -221,10 +224,11 @@ public class QueryEngine {
         return new NoResponse(DEFINITION, userQuery);
     }
 
-    private QueryResponse likeThisQuery(String userQuery, Language language) {
+    public QueryResponse likeThisQuery(String userQuery, Language language) {
         List<String> docTypes = core.getDocTypes();
 
-        Scores entityScores = entitySearcher.likeThisInstanceSearch(dbId, docTypes, Arrays.asList(userQuery));
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery);
+        Scores entityScores = entitySearcher.likeThisInstanceSearch(searchParams, docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(LIKE_THIS, userQuery);
 

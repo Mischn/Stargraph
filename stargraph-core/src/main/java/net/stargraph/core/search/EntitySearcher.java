@@ -284,11 +284,14 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        // Re-Rank
-        if (rankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-        }
-        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+        //TODO activate?
+//        // Re-Rank
+//        if (rankParams instanceof ModifiableIndraParams) {
+//            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+//        }
+//        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+
+        return scores;
     }
 
     /**
@@ -302,17 +305,20 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS); //TODO fuzzy true or false?
+        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        // Re-Rank
-        if (rankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-        }
-        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+        //TODO activate?
+//        // Re-Rank
+//        if (rankParams instanceof ModifiableIndraParams) {
+//            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+//        }
+//        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+
+        return scores;
     }
 
 
@@ -338,6 +344,20 @@ public class EntitySearcher {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
         return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+    }
+
+    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+        KBCore core = stargraph.getKBCore(searchParams.getDbId());
+
+        searchParams.model(BuiltInModel.DOCUMENT);
+        SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
+        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS);
+        Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores;
     }
 
     /**
@@ -465,12 +485,12 @@ public class EntitySearcher {
         return result;
     }
 
-    public Scores similarDocumentSearch(String dbId, boolean entityDocument, List<String> docTypes, List<String> texts) {
-        KBCore core = stargraph.getKBCore(dbId);
+    public Scores similarDocumentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+        KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT);
+        searchParams.model(BuiltInModel.DOCUMENT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findSimilarDocuments(docTypes, entityDocument, texts, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.findSimilarDocuments(searchParams, docTypes, entityDocument);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -479,34 +499,39 @@ public class EntitySearcher {
         return scores;
     }
 
-    public Scores likeThisInstanceSearch(String dbId, List<String> docTypes, List<String> texts) {
-        Scores scores = similarDocumentSearch(dbId, true, docTypes, texts);
+    public Scores likeThisInstanceSearch(ModifiableSearchParams searchParams, List<String> docTypes) {
+        Scores scores = similarDocumentSearch(searchParams, docTypes, true);
 
         // now map documents back to their entities
-        Scores entitiyScores = new Scores();
+        Scores entityScores = new Scores();
         for (Score score : scores) {
             Document doc = (Document)score.getEntry();
 
-            InstanceEntity ent = getInstanceEntity(dbId, doc.getEntity());
+            InstanceEntity ent = getInstanceEntity(searchParams.getDbId(), doc.getEntity());
             if (ent != null) {
-                entitiyScores.add(new Score(ent, score.getValue()));
+                entityScores.add(new Score(ent, score.getValue()));
             }
         }
 
-        return entitiyScores;
+        return entityScores;
     }
 
-    public Scores similarInstanceSearch(String dbId, InstanceEntity entitiy, List<String> docTypes) {
+    public Scores similarInstanceSearch(String dbId, InstanceEntity entity, List<String> docTypes, Integer limit) {
 
         // Search for entity-documents
-        List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entitiy.getId(), docTypes);
+        List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entity.getId(), docTypes);
         if (entityDocs.size() == 0) {
-            logger.warn(marker, "Did not find any documents for entity {}", entitiy.getId());
+            logger.warn(marker, "Did not find any documents for entity {}", entity.getId());
             return new Scores();
         }
 
         List<String> texts = entityDocs.stream().map(d -> d.getText()).collect(Collectors.toList());
-        Scores scores = similarDocumentSearch(dbId, true, null, texts);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).terms(texts);
+        if (limit != null) {
+            searchParams.limit(limit);
+        }
+
+        Scores scores = similarDocumentSearch(searchParams, null, true);
 
         // now map documents back to their entities
         Scores entitiyScores = new Scores();

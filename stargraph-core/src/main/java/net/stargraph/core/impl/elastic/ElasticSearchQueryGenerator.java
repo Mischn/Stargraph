@@ -28,7 +28,6 @@ package net.stargraph.core.impl.elastic;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
@@ -84,23 +83,24 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
-        Namespace namespace = getNamespace();
-        QueryBuilder queryBuilder;
-        if (inSubject) {
-            queryBuilder = boolQuery()
-                    .must(nestedQuery("s",
-                            constantScoreQuery(termsQuery("s.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max))
-                    .must(nestedQuery("p",
-                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max));
-        } else {
-            queryBuilder = boolQuery()
-                    .must(nestedQuery("p",
-                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
-                    .must(nestedQuery("o",
-                            constantScoreQuery(termsQuery("o.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max));
-        }
-
-        return new ElasticQueryHolder(queryBuilder, searchParams);
+//        Namespace namespace = getNamespace();
+//        QueryBuilder queryBuilder;
+//        if (inSubject) {
+//            queryBuilder = boolQuery()
+//                    .must(nestedQuery("s",
+//                            constantScoreQuery(termsQuery("s.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max))
+//                    .must(nestedQuery("p",
+//                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max));
+//        } else {
+//            queryBuilder = boolQuery()
+//                    .must(nestedQuery("p",
+//                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
+//                    .must(nestedQuery("o",
+//                            constantScoreQuery(termsQuery("o.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max));
+//        }
+//
+//        return new ElasticQueryHolder(queryBuilder, searchParams);
+        throw new UnsupportedOperationException("Not implemented!");
     }
 
     @Override
@@ -139,6 +139,21 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits) {
+        BoolQueryBuilder queryBuilder = boolQuery();
+        if (docTypes != null) {
+            queryBuilder.must(termsQuery("type", docTypes));
+        }
+        if (entityDocument) {
+            queryBuilder.must(existsQuery("entity")).mustNot(termQuery("entity", "null"));
+        }
+        queryBuilder.should(fuzzyMatch(matchQuery("text", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .minimumNumberShouldMatch(1);
+
+        return new ElasticQueryHolder(queryBuilder, searchParams);
+    }
+
+    @Override
     // There is a clear performance-loss when both inSubject and inObject are enabled together.
     public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         Namespace namespace = getNamespace();
@@ -157,10 +172,9 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
-
+    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
         String[] fields = {"text"};
-        String[] txts = texts.toArray(new String[texts.size()]);
+        String[] txts = searchParams.getSearchTerms().toArray(new String[searchParams.getSearchTerms().size()]);
         MoreLikeThisQueryBuilder.Item[] items = null;
 
         BoolQueryBuilder queryBuilder = boolQuery();
@@ -171,9 +185,9 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
             queryBuilder.must(existsQuery("entity")).mustNot(termQuery("entity", "null"));
         }
         queryBuilder.should(moreLikeThisQuery(fields, txts, items)
-                        .minTermFreq(1)
-                        .maxQueryTerms(12)
-                        .minDocFreq(1))
+                .minTermFreq(1)
+                .maxQueryTerms(12)
+                .minDocFreq(1))
                 .minimumNumberShouldMatch(1);
 
 

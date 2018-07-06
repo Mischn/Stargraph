@@ -325,7 +325,13 @@ public final class Stargraph {
         return typeObj.keySet().stream().map(modelName -> KBId.of(dbId, modelName)).collect(Collectors.toList());
     }
 
-    public List<String> getClassRelations() {
+    public List<String> getClassRelations(String dbId) {
+        if (getKBConfig(dbId).hasPathOrNull("class-relations")) {
+            if (!getKBConfig(dbId).getIsNull("class-relations")) {
+                return getKBConfig(dbId).getStringList("class-relations");
+            }
+        }
+
         if (getMainConfig().hasPathOrNull("class-relations")) {
             if (getMainConfig().getIsNull("class-relations")) {
                 throw new StarGraphException("No class-relations configured.");

@@ -47,14 +47,16 @@ public final class QuestionAnalysis {
     private Marker marker = MarkerFactory.getMarker("nli");
 
     private Stargraph stargraph;
+    private String dbId;
     private QueryType queryType;
     private String question;
     private List<Word> annotatedWords;
     private Deque<AnalysisStep> steps;
     private SPARQLQueryBuilder sparqlQueryBuilder;
 
-    QuestionAnalysis(Stargraph stargraph, String question, QueryType queryType) {
+    QuestionAnalysis(Stargraph stargraph, String dbId, String question, QueryType queryType) {
         this.stargraph = stargraph;
+        this.dbId = dbId;
         this.question = Objects.requireNonNull(question);
         this.queryType = Objects.requireNonNull(queryType);
         this.steps = new ArrayDeque<>();
@@ -115,7 +117,7 @@ public final class QuestionAnalysis {
 
         logger.debug(marker, "Creating SPARQL Query Builder, matched plan for '{}' is '{}'", planId, plan);
 
-        sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, queryType, plan, bindings);
+        sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, dbId, queryType, plan, bindings);
     }
 
     public SPARQLQueryBuilder getSPARQLQueryBuilder() {

@@ -94,14 +94,21 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
     public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
         throw new UnsupportedOperationException("Not implemented");
     }
+
+
 
     private static Query boolQuery(String field, boolean value) {
         StringBuilder queryStr = new StringBuilder();

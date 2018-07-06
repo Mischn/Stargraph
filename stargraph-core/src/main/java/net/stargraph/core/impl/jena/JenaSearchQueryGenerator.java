@@ -45,7 +45,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     public JenaSearchQueryGenerator(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
-        this.classURIs = stargraph.getClassRelations();
+        this.classURIs = stargraph.getClassRelations(dbId);
     }
 
     @Override
@@ -98,6 +98,11 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
     public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
         Namespace namespace = getNamespace();
 
@@ -134,7 +139,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findSimilarDocuments(List<String> docTypes, boolean entityDocument, List<String> texts, ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

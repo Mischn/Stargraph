@@ -47,6 +47,7 @@ public final class QuestionAnalyzer {
     private Marker marker = MarkerFactory.getMarker("nli");
 
     private Stargraph stargraph;
+    private String dbId;
     private Language language;
     private Annotator annotator;
     private List<DataModelTypePattern> dataModelTypePatterns;
@@ -54,9 +55,10 @@ public final class QuestionAnalyzer {
     private List<Pattern> stopPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
 
-    public QuestionAnalyzer(Stargraph stargraph, Language language, Annotator annotator, Rules rules) {
+    public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, Annotator annotator, Rules rules) {
         logger.info(marker, "Creating analyzer for '{}'", language);
         this.stargraph = stargraph;
+        this.dbId = dbId;
         this.language = Objects.requireNonNull(language);
         this.annotator = Objects.requireNonNull(annotator);
         this.dataModelTypePatterns = rules.getDataModelTypeRules(language);
@@ -69,7 +71,7 @@ public final class QuestionAnalyzer {
         QuestionAnalysis analysis = null;
         try {
             long startTime = System.currentTimeMillis();
-            analysis = new QuestionAnalysis(stargraph, question, selectQueryType(question));
+            analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
             analysis.annotate(annotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelTypePatterns);
             analysis.clean(stopPatterns);

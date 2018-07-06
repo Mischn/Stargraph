@@ -26,21 +26,20 @@ package net.stargraph.model.date;
  * ==========================License-End===============================
  */
 
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * A Time-Interval.
  */
 public final class TimeRange {
-    private Date from;
-    private Date to;
+    private LocalDate from;
+    private LocalDate to;
 
     private TimeRange(long from, long to) {
-        this(new Date(from), new Date(to));
+        this(LocalDate.ofEpochDay(from), LocalDate.ofEpochDay(to));
     }
 
-    private TimeRange(Date from, Date to) {
+    private TimeRange(LocalDate from, LocalDate to) {
         this.from = from;
         this.to = to;
     }
@@ -49,45 +48,35 @@ public final class TimeRange {
         return new TimeRange(from, to);
     }
 
-    public static TimeRange fromTo(Date from, Date to) {
+    public static TimeRange fromTo(LocalDate from, LocalDate to) {
         return new TimeRange(from, to);
     }
 
-    public static TimeRange after(Date date) {
-        return new TimeRange(new Date(date.getTime()+1), new Date());
+    public static TimeRange after(LocalDate date) {
+        return new TimeRange(LocalDate.ofEpochDay(date.toEpochDay() + 1), LocalDate.now());
     }
 
-    public static TimeRange before(Date date) {
-        return new TimeRange(new Date(Long.MIN_VALUE), new Date(date.getTime()-1));
+    public static TimeRange before(LocalDate date) {
+        return new TimeRange(LocalDate.ofEpochDay(Long.MIN_VALUE), LocalDate.ofEpochDay(date.toEpochDay() -1));
     }
 
-    public Date getFrom() {
+    public LocalDate getFrom() {
         return from;
     }
 
-    public Date getTo() {
+    public LocalDate getTo() {
         return to;
     }
 
-    public boolean isInInterval(TimeRange interval) {
-        return (from.before(interval.from) || from.equals(interval.from)) && (to.after(interval.to) || to.equals(interval.to));
+    public boolean containsInterval(TimeRange interval) {
+        return (from.isBefore(interval.from) || from.isEqual(interval.from)) && (to.isAfter(interval.to) || to.isEqual(interval.to));
     }
 
     @Override
     public String toString() {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(from);
-        int fromYear = cal.get(Calendar.YEAR);
-        int fromMonth = cal.get(Calendar.MONTH)+1;
-        int fromDay = cal.get(Calendar.DATE);
-        cal.setTime(to);
-        int toYear = cal.get(Calendar.YEAR);
-        int toMonth = cal.get(Calendar.MONTH)+1;
-        int toDay = cal.get(Calendar.DATE);
-
         return "TimeRange{" +
-                "from=" + fromDay + "."+ fromMonth + "." + fromYear +
-                ", to=" + toDay + "."+ toMonth + "." + toYear +
+                "from=" + from +
+                ", to=" + to +
                 '}';
     }
 }

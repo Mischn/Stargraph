@@ -42,8 +42,8 @@ class TimeRangeSerializer extends AbstractSerializer<TimeRange> {
     @Override
     public void serialize(TimeRange value, JsonGenerator g, SerializerProvider provider) throws IOException {
         g.writeStartObject();
-        g.writeNumberField("from", value.getFrom().getTime());
-        g.writeNumberField("to", value.getTo().getTime());
+        g.writeNumberField("from", value.getFrom().toEpochDay());
+        g.writeNumberField("to", value.getTo().toEpochDay());
         g.writeEndObject();
     }
 }

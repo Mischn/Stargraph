@@ -26,10 +26,12 @@ package net.stargraph.core.query.response;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.query.FilterResult;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.rank.Score;
 
@@ -49,6 +51,8 @@ public final class AnswerSetResponse extends QueryResponse {
     private Score coreEntity;
     private QueryType sparqlQueryType;
     private List<String> docTypes;
+    private List<PassageExtraction> queryFilters;
+    private List<FilterResult> filterResults;
 
     private Map<DataModelBinding, List<Score>> mappings;
 
@@ -79,6 +83,14 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public void setDocTypes(List<String> docTypes) {
         this.docTypes = docTypes;
+    }
+
+    public void setQueryFilters(List<PassageExtraction> queryFilters) {
+        this.queryFilters = queryFilters;
+    }
+
+    public void setFilterResults(List<FilterResult> filterResults) {
+        this.filterResults = filterResults;
     }
 
     public void setMappings(Map<DataModelBinding, List<Score>> mappings) {
@@ -119,6 +131,14 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public String getSparqlQuery() {
         return sparqlQuery;
+    }
+
+    public List<PassageExtraction> getQueryFilters() {
+        return queryFilters;
+    }
+
+    public List<FilterResult> getFilterResults() {
+        return filterResults;
     }
 
     @Override

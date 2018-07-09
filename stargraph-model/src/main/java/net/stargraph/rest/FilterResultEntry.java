@@ -1,4 +1,4 @@
-package net.stargraph.model.date;
+package net.stargraph.rest;
 
 /*-
  * ==========================License-Start=============================
@@ -12,10 +12,10 @@ package net.stargraph.model.date;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,58 +26,46 @@ package net.stargraph.model.date;
  * ==========================License-End===============================
  */
 
-import java.io.Serializable;
-import java.time.LocalDate;
+import java.util.List;
 
-/**
- * A Time-Interval.
- */
-public final class TimeRange implements Serializable {
-    private LocalDate from;
-    private LocalDate to;
+public class FilterResultEntry {
+    public static class SingleFilterResult {
+        private String matchedRelation;
+        private List<String> matchedArguments;
 
-    private TimeRange(long from, long to) {
-        this(LocalDate.ofEpochDay(from), LocalDate.ofEpochDay(to));
+        public SingleFilterResult(String matchedRelation, List<String> matchedArguments) {
+            this.matchedRelation = matchedRelation;
+            this.matchedArguments = matchedArguments;
+        }
+
+        public String getMatchedRelation() {
+            return matchedRelation;
+        }
+
+        public List<String> getMatchedArguments() {
+            return matchedArguments;
+        }
     }
 
-    private TimeRange(LocalDate from, LocalDate to) {
-        this.from = from;
-        this.to = to;
+    private String docId;
+    private String entityId;
+    private List<SingleFilterResult> singleFilterResults;
+
+    public FilterResultEntry(String docId, String entityId, List<SingleFilterResult> singleFilterResults) {
+        this.docId = docId;
+        this.entityId = entityId;
+        this.singleFilterResults = singleFilterResults;
     }
 
-    public static TimeRange fromTo(long from, long to) {
-        return new TimeRange(from, to);
+    public List<SingleFilterResult> getSingleFilterResults() {
+        return singleFilterResults;
     }
 
-    public static TimeRange fromTo(LocalDate from, LocalDate to) {
-        return new TimeRange(from, to);
+    public String getDocId() {
+        return docId;
     }
 
-    public static TimeRange after(LocalDate date) {
-        return new TimeRange(LocalDate.ofEpochDay(date.toEpochDay() + 1), LocalDate.now());
-    }
-
-    public static TimeRange before(LocalDate date) {
-        return new TimeRange(LocalDate.ofEpochDay(Long.MIN_VALUE), LocalDate.ofEpochDay(date.toEpochDay() -1));
-    }
-
-    public LocalDate getFrom() {
-        return from;
-    }
-
-    public LocalDate getTo() {
-        return to;
-    }
-
-    public boolean containsInterval(TimeRange interval) {
-        return (from.isBefore(interval.from) || from.isEqual(interval.from)) && (to.isAfter(interval.to) || to.isEqual(interval.to));
-    }
-
-    @Override
-    public String toString() {
-        return "TimeRange{" +
-                "from=" + from +
-                ", to=" + to +
-                '}';
+    public String getEntityId() {
+        return entityId;
     }
 }

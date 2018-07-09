@@ -42,6 +42,8 @@ public final class AnswerSetUserResponse extends UserResponse {
     private String sparqlQuery;
     private EntityEntry coreEntity;
     private List<String> docTypes;
+    private List<FilterEntry> queryFilters;
+    private List<FilterResultEntry> filterResults;
 
     private Map<String, List<EntityEntry>> mappings;
 
@@ -73,6 +75,14 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.docTypes = docTypes;
     }
 
+    public void setQueryFilters(List<FilterEntry> queryFilters) {
+        this.queryFilters = queryFilters;
+    }
+
+    public void setFilterResults(List<FilterResultEntry> filterResults) {
+        this.filterResults = filterResults;
+    }
+
     public void setMappings(Map<String, List<EntityEntry>> mappings) {
         this.mappings = mappings;
     }
@@ -99,6 +109,14 @@ public final class AnswerSetUserResponse extends UserResponse {
 
     public List<String> getDocTypes() {
         return docTypes;
+    }
+
+    public List<FilterEntry> getQueryFilters() {
+        return queryFilters;
+    }
+
+    public List<FilterResultEntry> getFilterResults() {
+        return filterResults;
     }
 
     public Map<String, List<EntityEntry>> getMappings() {

@@ -37,9 +37,8 @@ import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.Document;
-import net.stargraph.model.InstanceEntity;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.*;
+import net.stargraph.model.date.TimeRange;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
@@ -99,6 +98,9 @@ public class QueryEngine {
                     break;
                 case LIKE_THIS:
                     response = likeThisQuery(query, language);
+                    break;
+                case FILTER:
+                    response = filterQuery(query, language);
                     break;
                 case DEFINITION:
                     response = definitionQuery(query, language);
@@ -239,6 +241,154 @@ public class QueryEngine {
         }
 
         return new NoResponse(LIKE_THIS, userQuery);
+    }
+
+    private double determineScore(FilterResult filterResult) {
+        double maxScore = 0;
+        double score = 0;
+
+        for (FilterResult.SingleFilterResult sfr : filterResult.getSingleFilterResults()) {
+
+            // relation
+            maxScore += 1;
+            score += (sfr.isMatchedRelation()) ? 1 * sfr.getMatchedRelation().getValue() : 0;
+
+            // terms
+            maxScore += sfr.getFilter().getTerms().size();
+            for (Score s : sfr.getMatchedTerms()) {
+                if (s != null) {
+                    score += s.getValue();
+                }
+            }
+
+            // temporals
+            maxScore += sfr.getFilter().getTemporals().size();
+            for (Score s : sfr.getMatchedTemporals()) {
+                if (s != null) {
+                    score += s.getValue();
+                }
+            }
+        }
+
+        return (maxScore == 0)? 0 : (score / maxScore);
+    }
+
+    private Score rerankDocuments(Score documentScore, List<PassageExtraction> queryFilters, ModifiableRankParams relationRankParams, ModifiableRankParams termRankParams, List<FilterResult> filterResults) {
+        Document document = (Document) documentScore.getEntry();
+
+        logger.debug(marker, "Re-Rank document {} with respect to filters", document.getId());
+
+        FilterResult filterResult = new FilterResult(queryFilters, document.getId(), document.getEntity());
+        for (FilterResult.SingleFilterResult sfr : filterResult.getSingleFilterResults()) {
+            PassageExtraction f = sfr.getFilter();
+
+            logger.debug(marker, "Check query passage-extraction: {}", f);
+
+            // rank document's extractions to the target extraction
+            Scores passageExScores = new Scores(document.getPassageExtractions().stream().map(pe -> new Score(pe, 0)).collect(Collectors.toList()));
+            Scores ranked = Rankers.apply(passageExScores, relationRankParams, f);
+
+            if (ranked.size() > 0) {
+                // matched relation
+                PassageExtraction matchedEx = (PassageExtraction) ranked.get(0).getEntry();
+                sfr.setMatchedRelation(matchedEx.getRelation(), ranked.get(0).getValue());
+
+                for (int idx = 0; idx < f.getTerms().size(); idx++) {
+                    String termFilter = f.getTerms().get(idx);
+                    for (String term : matchedEx.getTerms()) {
+                        Double sim = Rankers.matchSimilarity(termFilter.trim().toLowerCase(), term.trim().toLowerCase(), termRankParams);
+                        if (sim != null) {
+                            // matched (relation &) term
+                            sfr.addMatchedTerm(idx, term, sim);
+                            break;
+                        }
+                    }
+                }
+
+                for (int idx = 0; idx < f.getTemporals().size(); idx++) {
+                    TimeRange temporalFilter = f.getTemporals().get(idx);
+                    for (TimeRange temporal : matchedEx.getTemporals()) {
+                        if (temporalFilter.containsInterval(temporal)) {
+                            // matched (relation &) temporal
+                            sfr.addMatchedTemporal(idx, temporal, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            logger.debug(marker, sfr.toString());
+        }
+
+        filterResults.add(filterResult);
+
+        return new Score(document, determineScore(filterResult));
+    }
+
+    public QueryResponse filterQuery(String userQuery, Language language) {
+        final int LIMIT = 100;
+        List<String> docTypes = core.getDocTypes();
+
+        FilterQueryBuilder queryBuilder = new FilterQueryBuilder(ner);
+        FilterQuery filterQuery = queryBuilder.parse(userQuery, FILTER);
+
+        List<PassageExtraction> queryFilters = filterQuery.getExtractionFilters();
+        queryFilters.forEach(ef -> {
+            logger.info(marker, "Extraction-Filter: {}", ef);
+        });
+
+        List<String> searchTerms = new ArrayList<>();
+        for (PassageExtraction extractionFilter : queryFilters) {
+            searchTerms.add(extractionFilter.getRelation());
+            searchTerms.addAll(extractionFilter.getTerms());
+        }
+
+        Scores documentScores;
+        if (searchTerms.size() > 0) {
+            // load documents (& LIMIT)
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).terms(searchTerms).limit(LIMIT);
+            documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true));
+        } else {
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery).limit(LIMIT);
+            documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, docTypes, true));
+        }
+
+        // re-rank
+        ModifiableRankParams relationRankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.2));
+        if (relationRankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) relationRankParams);
+        }
+        ModifiableRankParams termRankParams = ParamsBuilder.levenshtein().threshold(Threshold.max(3));
+        if (termRankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) termRankParams);
+        }
+        List<FilterResult> filterResults = new ArrayList<>();
+        documentScores = new Scores(documentScores.stream().map(s -> rerankDocuments(s, queryFilters, relationRankParams, termRankParams, filterResults)).collect(Collectors.toList()));
+        documentScores.sort(true);
+
+        // now map documents back to their entities
+        Scores entityScores = new Scores();
+        for (Score score : documentScores) {
+            Document doc = (Document)score.getEntry();
+
+            InstanceEntity ent = entitySearcher.getInstanceEntity(dbId, doc.getEntity());
+            if (ent != null) {
+                entityScores.add(new Score(ent, score.getValue()));
+            }
+        }
+
+        if (!entityScores.isEmpty()) {
+            AnswerSetResponse answerSet = new AnswerSetResponse(FILTER, userQuery);
+
+            answerSet.setEntityAnswers(entityScores);
+            answerSet.setDocTypes(docTypes);
+            answerSet.setQueryFilters(queryFilters);
+            answerSet.setFilterResults(filterResults);
+
+            return answerSet;
+        }
+
+        return new NoResponse(FILTER, userQuery);
     }
 
     public QueryResponse clueQuery(String userQuery, Language language) {

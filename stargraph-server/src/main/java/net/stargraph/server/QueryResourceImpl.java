@@ -28,11 +28,15 @@ package net.stargraph.server;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.query.FilterResult;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
+import net.stargraph.model.PassageExtraction;
+import net.stargraph.model.date.TimeRange;
 import net.stargraph.query.ExtQueryEngine;
+import net.stargraph.rank.Score;
 import net.stargraph.rest.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +112,14 @@ public final class QueryResourceImpl implements QueryResource {
             }
             response.setDocTypes(answerSet.getDocTypes());
 
+            if (answerSet.getQueryFilters() != null) {
+                response.setQueryFilters(createQueryFilters(answerSet.getQueryFilters()));
+            }
+
+            if (answerSet.getFilterResults() != null) {
+                response.setFilterResults(createFilterResults(answerSet.getFilterResults()));
+            }
+
             if (answerSet.getMappings() != null) {
                 final Map<String, List<EntityEntry>> mappings = new HashMap<>();
                 answerSet.getMappings().forEach((modelBinding, scoreList) -> {
@@ -135,5 +147,54 @@ public final class QueryResourceImpl implements QueryResource {
         }
 
         throw new UnsupportedOperationException("Can't create REST response");
+    }
+
+
+
+    private static List<FilterEntry> createQueryFilters(List<PassageExtraction> queryFilters) {
+        List<FilterEntry> res = new ArrayList<>();
+        for (PassageExtraction queryFilter : queryFilters) {
+            String rel = queryFilter.getRelation();
+            List<String> args = new ArrayList<>();
+            for (String s : queryFilter.getTerms()) {
+                args.add(s);
+            }
+            for (TimeRange tr : queryFilter.getTemporals()) {
+                args.add(tr.toString());
+            }
+            res.add(new FilterEntry(rel, args));
+        }
+
+        return res;
+    }
+
+    private static List<FilterResultEntry> createFilterResults(List<FilterResult> filterResults) {
+        List<FilterResultEntry> res = new ArrayList<>();
+        for (FilterResult filterResult : filterResults) {
+
+            List<FilterResultEntry.SingleFilterResult> sfrs = new ArrayList<>();
+            for (FilterResult.SingleFilterResult singleFilterResult : filterResult.getSingleFilterResults()) {
+
+                String matchedRel = singleFilterResult.isMatchedRelation()? singleFilterResult.getMatchedRelation().getEntry().toString() : null;
+
+                List<String> matchedArgs = new ArrayList<>();
+                for (Score score : singleFilterResult.getMatchedTerms()) {
+                    matchedArgs.add((score != null)? score.getEntry().toString() : null);
+                }
+                for (Score score : singleFilterResult.getMatchedTemporals()) {
+                    matchedArgs.add((score != null)? score.getEntry().toString() : null);
+                }
+
+                sfrs.add(new FilterResultEntry.SingleFilterResult(
+                        matchedRel,
+                        matchedArgs
+                ));
+            }
+
+            FilterResultEntry fre = new FilterResultEntry(filterResult.getDocId(), filterResult.getEntityId(), sfrs);
+            res.add(fre);
+        }
+
+        return res;
     }
 }

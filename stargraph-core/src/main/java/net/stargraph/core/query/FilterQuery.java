@@ -1,8 +1,8 @@
-package net.stargraph.model.date;
+package net.stargraph.core.query;
 
 /*-
  * ==========================License-Start=============================
- * stargraph-model
+ * stargraph-core
  * --------------------------------------------------------------------
  * Copyright (C) 2017 Lambda^3
  * --------------------------------------------------------------------
@@ -12,10 +12,10 @@ package net.stargraph.model.date;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,58 +26,26 @@ package net.stargraph.model.date;
  * ==========================License-End===============================
  */
 
-import java.io.Serializable;
-import java.time.LocalDate;
+import net.stargraph.model.PassageExtraction;
 
-/**
- * A Time-Interval.
- */
-public final class TimeRange implements Serializable {
-    private LocalDate from;
-    private LocalDate to;
+import java.util.List;
 
-    private TimeRange(long from, long to) {
-        this(LocalDate.ofEpochDay(from), LocalDate.ofEpochDay(to));
+public class FilterQuery {
+
+    private List<PassageExtraction> extractionFilters;
+
+    public FilterQuery(List<PassageExtraction> extractionFilters) {
+        this.extractionFilters = extractionFilters;
     }
 
-    private TimeRange(LocalDate from, LocalDate to) {
-        this.from = from;
-        this.to = to;
-    }
-
-    public static TimeRange fromTo(long from, long to) {
-        return new TimeRange(from, to);
-    }
-
-    public static TimeRange fromTo(LocalDate from, LocalDate to) {
-        return new TimeRange(from, to);
-    }
-
-    public static TimeRange after(LocalDate date) {
-        return new TimeRange(LocalDate.ofEpochDay(date.toEpochDay() + 1), LocalDate.now());
-    }
-
-    public static TimeRange before(LocalDate date) {
-        return new TimeRange(LocalDate.ofEpochDay(Long.MIN_VALUE), LocalDate.ofEpochDay(date.toEpochDay() -1));
-    }
-
-    public LocalDate getFrom() {
-        return from;
-    }
-
-    public LocalDate getTo() {
-        return to;
-    }
-
-    public boolean containsInterval(TimeRange interval) {
-        return (from.isBefore(interval.from) || from.isEqual(interval.from)) && (to.isAfter(interval.to) || to.isEqual(interval.to));
+    public List<PassageExtraction> getExtractionFilters() {
+        return extractionFilters;
     }
 
     @Override
     public String toString() {
-        return "TimeRange{" +
-                "from=" + from +
-                ", to=" + to +
+        return "FilterQuery{" +
+                ", extractionFilters=" + extractionFilters +
                 '}';
     }
 }

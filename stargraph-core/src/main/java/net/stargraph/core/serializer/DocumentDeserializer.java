@@ -70,10 +70,10 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         String id = node.get("id").asText();
         String relation = node.get("relation").asText();
 
-        List<String> namedEntities = new ArrayList<>();
-        if (node.has("namedEntities")) {
-            for (final JsonNode nent : node.get("namedEntities")) {
-                namedEntities.add(nent.asText());
+        List<String> terms = new ArrayList<>();
+        if (node.has("terms")) {
+            for (final JsonNode term : node.get("terms")) {
+                terms.add(term.asText());
             }
         }
 
@@ -84,7 +84,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
-        return new PassageExtraction(id, relation, namedEntities, temporals);
+        return new PassageExtraction(id, relation, terms, temporals);
     }
 
     private static Extraction deserializeExtraction(JsonNode node) {

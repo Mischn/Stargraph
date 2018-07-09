@@ -60,7 +60,9 @@ public final class InteractionModeSelector {
                 //mode = InteractionMode.SA_SPARQL; //TODO re-activate?
             }
         } else {
-            if (isEntitySimilarityQuery(queryString)) {
+            if (isFilterQuery(queryString)) {
+                mode = InteractionMode.FILTER;
+            } else if (isEntitySimilarityQuery(queryString)) {
                 mode = InteractionMode.ENTITY_SIMILARITY;
             } else if (queryString.contains("http:")) {
                 mode = InteractionMode.SIMPLE_SPARQL;
@@ -76,6 +78,11 @@ public final class InteractionModeSelector {
         //TODO: other types will require configurable rules per language.
 
         return mode;
+    }
+
+    private boolean isFilterQuery(String queryString) {
+        String q = queryString.trim().toLowerCase();
+        return q.matches("^.* all objects .*$");
     }
 
     private boolean isEntitySimilarityQuery(String queryString){

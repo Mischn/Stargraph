@@ -37,20 +37,20 @@ import java.util.Objects;
 /**
  * Represents a passage-extraction that can be digested by the StarGraph database.
  */
-public final class PassageExtraction implements Rankable, Hashable {
+public class PassageExtraction implements Rankable, Hashable {
     private String id;
     private String relation;
-    private List<String> namedEntities;
+    private List<String> terms; // might be (linked) named entities
     private List<TimeRange> temporals;
 
-    public PassageExtraction(String relation, List<String> namedEntities, List<TimeRange> temporals) {
-        this(IDGenerator.generateUUID(), relation, namedEntities, temporals);
+    public PassageExtraction(String relation, List<String> terms, List<TimeRange> temporals) {
+        this(IDGenerator.generateUUID(), relation, terms, temporals);
     }
 
-    public PassageExtraction(String id, String relation, List<String> namedEntities, List<TimeRange> temporals) {
+    public PassageExtraction(String id, String relation, List<String> terms, List<TimeRange> temporals) {
         this.id = id;
         this.relation = relation;
-        this.namedEntities = namedEntities;
+        this.terms = terms;
         this.temporals = temporals;
     }
 
@@ -58,12 +58,16 @@ public final class PassageExtraction implements Rankable, Hashable {
         return relation;
     }
 
-    public List<String> getNamedEntities() {
-        return namedEntities;
+    public List<String> getTerms() {
+        return terms;
     }
 
     public List<TimeRange> getTemporals() {
         return temporals;
+    }
+
+    public boolean hasArguments() {
+        return terms.size() > 0 || temporals.size() > 0;
     }
 
     @Override
@@ -94,7 +98,7 @@ public final class PassageExtraction implements Rankable, Hashable {
         return "PassageExtraction{" +
                 "id='" + id + '\'' +
                 ", relation='" + relation + '\'' +
-                ", namedEntities=" + namedEntities +
+                ", terms=" + terms +
                 ", temporals=" + temporals +
                 '}';
     }

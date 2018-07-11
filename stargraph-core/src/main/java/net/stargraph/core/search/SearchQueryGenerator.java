@@ -50,20 +50,20 @@ public interface SearchQueryGenerator {
     SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
 
     // return resource entities whose value or otherValues match the searchTerm
-    SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+    SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and);
 
     // return class resource entities whose value or otherValues match the searchTerm
-    SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+    SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and);
 
     // return properties whose hyponyms, hypernyms or synonyms match the searchTerm (why not including the value?)
-    SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits);
+    SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and);
 
     // return documents whose text matches the searchTerm
-    SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits);
-
-    // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
-    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
+    SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean and);
 
     // return documents that are similar to the searchTerm
     SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument);
+
+    // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
+    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
 }

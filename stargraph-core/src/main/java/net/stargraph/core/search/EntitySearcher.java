@@ -278,7 +278,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -305,7 +305,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -333,7 +333,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.PROPERTY);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, false, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, false, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -346,12 +346,12 @@ public class EntitySearcher {
         return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
     }
 
-    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean and) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.DOCUMENT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS);
+        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS, and);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -526,7 +526,7 @@ public class EntitySearcher {
         }
 
         List<String> texts = entityDocs.stream().map(d -> d.getText()).collect(Collectors.toList());
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).terms(texts);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).phrases(texts);
         if (limit != null) {
             searchParams.limit(limit);
         }

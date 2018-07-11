@@ -39,7 +39,7 @@ public final class ModifiableSearchParams {
     private String dbId;
     private String modelId;
     private String searchTerm;
-    private List<String> searchTerms;
+    private List<String> phrases;
     private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
@@ -51,13 +51,13 @@ public final class ModifiableSearchParams {
 
     public final ModifiableSearchParams term(String searchTerm) {
         this.searchTerm = searchTerm;
-        this.searchTerms = Arrays.asList(searchTerm);
+        this.phrases = null;
         return this;
     }
 
-    public final ModifiableSearchParams terms(List<String> searchTerms) {
-        this.searchTerms = searchTerms;
-        this.searchTerm = searchTerms.stream().collect(Collectors.joining(" "));
+    public final ModifiableSearchParams phrases(List<String> phrases) {
+        this.phrases = phrases;
+        this.searchTerm = phrases.stream().collect(Collectors.joining(" "));
         return this;
     }
 
@@ -98,8 +98,12 @@ public final class ModifiableSearchParams {
         return searchTerm;
     }
 
-    public List<String> getSearchTerms() {
-        return searchTerms;
+    public List<String> getPhrases() {
+        return phrases;
+    }
+
+    public boolean hasPhrases() {
+        return phrases != null;
     }
 
     public boolean isLookup() {

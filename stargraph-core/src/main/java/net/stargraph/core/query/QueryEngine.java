@@ -339,15 +339,15 @@ public class QueryEngine {
 
         List<String> searchTerms = new ArrayList<>();
         for (PassageExtraction extractionFilter : queryFilters) {
-            searchTerms.add(extractionFilter.getRelation());
             searchTerms.addAll(extractionFilter.getTerms());
         }
+        logger.debug(marker, "Search-terms: {}", searchTerms);
 
         Scores documentScores;
         if (searchTerms.size() > 0) {
             // load documents (& LIMIT)
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).terms(searchTerms).limit(LIMIT);
-            documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true));
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrases(searchTerms).limit(LIMIT);
+            documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true, false));
         } else {
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery).limit(LIMIT);
             documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, docTypes, true));

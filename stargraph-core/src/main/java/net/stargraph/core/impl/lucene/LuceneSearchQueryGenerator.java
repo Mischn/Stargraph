@@ -64,12 +64,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
-        //Query query = new FuzzyQuery(new Term("value", searchParams.getSearchTerm()), maxEdits, 0, 50, false); // This does not take into account multiple words of the search term
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
+        //Query query = new FuzzyQuery(new Term("value", searchParams.getSearchTerm()), maxEdits, 0, 50, false); // Problem: This does not take into account multiple words of the search term
 
         BooleanQuery query = new BooleanQuery.Builder()
-                .add(fuzzyMatch("value", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
-                .add(fuzzyMatch("otherValues", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
+                .add(myMatch("value", searchParams, fuzzy, maxEdits, and), BooleanClause.Occur.SHOULD)
+                .add(myMatch("otherValues", searchParams, fuzzy, maxEdits, and), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
                 .build();
 
@@ -77,11 +77,11 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
         BooleanQuery query = new BooleanQuery.Builder()
                 .add(boolQuery("isClass", true), BooleanClause.Occur.MUST)
-                .add(fuzzyMatch("value", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
-                .add(fuzzyMatch("otherValues", searchParams.getSearchTerm(), fuzzy, maxEdits), BooleanClause.Occur.SHOULD)
+                .add(myMatch("value", searchParams, fuzzy, maxEdits, and), BooleanClause.Occur.SHOULD)
+                .add(myMatch("otherValues", searchParams, fuzzy, maxEdits, and), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
                 .build();
 
@@ -89,12 +89,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean and) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -121,27 +121,47 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         }
     }
 
-    private static Query matchQuery(String field, String searchTerm) {
-        StringBuilder queryStr = new StringBuilder();
-        queryStr.append(field).append(":(").append(searchTerm.trim()).append(")");
 
-        try {
-            return new ComplexPhraseQueryParser(field, new StandardAnalyzer()).parse(queryStr.toString());
-        } catch (ParseException e) {
-            throw new StarGraphException(e);
+
+
+
+
+    private Query myMatch(String field, ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
+        if (searchParams.hasPhrases()) {
+            BooleanQuery.Builder boolQueryBuilder = new BooleanQuery.Builder();
+            for (Query b : phraseMatch(field, searchParams.getPhrases(), fuzzy, maxEdits)) {
+                if (and) {
+                    boolQueryBuilder.add(b, BooleanClause.Occur.MUST);
+                } else {
+                    boolQueryBuilder.add(b, BooleanClause.Occur.SHOULD);
+                }
+            }
+            if (!and) {
+                boolQueryBuilder.setMinimumNumberShouldMatch(1);
+            }
+            return boolQueryBuilder.build();
+        } else {
+            return termsMatch(field, searchParams.getSearchTerm(), fuzzy, maxEdits, and);
         }
     }
 
-    private static Query fuzzyMatchQuery(String field, String searchTerm, int maxEdits) {
+    private static Query termsMatch(String field, String searchTerm, boolean fuzzy, int maxEdits, boolean and) {
         StringBuilder queryStr = new StringBuilder();
         queryStr.append(field).append(":(");
 
         String words[] = searchTerm.split("\\s+");
         for (int i = 0; i < words.length; i++) {
             if (i > 0) {
-                queryStr.append(" AND ");
+                if (and) {
+                    queryStr.append(" AND ");
+                } else {
+                    queryStr.append(" OR ");
+                }
             }
-            queryStr.append(ComplexPhraseQueryParser.escape(words[i])).append("~").append(maxEdits);
+            queryStr.append(ComplexPhraseQueryParser.escape(words[i]));
+            if (fuzzy) {
+                queryStr.append("~").append(maxEdits);
+            }
         }
         queryStr.append(")");
 
@@ -152,11 +172,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
         }
     }
 
-    private static Query fuzzyMatch(String field, String searchTerm, boolean fuzzy, int maxEdits) {
-        if (fuzzy) {
-            return fuzzyMatchQuery(field, searchTerm, maxEdits);
-        } else {
-            return matchQuery(field, searchTerm);
+    // this is not really a phrase query since the order of the terms in a phrase is not considered, but ES' MatchPhraseQuery does not support fuzziness.
+    private static List<Query> phraseMatch(String field, List<String> phrases, boolean fuzzy, int maxEdits) {
+        List<Query> res = new ArrayList<>();
+        for (String phrase : phrases) {
+            res.add(termsMatch(field, phrase, fuzzy, maxEdits, true));
         }
+        return res;
     }
 }

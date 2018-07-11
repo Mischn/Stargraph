@@ -35,10 +35,12 @@ import net.stargraph.rank.ModifiableSearchParams;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 
 public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
 
@@ -83,63 +85,46 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
 
     @Override
     public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
-//        Namespace namespace = getNamespace();
-//        QueryBuilder queryBuilder;
-//        if (inSubject) {
-//            queryBuilder = boolQuery()
-//                    .must(nestedQuery("s",
-//                            constantScoreQuery(termsQuery("s.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max))
-//                    .must(nestedQuery("p",
-//                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max));
-//        } else {
-//            queryBuilder = boolQuery()
-//                    .must(nestedQuery("p",
-//                            termQuery("p.id", FactClassifierProcessor.CLASS_RELATION_STR), ScoreMode.Max))
-//                    .must(nestedQuery("o",
-//                            constantScoreQuery(termsQuery("o.id", idList.stream().map(namespace::shrinkURI).collect(Collectors.toList()))), ScoreMode.Max));
-//        }
-//
-//        return new ElasticQueryHolder(queryBuilder, searchParams);
         throw new UnsupportedOperationException("Not implemented!");
     }
 
     @Override
-    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
         QueryBuilder queryBuilder = boolQuery()
-                .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
-                .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .should(myMatch("value", searchParams, fuzzy, maxEdits, and))
+                .should(myMatch("otherValues", searchParams, fuzzy, maxEdits, and))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
         QueryBuilder queryBuilder = boolQuery()
                 .must(termQuery("isClass", true))
-                .should(fuzzyMatch(matchQuery("value", searchParams.getSearchTerm()), fuzzy, maxEdits))
-                .should(fuzzyMatch(matchQuery("otherValues", searchParams.getSearchTerm()), fuzzy, maxEdits))
+                .should(myMatch("value", searchParams, fuzzy, maxEdits, and))
+                .should(myMatch("otherValues", searchParams, fuzzy, maxEdits, and))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
         QueryBuilder queryBuilder = boolQuery()
                 .should(nestedQuery("hyponyms",
-                        fuzzyMatch(matchQuery("hyponyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
+                        myMatch("hyponyms.word", searchParams, fuzzy, maxEdits, and), ScoreMode.Max))
                 .should(nestedQuery("hypernyms",
-                        fuzzyMatch(matchQuery("hypernyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
+                        myMatch("hypernyms.word", searchParams, fuzzy, maxEdits, and), ScoreMode.Max))
                 .should(nestedQuery("synonyms",
-                        fuzzyMatch(matchQuery("synonyms.word", searchParams.getSearchTerm()), fuzzy, maxEdits), ScoreMode.Max))
+                        myMatch("synonyms.word", searchParams, fuzzy, maxEdits, and), ScoreMode.Max))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits) {
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean and) {
         BoolQueryBuilder queryBuilder = boolQuery();
         if (docTypes != null) {
             queryBuilder.must(termsQuery("type", docTypes));
@@ -147,7 +132,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
         if (entityDocument) {
             queryBuilder.must(existsQuery("entity")).mustNot(termQuery("entity", "null"));
         }
-        queryBuilder.should(fuzzyMatch(matchQuery("text", searchParams.getSearchTerm()), fuzzy, maxEdits))
+        queryBuilder.should(myMatch("text", searchParams, fuzzy, maxEdits, and))
                 .minimumNumberShouldMatch(1);
 
         return new ElasticQueryHolder(queryBuilder, searchParams);
@@ -174,7 +159,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     @Override
     public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
         String[] fields = {"text"};
-        String[] txts = searchParams.getSearchTerms().toArray(new String[searchParams.getSearchTerms().size()]);
+        String[] txts = (searchParams.hasPhrases())? searchParams.getPhrases().toArray(new String[searchParams.getPhrases().size()]) : new String[]{ searchParams.getSearchTerm() };
         MoreLikeThisQueryBuilder.Item[] items = null;
 
         BoolQueryBuilder queryBuilder = boolQuery();
@@ -194,11 +179,43 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
         return new ElasticQueryHolder(queryBuilder, searchParams);
     }
 
-    private static MatchQueryBuilder fuzzyMatch(MatchQueryBuilder matchQueryBuilder, boolean fuzzy, int maxEdits) {
-        if (fuzzy) {
-            return matchQueryBuilder.fuzziness(maxEdits).fuzzyTranspositions(false).operator(Operator.AND);
+
+
+
+    private QueryBuilder myMatch(String field, ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and) {
+        if (searchParams.hasPhrases()) {
+            BoolQueryBuilder boolQueryBuilder = boolQuery();
+            for (MatchQueryBuilder b : phraseMatch(field, searchParams.getPhrases(), fuzzy, maxEdits)) {
+                if (and) {
+                    boolQueryBuilder.must(b);
+                } else {
+                    boolQueryBuilder.should(b);
+                }
+            }
+            if (!and) {
+                boolQueryBuilder.minimumNumberShouldMatch(1);
+            }
+            return boolQueryBuilder;
         } else {
-            return matchQueryBuilder;
+            return termsMatch(field, searchParams.getSearchTerm(), fuzzy, maxEdits, and);
         }
+    }
+
+    private static MatchQueryBuilder termsMatch(String field, String searchTerms, boolean fuzzy, int maxEdits, boolean and) {
+        MatchQueryBuilder queryBuilder = matchQuery(field, searchTerms);
+        if (fuzzy) {
+            queryBuilder.fuzziness(maxEdits).fuzzyTranspositions(false);
+        }
+        queryBuilder.operator((and) ? Operator.AND : Operator.OR);
+        return queryBuilder;
+    }
+
+    // this is not really a phrase query since the order of the terms in a phrase is not considered, but ES' MatchPhraseQuery does not support fuzziness.
+    private static List<MatchQueryBuilder> phraseMatch(String field, List<String> phrases, boolean fuzzy, int maxEdits) {
+        List<MatchQueryBuilder> res = new ArrayList<>();
+        for (String phrase : phrases) {
+            res.add(termsMatch(field, phrase, fuzzy, maxEdits, true));
+        }
+        return res;
     }
 }

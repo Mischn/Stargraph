@@ -322,11 +322,15 @@ public class QueryEngine {
 
         filterResults.add(filterResult);
 
-        return new Score(document, determineScore(filterResult));
+        // calculate final score (take into account the old document score, a small factor is sufficient to have at least some ranking even if no filters match)
+        final double oldScoreFactor = 0.1;
+        double finalScore = (oldScoreFactor * documentScore.getValue()) + ((1. - oldScoreFactor) * determineScore(filterResult));
+
+        return new Score(document, finalScore);
     }
 
     public QueryResponse filterQuery(String userQuery, Language language) {
-        final int LIMIT = 100;
+        final int LIMIT = 50;
         List<String> docTypes = core.getDocTypes();
 
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(ner);
@@ -339,17 +343,23 @@ public class QueryEngine {
 
         List<String> searchTerms = new ArrayList<>();
         for (PassageExtraction extractionFilter : queryFilters) {
+            searchTerms.add(extractionFilter.getRelation());
             searchTerms.addAll(extractionFilter.getTerms());
+            for (TimeRange timeRange : extractionFilter.getTemporals()) {
+                searchTerms.add(String.valueOf(timeRange.getFrom().getYear()));
+                if (timeRange.getFrom().getYear() != timeRange.getTo().getYear()) {
+                    searchTerms.add(String.valueOf(timeRange.getTo().getYear()));
+                }
+            }
         }
         logger.debug(marker, "Search-terms: {}", searchTerms);
 
         Scores documentScores;
         if (searchTerms.size() > 0) {
-            // load documents (& LIMIT)
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrases(searchTerms).limit(LIMIT);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrases(searchTerms);
             documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true, false));
         } else {
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery).limit(LIMIT);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery);
             documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, docTypes, true));
         }
 
@@ -365,6 +375,9 @@ public class QueryEngine {
         List<FilterResult> filterResults = new ArrayList<>();
         documentScores = new Scores(documentScores.stream().map(s -> rerankDocuments(s, queryFilters, relationRankParams, termRankParams, filterResults)).collect(Collectors.toList()));
         documentScores.sort(true);
+
+        // limit
+        documentScores = new Scores(documentScores.stream().limit(LIMIT).collect(Collectors.toList()));
 
         // now map documents back to their entities
         Scores entityScores = new Scores();

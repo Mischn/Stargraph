@@ -484,7 +484,7 @@ public class QueryEngine {
     }
 
     protected Scores searchClass(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
         return entitySearcher.classSearch(searchParams, rankParams);
     }
@@ -512,7 +512,7 @@ public class QueryEngine {
     }
 
     protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
         return entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
     }
@@ -548,7 +548,7 @@ public class QueryEngine {
     }
 
     protected Scores searchPivot(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
         return entitySearcher.instanceSearch(searchParams, rankParams);
     }
@@ -573,7 +573,7 @@ public class QueryEngine {
     }
 
     protected Scores searchInstance(String instanceTerm) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(instanceTerm);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(instanceTerm);
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
         return entitySearcher.instanceSearch(searchParams, rankParams);
     }

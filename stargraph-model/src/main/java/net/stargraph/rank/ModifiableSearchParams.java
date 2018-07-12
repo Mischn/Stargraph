@@ -61,6 +61,10 @@ public final class ModifiableSearchParams {
         return this;
     }
 
+    public final ModifiableSearchParams phrase(String phrase) {
+        return phrases(Arrays.asList(phrase));
+    }
+
     public final ModifiableSearchParams lookup(boolean lookup) {
         this.lookup = lookup;
         return this;

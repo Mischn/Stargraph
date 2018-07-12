@@ -277,6 +277,10 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.ENTITY);
+        // ensure to use phrase (TODO this is not transparent to calling methods)
+        if (!searchParams.hasPhrases()) {
+            searchParams.phrase(searchParams.getSearchTerm());
+        }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
@@ -304,6 +308,10 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.ENTITY);
+        // ensure to use phrase (TODO this is not transparent to calling methods)
+        if (!searchParams.hasPhrases()) {
+            searchParams.phrase(searchParams.getSearchTerm());
+        }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
@@ -332,6 +340,10 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.PROPERTY);
+        // ensure to use phrase (TODO this is not transparent to calling methods)
+        if (!searchParams.hasPhrases()) {
+            searchParams.phrase(searchParams.getSearchTerm());
+        }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, false, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());

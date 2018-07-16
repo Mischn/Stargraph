@@ -100,17 +100,30 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                 HashMap<String, Node> varMap = getVarMap(binding);
 
                 if (modelId.equals(BuiltInModel.FACT.modelId)) {
-                    // assume that '?s' '?p' '?o' variables are available in the query
-                    if (!varMap.containsKey("s") || !varMap.containsKey("p") || !varMap.containsKey("o")) {
-                        throw new StarGraphException("?s ?p ?o variables need to be available in the query");
+                    // assume that '?s', '?p<n>', ?x<n>', '?o' variables are available in the query
+                    if (varMap.containsKey("s") && varMap.containsKey("p1") && varMap.containsKey("o")) {
+                        Route route = new Route(asEntity(varMap.get("s"), lookup));
+                        int c = 1;
+                        while (varMap.containsKey("p" + c)) {
+                            PropertyEntity predicate = asProperty(varMap.get("p" + c), lookup);
+                            LabeledEntity waypoint = (varMap.containsKey("x" + c))? asEntity(varMap.get("x" + c), lookup) : asEntity(varMap.get("o"), lookup);
+                            route = route.extend(predicate, waypoint);
+                            c += 1;
+                        }
+                        scores.add(new Score(route, 0.0));
+                    } else
+                    // assume that '?s', '?p', '?o' variables are available in the query
+                    if (varMap.containsKey("s") && varMap.containsKey("p") && varMap.containsKey("o")) {
+                        InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"), lookup);
+                        PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
+                        LabeledEntity object = asEntity(varMap.get("o"), lookup);
+
+                        Fact fact = new Fact(holder.getSearchParams().getKbId(), subject, predicate, object);
+                        scores.add(new Score(fact, 0.0));
+                    } else {
+                        throw new StarGraphException("?s ?p ?o / ?s ?p<n> ?x<n> ?o  variables need to be available in the query");
                     }
 
-                    InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"), lookup);
-                    PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
-                    LabeledEntity object = asEntity(varMap.get("o"), lookup);
-
-                    Fact fact = new Fact(holder.getSearchParams().getKbId(), subject, predicate, object);
-                    scores.add(new Score(fact, 0.0));
                 } else if (modelId.equals(BuiltInModel.ENTITY.modelId)) {
                     // assume that '?e' variable is available in the query
                     if (!varMap.containsKey("e")) {

@@ -26,11 +26,14 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
+import net.stargraph.data.processor.Hashable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-public class Route {
+public class Route implements Hashable {
     private PropertyPath propertyPath;
     private List<LabeledEntity> waypoints;
 
@@ -77,5 +80,19 @@ public class Route {
                 "propertyPath=" + propertyPath +
                 ", waypoints=" + waypoints +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Route route = (Route) o;
+        return Objects.equals(propertyPath, route.propertyPath) &&
+                Objects.equals(waypoints, route.waypoints);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(propertyPath, waypoints);
     }
 }

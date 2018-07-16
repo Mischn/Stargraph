@@ -109,9 +109,12 @@ public final class SPARQLQueryBuilder {
     }
 
     String build() {
+        final int LIMIT = 500;
+        String limitStr = sparqlCreator.createLimit(LIMIT);
+
         switch (queryType) {
             case SELECT:
-                return String.format("SELECT * WHERE {\n%s\n}", buildStatements());
+                return String.format("SELECT * WHERE {\n%s\n} " + limitStr, buildStatements());
             case ASK:
                 return String.format("ASK {\n%s\n}", buildStatements());
             case AGGREGATE:

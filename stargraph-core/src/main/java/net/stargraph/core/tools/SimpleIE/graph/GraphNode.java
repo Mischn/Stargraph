@@ -1,6 +1,8 @@
 package net.stargraph.core.tools.SimpleIE.graph;
 
 import net.stargraph.IDGenerator;
+import net.stargraph.core.annotation.POSTag;
+import net.stargraph.core.annotation.Word;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -109,6 +111,10 @@ public class GraphNode {
 
     public ArrayList<GraphNode> yield() {
         return yield(Arrays.asList("**"), Collections.emptyList());
+    }
+
+    public List<Word> yieldWords(List<String> allowPatterns, List<String> permitPatterns) {
+        return yield(allowPatterns, permitPatterns).stream().map(n -> new Word(new POSTag(n.tag), n.word)).collect(Collectors.toList());
     }
 
     public String yieldStr(List<String> allowPatterns, List<String> permitPatterns) {

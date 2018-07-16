@@ -26,6 +26,7 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.impl.corenlp.CoreNLPAnnotator;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.nli.ClueAnalyzer;
 import org.testng.Assert;
@@ -41,7 +42,7 @@ public class ClueAnalyzerTest {
 
         String clue = "The worse speller of a famous duo in November 1805 he wrote in his journal Ocian in view.";
 
-        ClueAnalyzer clueAnalyzer = new ClueAnalyzer();
+        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(new CoreNLPAnnotator());
         String lat = clueAnalyzer.getAnswerType(clue);
 
         Assert.assertEquals(lat, "PERSON");
@@ -51,7 +52,7 @@ public class ClueAnalyzerTest {
 
         String clue = "This European city is famous for its waffles.";
 
-        ClueAnalyzer clueAnalyzer = new ClueAnalyzer();
+        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(new CoreNLPAnnotator());
         String lat = clueAnalyzer.getAnswerType(clue);
         Assert.assertEquals(lat, "European city");
     }

@@ -1,4 +1,4 @@
-package net.stargraph.core.query.annotator;
+package net.stargraph.core.annotation;
 
 /*-
  * ==========================License-Start=============================

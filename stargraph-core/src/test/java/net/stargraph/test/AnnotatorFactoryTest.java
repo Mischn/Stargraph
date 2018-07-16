@@ -26,37 +26,26 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.impl.corenlp.CoreNLPAnnotator;
-import net.stargraph.core.impl.corenlp.CoreNLPAnnotatorFactory;
-import net.stargraph.core.impl.opennlp.OpenNLPAnnotator;
-import net.stargraph.core.impl.opennlp.OpenNLPAnnotatorFactory;
-import net.stargraph.core.query.Analyzers;
-import net.stargraph.core.query.annotator.AnnotatorFactory;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 public final class AnnotatorFactoryTest {
 
-    @Test
-    public void initCoreNLPTest() {
-        System.setProperty("stargraph.annotator.factory.class", CoreNLPAnnotatorFactory.class.getCanonicalName());
-        ConfigFactory.invalidateCaches();
-        Config config = ConfigFactory.load().getConfig("stargraph");
-        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
-        Assert.assertNotNull(factory);
-        Assert.assertEquals(factory.create().getClass(), CoreNLPAnnotator.class);
-    }
-
-    @Test
-    public void initOpenNLPTest() {
-        System.setProperty("stargraph.annotator.factory.class", OpenNLPAnnotatorFactory.class.getCanonicalName());
-        System.setProperty("stargraph.annotator.factory.models-dir", "/tmp"); //nothing is being read until being used.
-        ConfigFactory.invalidateCaches();
-        Config config = ConfigFactory.load().getConfig("stargraph");
-        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
-        Assert.assertNotNull(factory);
-        Assert.assertEquals(factory.create().getClass(), OpenNLPAnnotator.class);
-    }
+//    @Test
+//    public void initCoreNLPTest() {
+//        System.setProperty("stargraph.annotator.factory.class", CoreNLPAnnotatorFactory.class.getCanonicalName());
+//        ConfigFactory.invalidateCaches();
+//        Config config = ConfigFactory.load().getConfig("stargraph");
+//        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
+//        Assert.assertNotNull(factory);
+//        Assert.assertEquals(factory.create().getClass(), CoreNLPAnnotator.class);
+//    }
+//
+//    @Test
+//    public void initOpenNLPTest() {
+//        System.setProperty("stargraph.annotator.factory.class", OpenNLPAnnotatorFactory.class.getCanonicalName());
+//        System.setProperty("stargraph.annotator.factory.models-dir", "/tmp"); //nothing is being read until being used.
+//        ConfigFactory.invalidateCaches();
+//        Config config = ConfigFactory.load().getConfig("stargraph");
+//        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
+//        Assert.assertNotNull(factory);
+//        Assert.assertEquals(factory.create().getClass(), OpenNLPAnnotator.class);
+//    }
 }

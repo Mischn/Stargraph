@@ -32,7 +32,7 @@ import net.stargraph.StarGraphException;
 import net.stargraph.UnmappedQueryTypeException;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.Rules;
-import net.stargraph.core.query.annotator.Annotator;
+import net.stargraph.core.annotation.Annotator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;

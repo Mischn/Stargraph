@@ -1,4 +1,4 @@
-package net.stargraph.core.query.annotator;
+package net.stargraph.core.annotation;
 
 /*-
  * ==========================License-Start=============================
@@ -26,34 +26,17 @@ package net.stargraph.core.query.annotator;
  * ==========================License-End===============================
  */
 
+import com.typesafe.config.Config;
+
 import java.util.Objects;
 
-public class POSTag {
-    private String tag;
+public abstract class AnnotatorFactory {
+    protected Config config;
 
-    public POSTag(String tag) {
-        this.tag = Objects.requireNonNull(tag);
+    public AnnotatorFactory(Config config) {
+        this.config = Objects.requireNonNull(config);
     }
 
-    public final String getTag() {
-        return tag;
-    }
+    public abstract Annotator create();
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        POSTag posTag = (POSTag) o;
-        return Objects.equals(tag, posTag.tag);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tag);
-    }
-
-    @Override
-    public String toString() {
-        return tag;
-    }
 }

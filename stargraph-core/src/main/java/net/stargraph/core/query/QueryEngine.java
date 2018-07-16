@@ -77,7 +77,7 @@ public class QueryEngine {
         this.entitySearcher = stargraph.getEntitySearcher();
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
-        this.modeSelector = new InteractionModeSelector(stargraph.getMainConfig(), language);
+        this.modeSelector = new InteractionModeSelector(stargraph.createPOSAnnotatorFactory().create(), language);
     }
 
     public QueryResponse query(String query) {

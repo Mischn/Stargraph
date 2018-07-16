@@ -27,8 +27,8 @@ package net.stargraph.core.impl.corenlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.query.annotator.Annotator;
-import net.stargraph.core.query.annotator.AnnotatorFactory;
+import net.stargraph.core.annotation.Annotator;
+import net.stargraph.core.annotation.AnnotatorFactory;
 
 public final class CoreNLPAnnotatorFactory extends AnnotatorFactory {
 

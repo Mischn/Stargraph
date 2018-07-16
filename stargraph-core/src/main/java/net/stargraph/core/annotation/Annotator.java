@@ -1,4 +1,4 @@
-package net.stargraph.core.query.annotator;
+package net.stargraph.core.annotation;
 
 /*-
  * ==========================License-Start=============================
@@ -26,45 +26,33 @@ package net.stargraph.core.query.annotator;
  * ==========================License-End===============================
  */
 
-import java.util.Objects;
+import net.stargraph.UnsupportedLanguageException;
+import net.stargraph.query.Language;
+import net.stargraph.StarGraphException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
-public final class Word {
-    private POSTag posTag;
-    private String text;
+import java.util.List;
 
-    public Word(POSTag posTag, String text) {
-        this.posTag = posTag;
-        this.text = text;
-    }
+public abstract class Annotator {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected Marker marker = MarkerFactory.getMarker("annotator");
 
-    public POSTag getPosTag() {
-        return posTag;
-    }
+    protected abstract List<Word> doRun(Language language, String sentence);
 
-    public String getPosTagString() {
-        return posTag.getTag();
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    @Override
-    public String toString() {
-        return text + "/" + posTag;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Word word = (Word) o;
-        return Objects.equals(posTag, word.posTag) &&
-                Objects.equals(text, word.text);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(posTag, text);
+    public final List<Word> run(Language language, String sentence) {
+        logger.debug(marker, "Annotating '{}', language: '{}'", sentence, language);
+        try {
+            return doRun(language, sentence);
+        }
+        catch (UnsupportedLanguageException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            logger.error(marker, "Erro caught during annotation of '{}' ({})", sentence, language);
+            throw new StarGraphException(e);
+        }
     }
 }

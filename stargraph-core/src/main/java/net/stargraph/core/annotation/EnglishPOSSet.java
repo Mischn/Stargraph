@@ -1,4 +1,4 @@
-package net.stargraph.core.query.annotator;
+package net.stargraph.core.annotation;
 
 /*-
  * ==========================License-Start=============================
@@ -72,6 +72,10 @@ public final class EnglishPOSSet extends PartOfSpeechSet {
     public static POSTag PUNCT = new POSTag(".");
     public static POSTag QMO = new POSTag("``");
     public static POSTag QMC = new POSTag("''");
+    public static POSTag COLON = new POSTag(":");
+    public static POSTag COMMA = new POSTag(",");
+    public static POSTag LRB = new POSTag("-LRB-");
+    public static POSTag RRB = new POSTag("-RRB-");
 
     private EnglishPOSSet() {
         add(CC);
@@ -113,6 +117,10 @@ public final class EnglishPOSSet extends PartOfSpeechSet {
         add(PUNCT);
         add(QMO);
         add(QMC);
+        add(COLON);
+        add(COMMA);
+        add(LRB);
+        add(RRB);
     }
 
     private static EnglishPOSSet instance;

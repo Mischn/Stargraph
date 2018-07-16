@@ -1,7 +1,7 @@
 package net.stargraph.core.tools.SimpleIE;
 
-import net.stargraph.core.query.annotator.POSTag;
-import net.stargraph.core.query.annotator.Word;
+import net.stargraph.core.annotation.POSTag;
+import net.stargraph.core.annotation.Word;
 import net.stargraph.core.tools.SimpleIE.graph.GraphNode;
 import net.stargraph.core.tools.SimpleIE.graph.RootNode;
 import org.lambda3.text.simplification.discourse.utils.parseTree.ParseTreeException;

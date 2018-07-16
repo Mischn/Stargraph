@@ -27,6 +27,7 @@ package net.stargraph.test;
  */
 
 import com.typesafe.config.ConfigFactory;
+import net.stargraph.core.impl.corenlp.CoreNLPAnnotator;
 import net.stargraph.core.query.InteractionModeSelector;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -43,7 +44,7 @@ public final class QueryInteractionModeTest {
 
     @BeforeClass
     public void beforeClass() {
-        selector = new InteractionModeSelector(ConfigFactory.load().getConfig("stargraph"), Language.EN);
+        selector = new InteractionModeSelector(new CoreNLPAnnotator(), Language.EN);
     }
 
     @Test

@@ -40,6 +40,7 @@ import net.stargraph.core.impl.corenlp.NERSearcher;
 import net.stargraph.core.index.Indexer;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.processors.Processors;
+import net.stargraph.core.annotation.AnnotatorFactory;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.core.search.Searcher;
 import net.stargraph.data.DataProviderFactory;
@@ -309,6 +310,18 @@ public final class Stargraph {
             return (IndicesFactory) constructor.newInstance();
         } catch (Exception e) {
             throw new StarGraphException("Can't initialize indexers.", e);
+        }
+    }
+
+    public AnnotatorFactory createPOSAnnotatorFactory() {
+        Config mainConfig = getMainConfig();
+        try {
+            String className = mainConfig.getString("annotator.factory.class");
+            Class<?> providerClazz = Class.forName(className);
+            Constructor<?> constructor = providerClazz.getConstructors()[0];
+            return (AnnotatorFactory) constructor.newInstance(mainConfig);
+        } catch (Exception e) {
+            throw new StarGraphException("Can't initialize annotators.", e);
         }
     }
 

@@ -27,8 +27,8 @@ package net.stargraph.core.impl.opennlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.query.annotator.Annotator;
-import net.stargraph.core.query.annotator.AnnotatorFactory;
+import net.stargraph.core.annotation.Annotator;
+import net.stargraph.core.annotation.AnnotatorFactory;
 
 /**
  * Alternative to CoreNLP. Configure it through the stargraph.annotator.factory.class.

@@ -28,9 +28,8 @@ package net.stargraph.core.query.nli;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.query.Analyzers;
-import net.stargraph.core.query.annotator.Annotator;
-import net.stargraph.core.query.annotator.Word;
+import net.stargraph.core.annotation.Annotator;
+import net.stargraph.core.annotation.Word;
 import net.stargraph.query.Language;
 
 import java.util.*;
@@ -52,8 +51,8 @@ public class ClueAnalyzer {
 
 	private Annotator annotator;
 
-	public ClueAnalyzer() {
-
+	public ClueAnalyzer(Annotator annotator) {
+		this.annotator = annotator;
 		buildPronounList();
 		buildDeterminerList();
 	}
@@ -136,7 +135,6 @@ public class ClueAnalyzer {
 	private void parse(String clueText){
 
 		Config config = ConfigFactory.load().getConfig("stargraph");
-		annotator = Analyzers.createAnnotatorFactory(config).create();
 		List<Word> words = annotator.run(Language.EN, clueText);
 
 		this.posPattern = words.stream().map(Word::getPosTagString).collect(Collectors.toList());

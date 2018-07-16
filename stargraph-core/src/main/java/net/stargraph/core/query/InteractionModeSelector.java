@@ -26,7 +26,7 @@ package net.stargraph.core.query;
  * ==========================License-End===============================
  */
 
-import com.typesafe.config.Config;
+import net.stargraph.core.annotation.Annotator;
 import net.stargraph.core.query.nli.ClueAnalyzer;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -36,11 +36,11 @@ import java.util.Objects;
 import static net.stargraph.query.InteractionMode.NLI;
 
 public final class InteractionModeSelector {
-    private Config config;
+    private Annotator annotator;
     private Language language;
 
-    public InteractionModeSelector(Config config, Language language) {
-        this.config = Objects.requireNonNull(config);
+    public InteractionModeSelector(Annotator annotator, Language language) {
+        this.annotator = Objects.requireNonNull(annotator);
         this.language = Objects.requireNonNull(language);
     }
 
@@ -116,7 +116,7 @@ public final class InteractionModeSelector {
 
     private boolean isClueQuery(String queryString){
 
-        ClueAnalyzer clueAnalyzer = new ClueAnalyzer();
+        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(annotator);
         return clueAnalyzer.isClue(queryString);
     }
 

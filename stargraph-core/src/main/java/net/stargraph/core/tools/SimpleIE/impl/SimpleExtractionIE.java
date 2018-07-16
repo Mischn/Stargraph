@@ -1,6 +1,6 @@
 package net.stargraph.core.tools.SimpleIE.impl;
 
-import net.stargraph.core.query.annotator.Word;
+import net.stargraph.core.annotation.Word;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
 import net.stargraph.model.Extraction;
 

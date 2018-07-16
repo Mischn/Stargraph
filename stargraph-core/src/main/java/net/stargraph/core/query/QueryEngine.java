@@ -37,7 +37,10 @@ import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.*;
+import net.stargraph.model.Document;
+import net.stargraph.model.InstanceEntity;
+import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.PassageExtraction;
 import net.stargraph.model.date.TimeRange;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -462,8 +465,35 @@ public class QueryEngine {
         return instance;
     }
 
+    public Scores rescoreClasses(Scores scores) {
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+
+        List<String> noRootIds = new ArrayList<>();
+        for (Score score : scores) {
+            String id = score.getRankableView().getId();
+            List<String> otherIds = scores.stream().map(s -> s.getRankableView().getId()).filter(i -> !i.equals(id)).collect(Collectors.toList());
+            if (entitySearcher.isClassMember(id, otherIds, searchParams)) {
+                noRootIds.add(id);
+            }
+        }
+
+        // boost roots
+        Scores rescored = new Scores();
+        for (Score score : scores) {
+            double s = (!noRootIds.contains(score.getRankableView().getId()))? 1 : 0;
+            double newScore = (0.5 * score.getValue()) + (0.5 * s);
+            rescored.add(new Score(score.getEntry(), newScore));
+        }
+
+        // order
+        rescored.sort(true);
+
+        return rescored;
+    }
+
     private void resolveClass(DataModelBinding binding, SPARQLQueryBuilder builder) {
         if (binding.getModelType() == DataModelType.CLASS) {
+            final int PRE_LIMIT = 50;
             final int LIMIT = 3;
             Scores scores;
 
@@ -475,6 +505,9 @@ public class QueryEngine {
             } else {
                 logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
                 scores = searchClass(binding);
+
+                // re-rank classes
+                scores = rescoreClasses(new Scores(scores.stream().limit(PRE_LIMIT).collect(Collectors.toList()))); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
                 logger.debug(marker, "Results: {}", scores);
             }
 

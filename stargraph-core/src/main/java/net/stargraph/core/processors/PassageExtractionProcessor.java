@@ -29,7 +29,7 @@ package net.stargraph.core.processors;
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
-import net.stargraph.core.tools.SimpleIE.impl.NERSimplePassageIE;
+import net.stargraph.core.tools.SimpleIE.impl.SASimplePassageIE;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -61,7 +61,7 @@ public final class PassageExtractionProcessor extends BaseProcessor {
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Serializable entry = holder.get();
 
-        SimpleIE passageIE = passageIEs.computeIfAbsent(holder.getKBId().getId(), (id) -> new NERSimplePassageIE(stargraph, id));
+        SimpleIE passageIE = passageIEs.computeIfAbsent(holder.getKBId().getId(), (id) -> new SASimplePassageIE(stargraph, id));
 
         if (entry instanceof Document) {
             Document document = (Document)entry;

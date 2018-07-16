@@ -28,7 +28,7 @@ package net.stargraph.core.query;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
-import net.stargraph.core.tools.SimpleIE.impl.NERSimplePassageIE;
+import net.stargraph.core.tools.SimpleIE.impl.SASimplePassageIE;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 
@@ -41,7 +41,7 @@ public final class FilterQueryBuilder {
     private SimpleIE<PassageExtraction> simplePassageIE;
 
     public FilterQueryBuilder(Stargraph stargraph, String dbId) {
-        this.simplePassageIE = new NERSimplePassageIE(stargraph, dbId);
+        this.simplePassageIE = new SASimplePassageIE(stargraph, dbId);
     }
 
     // TODO put settings in reference.conf and make specific for different languages

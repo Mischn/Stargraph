@@ -216,7 +216,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.FACT);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
-        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(memberId), true, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(memberId), null, searchParams);
         Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
@@ -252,7 +252,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.FACT);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
-        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(classId), false, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(null, Arrays.asList(classId), searchParams);
         Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
@@ -265,6 +265,38 @@ public class EntitySearcher {
                 .map(x -> (InstanceEntity)x)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Check if entity is a member of any of the classes.
+     * @param entity
+     * @param classes
+     * @param searchParams
+     * @return
+     */
+    public boolean isClassMember(InstanceEntity entity, List<InstanceEntity> classes, ModifiableSearchParams searchParams) {
+        return isClassMember(entity.getId(), classes.stream().map(c -> c.getId()).collect(Collectors.toList()), searchParams);
+    }
+
+    /**
+     * Check if entity is a member of any of the classes.
+     * @param entityId
+     * @param classIds
+     * @param searchParams
+     * @return
+     */
+    public boolean isClassMember(String entityId, List<String> classIds, ModifiableSearchParams searchParams) {
+        KBCore core = stargraph.getKBCore(searchParams.getDbId());
+
+        searchParams.model(BuiltInModel.FACT);
+        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(entityId), classIds, searchParams);
+        Searcher searcher = core.getGraphSearcher();
+
+        // Fetch initial candidates from the search engine
+        Scores scores = searcher.search(holder);
+
+        return scores.size() > 0;
     }
 
     /**
@@ -451,7 +483,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.FACT);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
-        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(neighbourIds, true, searchParams);
+        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(neighbourIds, null, searchParams);
         Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine

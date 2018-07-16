@@ -28,12 +28,10 @@ package net.stargraph.core.query;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
+import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
-import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.QueryPlanPatterns;
-import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
@@ -43,15 +41,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class SPARQLQueryBuilder {
+    private SparqlCreator sparqlCreator;
     private List<String> classURIs;
     private QueryType queryType;
     private QueryPlanPatterns triplePatterns;
     private List<DataModelBinding> bindings;
     private Map<DataModelBinding, List<Score>> mappings;
     private Namespace namespace;
-    private int tmpVarCounter;
 
     public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
+        this.sparqlCreator = new SparqlCreator();
         this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
         this.triplePatterns = Objects.requireNonNull(triplePatterns);
@@ -123,151 +122,141 @@ public final class SPARQLQueryBuilder {
     }
 
     private String buildStatements() {
-        resetTmpVarCounter();
-        StringJoiner tripleJoiner = new StringJoiner("\n");
+        final int varRange = 1; //TODO experiment with this value
+        final int typeRange = 1; //TODO experiment with this value
+
+        sparqlCreator.resetNewVarCounter();
+
+
+        StringJoiner tripleJoiner = new StringJoiner(" UNION\n", "{", "}");
 
         triplePatterns.forEach(triplePattern -> {
             String[] components = triplePattern.getPattern().split("\\s");
 
-            List<Pattern> sURIs = placeHolder2Pattern(components[0], false);
-            List<Pattern> pURIs = placeHolder2Pattern(components[1], true);
-            List<Pattern> oURIs = placeHolder2Pattern(components[2], false);
+            List<String> sMappings = new ArrayList<>();
+            List<String> oMappings = new ArrayList<>();
 
-            List<Pattern> prod = cartesianProduct(cartesianProduct(sURIs, pURIs), oURIs);
+            // Subject
+            String subjectPlaceholder = components[0];
+            if (isVar(subjectPlaceholder)) {
+                sMappings = Arrays.asList(subjectPlaceholder);
+            } else if (isType(subjectPlaceholder)) {
+                throw new AssertionError("Subject should not be a type");
+            } else {
+                DataModelBinding binding = getBinding(subjectPlaceholder);
+                List<Score> mappings = getMappings(binding);
+                if (mappings.isEmpty()) {
+                    sMappings = Arrays.asList(getURI(binding));
+                } else {
+                    for (Score mapping : mappings) {
+                        sMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
+                    }
+                }
+            }
 
-            StringJoiner stmtJoiner = new StringJoiner("} UNION \n{", "{", "}");
-            prod.forEach(p -> {
-                String filterPattern = p.getFilterPatterns().stream().collect(Collectors.joining(" "));
-                stmtJoiner.add(p.getPattern().trim() + " . " + filterPattern);
-            });
+            // Object
+            String objectPlaceholder = components[2];
+            if (isVar(objectPlaceholder)) {
+                oMappings = Arrays.asList(objectPlaceholder);
+            } else if (isType(objectPlaceholder)) {
+                throw new AssertionError("Object should not be a type");
+            } else {
+                DataModelBinding binding = getBinding(objectPlaceholder);
+                List<Score> mappings = getMappings(binding);
+                if (mappings.isEmpty()) {
+                    oMappings = Arrays.asList(getURI(binding));
+                } else {
+                    for (Score mapping : mappings) {
+                        oMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
+                    }
+                }
+            }
 
-            tripleJoiner.add(stmtJoiner.toString());
+            // Property
+            String propertyPlaceholder = components[1];
+
+            if (isVar(propertyPlaceholder)) {
+                List<String> strs = new ArrayList<>();
+                for (int i = 0; i < varRange; i++) {
+                    sparqlCreator.resetNewVarCounter();
+
+                    SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", i+1, "?o", "?p", "?v");
+
+                    Map<String, List<String>> varMappings = new HashMap<>();
+                    varMappings.put("?s", sMappings);
+                    varMappings.put("?o", oMappings);
+
+                    strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
+                }
+                tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+            } else if (isType(propertyPlaceholder)) {
+                List<String> strs = new ArrayList<>();
+                for (int i = 0; i < typeRange; i++) {
+                    sparqlCreator.resetNewVarCounter();
+
+                    SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", i+1, "?o", "?p", "?t");
+
+                    Map<String, List<String>> varMappings = new HashMap<>();
+                    varMappings.put("?s", sMappings);
+                    varMappings.put("?o", oMappings);
+                    for (String v : pathPattern.getPropertyVars()) {
+                        varMappings.put(v, classURIs.stream().map(u -> String.format("<%s>", u)).collect(Collectors.toList()));
+                    }
+
+                    strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
+                }
+                tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+            } else {
+                DataModelBinding binding = getBinding(propertyPlaceholder);
+                List<Score> mappings = getMappings(binding);
+                if (mappings.isEmpty()) {
+                    sparqlCreator.resetNewVarCounter();
+
+                    String pattern = "?s ?p ?o .";
+
+                    Map<String, List<String>> varMappings = new HashMap<>();
+                    varMappings.put("?s", sMappings);
+                    varMappings.put("?o", oMappings);
+                    varMappings.put("?p", Arrays.asList(getURI(binding)));
+
+                    tripleJoiner.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
+                } else {
+                    List<String> strs = new ArrayList<>();
+                    for (Score mapping : mappings) {
+                        sparqlCreator.resetNewVarCounter();
+
+                        if (mapping.getEntry() instanceof PropertyPath) {
+                            PropertyPath propertyPath = (PropertyPath) mapping.getEntry();
+
+                            SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", propertyPath.getProperties().size(), "?o", "?p", "?pp");
+
+                            Map<String, List<String>> varMappings = new HashMap<>();
+                            varMappings.put("?s", sMappings);
+                            varMappings.put("?o", oMappings);
+                            for (int i = 0; i < pathPattern.getPropertyVars().size(); i++) {
+                                String v = pathPattern.getPropertyVars().get(i);
+                                varMappings.put(v, Arrays.asList(String.format("<%s>", unmap(propertyPath.getProperties().get(i).getId()))));
+                            }
+
+                            strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
+                        } else {
+                            String pattern = "?s ?p ?o .";
+
+                            Map<String, List<String>> varMappings = new HashMap<>();
+                            varMappings.put("?s", sMappings);
+                            varMappings.put("?o", oMappings);
+                            varMappings.put("?p", Arrays.asList(String.format("<%s>", unmap(mapping.getRankableView().getId()))));
+
+                            strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
+                        }
+                    }
+                    tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+                }
+            }
         });
 
         return tripleJoiner.toString();
     }
-
-    private List<Pattern> cartesianProduct(List<Pattern> x, List<Pattern> y) {
-        List<Pattern> xy = new ArrayList<>();
-        x.forEach(s1 -> y.forEach(s2 -> {
-            List<String> joinedFilter = new ArrayList<>();
-            joinedFilter.addAll(s1.getFilterPatterns());
-            joinedFilter.addAll(s2.getFilterPatterns());
-            xy.add(new Pattern(s1.getPattern().trim() + " " + s2.getPattern().trim(), joinedFilter));
-        }));
-        return xy;
-    }
-
-/*
-    private List<String> cartesianProduct(List<String> x, List<String> y) {
-        List<String> xy = new ArrayList<>();
-        x.forEach(s1 -> y.forEach(s2 -> xy.add(s1.trim() + " " + s2.trim())));
-        return xy;
-    }
-*/
-
-    private List<Pattern> placeHolder2Pattern(String placeHolder, boolean predicate) {
-        final int varRange = 1; //TODO experiment with this value
-        final int typeRange = 1; //TODO experiment with this value
-
-        // Variable
-        if (isVar(placeHolder)) {
-            if (predicate) {
-                // create someting like ['?VAR_1', '?TMP_1 ?TMP_2 . ?TMP_2 ?TMP_3'] for varRange=2
-                List<Pattern> patterns = new ArrayList<>();
-                for (int i = 1; i < varRange+1; i++) {
-                    List<String> ps = new ArrayList<>();
-                    if (i == 1) {
-                        ps.add(placeHolder);
-                    } else {
-                        for (int j = 0; j < i; j++) {
-                            ps.add(getNewTmpVar());
-                        }
-                    }
-                    patterns.add(new Pattern(joinedPathPredicate(ps)));
-                }
-                return patterns;
-            } else {
-                return Collections.singletonList(new Pattern(placeHolder));
-            }
-        }
-
-        // Type
-        if (isType(placeHolder)) {
-            if (predicate) {
-                // create someting like ['?TMP_1', '?TMP_2 ?TMP_3 . ?TMP_3 ?TMP_4'] for typeRange=2
-                // with filters for ?TMP_1, ?TMP_2, ?TMP_3 specifying type-of-class-relations
-                List<Pattern> patterns = new ArrayList<>();
-                for (int i = 1; i < typeRange+1; i++) {
-                    List<String> ps = new ArrayList<>();
-                    List<String> filterPatterns = new ArrayList<>();
-                    for (int j = 0; j < i; j++) {
-                        String classVar = getNewTmpVar();
-                        ps.add(classVar);
-                        filterPatterns.add(JenaSearchQueryGenerator.createFilter(classVar, classURIs));
-                    }
-
-                    patterns.add(new Pattern(joinedPathPredicate(ps), filterPatterns));
-                }
-                return patterns;
-            } else {
-                return Collections.singletonList(new Pattern("a"));
-            }
-        }
-
-        // Bindings
-        DataModelBinding binding = getBinding(placeHolder);
-        List<Score> mappings = getMappings(binding);
-        if (mappings.isEmpty()) {
-            return Collections.singletonList(new Pattern(getURI(binding)));
-        }
-        List<Pattern> patterns = new ArrayList<>();
-        for (Score mapping : mappings) {
-
-            // create someting like '<..> ?TMP_1 . ?TMP_1 <..>' for path with 2 properties
-            if (mapping.getEntry() instanceof PropertyPath) {
-                PropertyPath path = (PropertyPath)mapping.getEntry();
-                List<String> ps = new ArrayList<>();
-                for (PropertyEntity property : path.getProperties()) {
-                    if (FactClassifierProcessor.isClassRelation(property)) {
-                        ps.add("a");
-                    } else {
-                        ps.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
-                    }
-                }
-                patterns.add(new Pattern(joinedPathPredicate(ps)));
-            } else {
-                patterns.add(new Pattern(String.format("<%s>", unmap(mapping.getRankableView().getId()))));
-            }
-        }
-
-        return patterns;
-    }
-
-    private void resetTmpVarCounter() {
-        tmpVarCounter = 0;
-    }
-
-    private String getNewTmpVar() {
-        tmpVarCounter += 1;
-        return "?TMP_" + tmpVarCounter;
-    }
-
-    // creates 'x ?TMP_1 . TMP_1 y TMP_2 . TMP_2 z' for ['x', 'y', 'z']
-    private String joinedPathPredicate(List<String> predicateStrs) {
-        if (predicateStrs.size() == 1) {
-            return predicateStrs.get(0);
-        } else {
-            StringBuilder strb = new StringBuilder();
-            strb.append(predicateStrs.get(0));
-            for (int i = 1; i < predicateStrs.size(); i++) {
-                String tmpVar = getNewTmpVar();
-                strb.append(String.format(" %s . %s %s", tmpVar, tmpVar, predicateStrs.get(i)));
-            }
-            return strb.toString();
-        }
-    }
-
 
     private boolean isVar(String s) {
         return s.startsWith("?VAR");
@@ -285,25 +274,4 @@ public final class SPARQLQueryBuilder {
         return namespace != null ? namespace.expandURI(uri) : uri;
     }
 
-    private class Pattern {
-        private String pattern;
-        private List<String> filterPatterns;
-
-        public Pattern(String pattern) {
-            this(pattern, new ArrayList<>());
-        }
-
-        public Pattern(String pattern, List<String> filterPatterns) {
-            this.pattern = pattern;
-            this.filterPatterns = filterPatterns;
-        }
-
-        public String getPattern() {
-            return pattern;
-        }
-
-        public List<String> getFilterPatterns() {
-            return filterPatterns;
-        }
-    }
 }

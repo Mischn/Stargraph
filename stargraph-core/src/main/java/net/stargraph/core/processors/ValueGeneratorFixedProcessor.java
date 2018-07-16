@@ -30,10 +30,10 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
+import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.jena.JenaBaseSearcher;
 import net.stargraph.core.impl.jena.JenaGraphSearcher;
-import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -44,6 +44,7 @@ import org.apache.jena.sparql.engine.binding.Binding;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to create passages.
@@ -53,20 +54,28 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
 
     private Stargraph stargraph;
     private Map<Language, List<String>> properties;
+    private SparqlCreator sparqlCreator;
 
     public ValueGeneratorFixedProcessor(Stargraph stargraph, Config config) {
         super(config);
         this.stargraph = stargraph;
+        this.sparqlCreator = new SparqlCreator();
 
         if (!getConfig().getIsNull("properties")) {
             this.properties = loadProperties(getConfig());
         }
     }
 
-    private static String createSPARQLQuery(String entityUri, Language language, List<String> properties) {
+    private String createSPARQLQuery(String entityUri, Language language, List<String> properties) {
+        String pattern = "?s ?p ?t .";
+
+        Map<String, List<String>> varBindings = new HashMap<>();
+        varBindings.put("?s", Arrays.asList("<" + entityUri + ">"));
+        varBindings.put("?p", properties.stream().map(p -> "<" + p + ">").collect(Collectors.toList()));
+
         return "SELECT ?t { "
-                + JenaSearchQueryGenerator.cartesianTripleUnionPattern("?s", "?p", "?t", Arrays.asList(entityUri), properties, null, false) + " "
-                + JenaSearchQueryGenerator.createLangFilter("?t", Arrays.asList(language), true)
+                + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings), false) + " "
+                + sparqlCreator.createLangFilter("?t", Arrays.asList(language), true)
                 + " }";
     }
 

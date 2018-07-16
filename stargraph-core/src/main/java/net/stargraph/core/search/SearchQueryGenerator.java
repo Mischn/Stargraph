@@ -46,8 +46,8 @@ public interface SearchQueryGenerator {
     // if docTypes is null, return for all docTypes
     SearchQueryHolder documentsForEntityIds(List<String> idList, List<String> docTypes, ModifiableSearchParams searchParams);
 
-    // return facts that represent an is-a relationship between arbitrary subjects and any object of the given ids
-    SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams);
+    // return facts that represent a class relationship between arbitrary subjects and objects of the given ids
+    SearchQueryHolder findClassFacts(List<String> subjIdList, List<String> objIdList, ModifiableSearchParams searchParams);
 
     // return resource entities whose value or otherValues match the searchTerm
     SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean and);

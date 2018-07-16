@@ -27,25 +27,28 @@ package net.stargraph.core.impl.jena;
  */
 
 import net.stargraph.core.Namespace;
+import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
-import net.stargraph.query.Language;
 import net.stargraph.rank.ModifiableSearchParams;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.StringJoiner;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     private List<String> classURIs;
+    private SparqlCreator sparqlCreator;
 
     public JenaSearchQueryGenerator(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
-        this.classURIs = stargraph.getClassRelations(dbId);
+        Namespace namespace = getNamespace();
+        this.classURIs = stargraph.getClassRelations(dbId).stream().map(namespace::expandURI).collect(Collectors.toList());
+        this.sparqlCreator = new SparqlCreator();
     }
 
     @Override
@@ -69,15 +72,26 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassFacts(List<String> idList, boolean inSubject, ModifiableSearchParams searchParams) {
+    public SearchQueryHolder findClassFacts(List<String> subjIdList, List<String> objIdList, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
+        
+        String pattern = "?s ?p ?o .";
 
-        List<String> expandedIdList = idList.stream().map(namespace::expandURI).collect(Collectors.toList());
+        Map<String, List<String>> varBindings = new HashMap<>();
+        if (subjIdList != null && subjIdList.size() > 0) {
+            List<String> expandedSubjIdList = subjIdList.stream().map(namespace::expandURI).collect(Collectors.toList());
+            varBindings.put("?s", expandedSubjIdList.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
+        }
+        if (objIdList != null && objIdList.size() > 0) {
+            List<String> expandedObjIdList = objIdList.stream().map(namespace::expandURI).collect(Collectors.toList());
+            varBindings.put("?o", expandedObjIdList.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
+        }
+        varBindings.put("?p", classURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
 
         String query = "SELECT ?s ?p ?o {"
-                + cartesianTripleUnionPattern("?s", "?p", "?o", (inSubject)? expandedIdList: null, classURIs, (!inSubject)? expandedIdList : null, true)
+                + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings, Arrays.asList("?s", "?p", "?o")), false)
                 + "}"
-                + createLimit(searchParams);
+                + sparqlCreator.createLimit(searchParams.getLimit());
 
         return new JenaQueryHolder(query, searchParams);
     }
@@ -108,31 +122,38 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
 
         String id = namespace.expandURI(pivot.getId());
 
+        String pattern = "?s ?p ?o .";
+
+        Map<String, List<String>> varBindingsS = new HashMap<>();
+        varBindingsS.put("?s", Arrays.asList("<" + id + ">"));
+        Map<String, List<String>> varBindingsO = new HashMap<>();
+        varBindingsO.put("?o", Arrays.asList("<" + id + ">"));
+
         String query;
         if (inSubject && inObject) {
             query = "SELECT ?s ?p ?o {"
                     + "{"
-                    + cartesianTripleUnionPattern("?s", "?p", "?o", Arrays.asList(id), null, null, true)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")), false)
                     + "} UNION {"
-                    + cartesianTripleUnionPattern("?s", "?p", "?o", null, null, Arrays.asList(id), true)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")), false)
                     + "}"
                     + "}"
-                    + createLimit(searchParams);
+                    + sparqlCreator.createLimit(searchParams.getLimit());
         } else if (inSubject) {
             query = "SELECT ?s ?p ?o {"
-                    + cartesianTripleUnionPattern("?s", "?p", "?o", Arrays.asList(id), null, null, true)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")), false)
                     + "}"
-                    + createLimit(searchParams);
+                    + sparqlCreator.createLimit(searchParams.getLimit());
         } else if (inObject) {
             query = "SELECT ?s ?p ?o {"
-                    + cartesianTripleUnionPattern("?s", "?p", "?o", null, null, Arrays.asList(id), true)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")), false)
                     + "}"
-                    + createLimit(searchParams);
+                    + sparqlCreator.createLimit(searchParams.getLimit());
         } else {
             query = "SELECT ?s ?p ?o {"
                     + "?s ?p ?o ."
                     + "}"
-                    + createLimit(searchParams);
+                    + sparqlCreator.createLimit(searchParams.getLimit());
         }
 
         return new JenaQueryHolder(query, searchParams);
@@ -141,60 +162,5 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     @Override
     public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
         throw new UnsupportedOperationException("Not implemented");
-    }
-
-    public static String cartesianTripleUnionPattern(String sVarName, String pVarName, String oVarName, List<String> sURIs, List<String> pURIs, List<String> oURIs, boolean addBindings) {
-        List<String> sLst = (sURIs == null || sURIs.isEmpty())? Arrays.asList(sVarName) : sURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
-        List<String> pLst = (pURIs == null || pURIs.isEmpty())? Arrays.asList(pVarName) : pURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
-        List<String> oLst = (oURIs == null || oURIs.isEmpty())? Arrays.asList(oVarName) : oURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList());
-
-        StringJoiner stmtJoiner = new StringJoiner("} UNION {", "{", "}");
-        cartesianProduct(cartesianProduct(sLst, pLst), oLst).stream().forEach(x -> {
-            String[] elems = x.split("\\s+");
-
-            // triple
-            String str = String.format("%s %s %s .", elems[0], elems[1], elems[2]);
-
-            // bind
-            if (addBindings) {
-                if (!elems[0].startsWith("?")) {
-                    str += String.format(" BIND(%s AS %s) .", elems[0], sVarName);
-                }
-                if (!elems[1].startsWith("?")) {
-                    str += String.format(" BIND(%s AS %s) .", elems[1], pVarName);
-                }
-                if (!elems[2].startsWith("?")) {
-                    str += String.format(" BIND(%s AS %s) .", elems[2], oVarName);
-                }
-            }
-
-            stmtJoiner.add(str);
-        });
-        return stmtJoiner.toString();
-    }
-
-    private static List<String> cartesianProduct(List<String> x, List<String> y) {
-        List<String> xy = new ArrayList<>();
-        x.forEach(s1 -> y.forEach(s2 -> xy.add(s1.trim() + " " + s2.trim())));
-        return xy;
-    }
-
-    // this was used previously but it should be avoided due to performance (use UNIONs instead)
-    public static String createFilter(String variable, List<String> URIs) {
-        return "FILTER( " + URIs.stream().map(i ->  variable + " = <" + i + ">").collect(Collectors.joining(" || ")) + " )";
-    }
-
-    public static String createLangFilter(String variable, List<Language> languages, boolean includeNotSpecified) {
-        List<String> langTags = new ArrayList<>();
-        languages.forEach(l -> langTags.add(l.code.toLowerCase()));
-        if (includeNotSpecified) {
-            langTags.add("");
-        }
-
-        return "FILTER( " + langTags.stream().map(lang -> "lang(" + variable + ") = \"" + lang + "\"").collect(Collectors.joining(" || ")) + " )";
-    }
-
-    private static String createLimit(ModifiableSearchParams searchParams) {
-        return (searchParams.getLimit() >= 0)? "LIMIT " + searchParams.getLimit(): "";
     }
 }

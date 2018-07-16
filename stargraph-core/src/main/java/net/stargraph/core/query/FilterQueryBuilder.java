@@ -26,33 +26,30 @@ package net.stargraph.core.query;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.ner.NER;
-import net.stargraph.core.processors.PassageExtractionProcessor;
+import net.stargraph.core.Stargraph;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
+import net.stargraph.core.tools.SimpleIE.impl.NERSimplePassageIE;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 
 public final class FilterQueryBuilder {
-    private static final SimpleIE SIMPLE_IE = new SimpleIE();
+    private SimpleIE<PassageExtraction> simplePassageIE;
 
-    private final NER ner;
-
-    public FilterQueryBuilder(NER ner) {
-        this.ner = ner;
+    public FilterQueryBuilder(Stargraph stargraph, String dbId) {
+        this.simplePassageIE = new NERSimplePassageIE(stargraph, dbId);
     }
 
     // TODO put settings in reference.conf and make specific for different languages
     public static String getObjectRelation(String expr) {
-        if (expr.toLowerCase().equals("from") || expr.toLowerCase().equals("of")) {
+        if (expr.toLowerCase().matches("from|of|between|during")) {
             return "created";
         } else if (expr.toLowerCase().equals("with")) {
-            return "have";
+            return "depict";
         }
         return null;
     }
@@ -65,9 +62,8 @@ public final class FilterQueryBuilder {
             String obj = matcher.group("obj");
             String expr = matcher.group("expr");
 
-            List<PassageExtraction> extractionFilters = SIMPLE_IE.extract(text).stream().map(e -> PassageExtractionProcessor.convert(e, ner)).collect(Collectors.toList());
-
-            PassageExtraction objectFilter = PassageExtractionProcessor.convert(SIMPLE_IE.extractModifiers(text, obj), ner);
+            List<PassageExtraction> extractionFilters = simplePassageIE.extract(text);
+            PassageExtraction objectFilter = simplePassageIE.extractModifiers(text, obj);
             String objectRelation = getObjectRelation(expr);
             if (objectRelation != null) {
                 extractionFilters.add(new PassageExtraction(objectRelation, objectFilter.getTerms(), objectFilter.getTemporals()));

@@ -31,7 +31,6 @@ import net.stargraph.core.KBCore;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.GraphSearcher;
-import net.stargraph.core.ner.NER;
 import net.stargraph.core.query.nli.*;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
@@ -59,6 +58,7 @@ public class QueryEngine {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("query");
 
+    protected Stargraph stargraph;
     protected String dbId;
     protected KBCore core;
     protected Analyzers analyzers;
@@ -67,9 +67,9 @@ public class QueryEngine {
     protected InteractionModeSelector modeSelector;
     protected Namespace namespace;
     protected Language language;
-    protected NER ner;
 
     public QueryEngine(String dbId, Stargraph stargraph) {
+        this.stargraph = stargraph;
         this.dbId = Objects.requireNonNull(dbId);
         this.core = Objects.requireNonNull(stargraph.getKBCore(dbId));
         this.analyzers = new Analyzers(stargraph, dbId);
@@ -78,7 +78,6 @@ public class QueryEngine {
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
         this.modeSelector = new InteractionModeSelector(stargraph.getMainConfig(), language);
-        this.ner = core.getNER();
     }
 
     public QueryResponse query(String query) {
@@ -336,7 +335,7 @@ public class QueryEngine {
         final int LIMIT = 50;
         List<String> docTypes = core.getDocTypes();
 
-        FilterQueryBuilder queryBuilder = new FilterQueryBuilder(ner);
+        FilterQueryBuilder queryBuilder = new FilterQueryBuilder(stargraph, dbId);
         FilterQuery filterQuery = queryBuilder.parse(userQuery, FILTER);
 
         List<PassageExtraction> queryFilters = filterQuery.getExtractionFilters();

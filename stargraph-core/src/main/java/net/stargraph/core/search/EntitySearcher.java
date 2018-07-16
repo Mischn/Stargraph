@@ -289,6 +289,7 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
+        searchParams.lookup(false);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(entityId), classIds, searchParams);
         Searcher searcher = core.getGraphSearcher();

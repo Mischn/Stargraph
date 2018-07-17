@@ -26,21 +26,21 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
+import java.util.List;
+
 public class LinkedEntityEntry {
     private String value;
     private String cat;
     private int start;
     private int end;
-    private EntityEntry entity;
-    private double score;
+    private List<EntityEntry> entities;
 
-    public LinkedEntityEntry(String value, String cat, int start, int end, EntityEntry entity, double score) {
+    public LinkedEntityEntry(String value, String cat, int start, int end, List<EntityEntry> entities) {
         this.value = value;
         this.cat = cat;
         this.start = start;
         this.end = end;
-        this.entity = entity;
-        this.score = score;
+        this.entities = entities;
     }
 
     public String getValue() {
@@ -59,11 +59,7 @@ public class LinkedEntityEntry {
         return end;
     }
 
-    public EntityEntry getEntity() {
-        return entity;
-    }
-
-    public double getScore() {
-        return score;
+    public List<EntityEntry> getEntities() {
+        return entities;
     }
 }

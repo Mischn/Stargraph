@@ -28,6 +28,7 @@ package net.stargraph.core.impl.corenlp;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
+import net.stargraph.core.ner.LinkedEntityScore;
 import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.EntitySearcher;
@@ -35,6 +36,7 @@ import net.stargraph.model.LabeledEntity;
 import net.stargraph.query.Language;
 import net.stargraph.rank.ModifiableSearchParams;
 import net.stargraph.rank.ParamsBuilder;
+import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,13 +51,13 @@ public final class NERSearcher implements NER {
     private final Marker marker = MarkerFactory.getMarker("ner");
     private CoreNLPNERClassifier ner;
     private EntitySearcher entitySearcher;
-    private String entitySearcherDbId;
+    private List<String> entitySearcherDbIds;
     private boolean reverseNameOrder;
 
-    public NERSearcher(Language language, EntitySearcher entitySearcher, String entitySearcherDbId) {
+    public NERSearcher(Language language, EntitySearcher entitySearcher, List<String> entitySearcherDbIds) {
         this.ner = new CoreNLPNERClassifier(Objects.requireNonNull(language));
         this.entitySearcher = Objects.requireNonNull(entitySearcher);
-        this.entitySearcherDbId = Objects.requireNonNull(entitySearcherDbId);
+        this.entitySearcherDbIds = Objects.requireNonNull(entitySearcherDbIds);
         this.reverseNameOrder = false; //TODO: read from configuration, specific for each KB.
     }
 
@@ -183,7 +185,9 @@ public final class NERSearcher implements NER {
              */
             Optional<NamedEntity> reference = findReference(linkedNamedEntities, namedEntity.getValue());
             if (reference.isPresent()) {
-                namedEntity.link(reference.get().getEntity(), reference.get().getScore());
+                for (LinkedEntityScore score : reference.get().getEntities()) {
+                    namedEntity.addLink((LabeledEntity)score.getEntry(), score.getDbId(), score.getValue());
+                }
             } else {
                 tryLink(namedEntity);
             }
@@ -197,20 +201,22 @@ public final class NERSearcher implements NER {
     }
 
     private void tryLink(NamedEntity namedEntity) {
+        final int LIMIT = 1; // Currently, we only care about the highest scored entity.
+
         if (!namedEntity.getCat().equalsIgnoreCase("DATE")) {
             //TODO: Limit reduce network latency but can hurt precision in some cases
-            ModifiableSearchParams searchParams =
-                    ModifiableSearchParams.create(this.entitySearcherDbId).term(namedEntity.getValue()).limit(50);
 
-            logger.info(marker, "Trying to link {}", namedEntity);
+            for (String entitySearcherDbId : entitySearcherDbIds) {
+                logger.debug(marker, "Trying to link '{}' to knowledge-base '{}'", namedEntity, entitySearcherDbId);
 
-            final Scores scores = entitySearcher.instanceSearch(searchParams, ParamsBuilder.levenshtein());
+                ModifiableSearchParams searchParams =
+                        ModifiableSearchParams.create(entitySearcherDbId).term(namedEntity.getValue()).limit(LIMIT);
 
-            // Currently, we only care about the highest scored entity.
-            if (scores.size() > 0) {
-                LabeledEntity instance = (LabeledEntity) scores.get(0).getEntry();
-                double score = scores.get(0).getValue();
-                namedEntity.link(instance, score);
+                final Scores scores = entitySearcher.instanceSearch(searchParams, ParamsBuilder.levenshtein());
+                for (Score score : scores) {
+                    logger.debug(marker, "Found {}'", score.getRankableView().getId());
+                    namedEntity.addLink((LabeledEntity)score.getEntry(), entitySearcherDbId, score.getValue());
+                }
             }
         }
     }

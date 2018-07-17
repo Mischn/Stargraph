@@ -67,12 +67,15 @@ public final class PassageProcessor extends BaseProcessor {
 
             List<Passage> passages = new ArrayList<>();
             for (String sentence : SentencesUtils.splitIntoSentences(document.getText())) {
-                List<NamedEntity> lners = ner.searchAndLink(sentence);
+                List<NamedEntity> namedEntities = ner.searchAndLink(sentence);
 
                 // only add linked entities
-                List<LabeledEntity> entities = lners.parallelStream()
-                        .filter(e -> e.isLinked())
-                        .map(NamedEntity::getEntity).collect(Collectors.toList());
+                List<LabeledEntity> entities = new ArrayList<>();
+                for (NamedEntity namedEntity : namedEntities) {
+                    if (namedEntity.isLinked()) {
+                        entities.addAll(namedEntity.getEntities().stream().map(s -> (LabeledEntity)s.getEntry()).collect(Collectors.toList()));
+                    }
+                }
 
                 passages.add(new Passage(sentence, entities));
             }

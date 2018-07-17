@@ -37,6 +37,7 @@ import net.stargraph.model.Document;
 import net.stargraph.model.LabeledEntity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -44,12 +45,12 @@ import java.util.stream.Collectors;
 /**
  * Can be placed in the workflow to create linked named entities.
  */
-public final class DocumentLNERProcessor extends BaseProcessor {
-    public static String name = "document-lner-processor";
+public final class DocumentNERProcessor extends BaseProcessor {
+    public static String name = "document-ner-processor";
 
     private Stargraph stargraph;
 
-    public DocumentLNERProcessor(Stargraph stargraph, Config config) {
+    public DocumentNERProcessor(Stargraph stargraph, Config config) {
         super(config);
         this.stargraph = Objects.requireNonNull(stargraph);
     }
@@ -62,12 +63,15 @@ public final class DocumentLNERProcessor extends BaseProcessor {
         if (entry instanceof Document) {
             Document document = (Document)entry;
 
-            List<NamedEntity> lners = ner.searchAndLink(document.getText());
+            List<NamedEntity> namedEntities = ner.searchAndLink(document.getText());
 
             // only add linked entities
-            List<LabeledEntity> entities = lners.parallelStream()
-                    .filter(e -> e.isLinked())
-                    .map(NamedEntity::getEntity).collect(Collectors.toList());
+            List<LabeledEntity> entities = new ArrayList<>();
+            for (NamedEntity namedEntity : namedEntities) {
+                if (namedEntity.isLinked()) {
+                    entities.addAll(namedEntity.getEntities().stream().map(s -> (LabeledEntity)s.getEntry()).collect(Collectors.toList()));
+                }
+            }
 
             holder.set(new Document(
                     document.getId(),

@@ -26,10 +26,9 @@ package net.stargraph.server;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
+import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.query.Language;
 import net.stargraph.rest.EntityEntry;
 import net.stargraph.rest.LinkedEntityEntry;
@@ -44,6 +43,7 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class NERResourceImpl implements NERResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -55,21 +55,22 @@ public final class NERResourceImpl implements NERResource {
     }
 
     @Override
-    public Response searchAndLink(String dbId, String language, UserText userText) {
-        Namespace namespace = core.getKBCore(dbId).getNamespace();
+    public Response searchAndLink(List<String> dbIds, String language, UserText userText) {
         Language lang = Language.valueOf(language.toUpperCase());
-        NER ner = core.createNER(lang, dbId);
+        NER ner = core.createNER(lang, dbIds);
 
-        List<NamedEntity> linkedNamedEntities = ner.searchAndLink(userText.text);
+        List<NamedEntity> namedEntities = ner.searchAndLink(userText.text);
 
         // convert to LinkedEntityEntries (expand IDs by convention)
-        List<LinkedEntityEntry> linkedEntityEntries = new ArrayList<>();
-        for (NamedEntity linkedEntity : linkedNamedEntities) {
-            EntityEntry entity = (linkedEntity.isLinked())? EntityEntryCreator.createLabeledEntityEntry(linkedEntity.getEntity(), dbId, namespace) : null;
-            double score = (linkedEntity.isLinked())? linkedEntity.getScore() : -1;
-            linkedEntityEntries.add(new LinkedEntityEntry(linkedEntity.getValue(), linkedEntity.getCat(), linkedEntity.getStart(), linkedEntity.getEnd(), entity, score));
+        List<LinkedEntityEntry> entityEntries = new ArrayList<>();
+        for (NamedEntity namedEntity : namedEntities) {
+            List<EntityEntry> entries = namedEntity.getEntities().stream()
+                    .map(e -> EntityEntryCreator.createScoredEntityEntry(e, e.getDbId(), core.getKBCore(e.getDbId()).getNamespace()))
+                    .collect(Collectors.toList());
+
+            entityEntries.add(new LinkedEntityEntry(namedEntity.getValue(), namedEntity.getCat(), namedEntity.getStart(), namedEntity.getEnd(), entries));
         }
 
-        return Response.ok().entity(new NERResponse(userText.text, linkedEntityEntries)).build();
+        return Response.ok().entity(new NERResponse(userText.text, entityEntries)).build();
     }
 }

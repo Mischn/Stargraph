@@ -329,8 +329,8 @@ public final class Stargraph {
         return entitySearcher;
     }
 
-    public NER createNER(Language language, String nerKbName) {
-        return new NERSearcher(language, getEntitySearcher(), nerKbName);
+    public NER createNER(Language language, List<String> nerKbNames) {
+        return new NERSearcher(language, getEntitySearcher(), nerKbNames);
     }
 
     public List<KBId> getKBIds(String dbId) {

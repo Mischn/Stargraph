@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +41,7 @@ public final class KBCore {
     private String kbName;
     private Config kbConfig;
     private Language language;
-    private String nerKbName;
+    private List<String> nerKbNames;
     private BaseGraphModel graphModel;
     private KBLoader kbLoader;
     private Namespace namespace;
@@ -63,13 +64,13 @@ public final class KBCore {
         this.indexSearchQueryGenerators = new ConcurrentHashMap<>();
         this.language = Language.valueOf(kbConfig.getString("language").toUpperCase());
 
-        if (kbConfig.hasPathOrNull("ner-kb")) {
-            if (kbConfig.getIsNull("ner-kb")) {
-                throw new StarGraphException("No NER-KB configured.");
+        if (kbConfig.hasPathOrNull("ner-kbs")) {
+            if (kbConfig.getIsNull("ner-kbs")) {
+                throw new StarGraphException("No NER-KBs configured.");
             }
-            this.nerKbName = kbConfig.getString("ner-kb");
+            this.nerKbNames = kbConfig.getStringList("ner-kbs");
         } else {
-            this.nerKbName = kbName;
+            this.nerKbNames = Arrays.asList(kbName);
         }
 
         this.namespace = Namespace.create(kbConfig);
@@ -117,7 +118,7 @@ public final class KBCore {
             }
         }
 
-        this.ner = stargraph.createNER(language, nerKbName);
+        this.ner = stargraph.createNER(language, nerKbNames);
         this.kbLoader = new KBLoader(this);
         this.running = true;
     }
@@ -151,8 +152,8 @@ public final class KBCore {
         return kbName;
     }
 
-    public String getNERKBName() {
-        return nerKbName;
+    public List<String> getNERKBNames() {
+        return nerKbNames;
     }
 
     public Language getLanguage() {

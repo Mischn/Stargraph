@@ -49,7 +49,7 @@ public final class Processors {
             put(LengthFilterProcessor.name, LengthFilterProcessor.class);
             put(CoreferenceResolutionProcessor.name, CoreferenceResolutionProcessor.class);
             put(OpenIEProcessor.name, OpenIEProcessor.class);
-            put(DocumentLNERProcessor.name, DocumentLNERProcessor.class);
+            put(DocumentNERProcessor.name, DocumentNERProcessor.class);
             put(PassageProcessor.name, PassageProcessor.class);
             put(PassageExtractionProcessor.name, PassageExtractionProcessor.class);
             put(ClassIdentiferProcessor.name, ClassIdentiferProcessor.class);
@@ -86,7 +86,7 @@ public final class Processors {
 
         try {
             // use special constructor (stargraph, config)
-            if ((c.equals(DocumentLNERProcessor.class)
+            if ((c.equals(DocumentNERProcessor.class)
                     || c.equals(PassageProcessor.class)
                     || c.equals(PassageExtractionProcessor.class)
                     || c.equals(ClassIdentiferProcessor.class)

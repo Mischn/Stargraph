@@ -32,8 +32,8 @@ public class NERSimplePassageIE extends SimpleIE<PassageExtraction> {
 
         for (List<Word> argument : arguments) {
             String s = argument.stream().map(a -> a.getText()).collect(Collectors.joining(" "));
-            List<NamedEntity> lners = ner.searchWithoutLink(s);
-            terms.addAll(lners.parallelStream()
+            List<NamedEntity> namedEntities = ner.searchWithoutLink(s);
+            terms.addAll(namedEntities.parallelStream()
                     .filter(l -> !l.getCat().equals("DATE"))
                     .map(l -> l.getValue()).collect(Collectors.toList()));
             temporals.addAll(TIME_PARSER.parse(s));

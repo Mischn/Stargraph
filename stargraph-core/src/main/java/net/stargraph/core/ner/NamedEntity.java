@@ -28,6 +28,7 @@ package net.stargraph.core.ner;
 
 import net.stargraph.model.LabeledEntity;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -38,14 +39,13 @@ public final class NamedEntity {
     private String cat;
     private int start;
     private int end;
-    private LabeledEntity entity; // optional
-    private double score; // optional
+    private List<LinkedEntityScore> entities;
 
     public NamedEntity(String value, String cat, int start, int end) {
-        this(value, cat, start, end, null, -1);
+        this(value, cat, start, end, new ArrayList<>(), -1);
     }
 
-    public NamedEntity(String value, String cat, int start, int end, LabeledEntity entity, double score) {
+    public NamedEntity(String value, String cat, int start, int end, List<LinkedEntityScore> entities, double score) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("NamedEntity `value` can't be null or empty");
         }
@@ -53,8 +53,7 @@ public final class NamedEntity {
         this.cat = cat;
         this.start = start;
         this.end = end;
-        this.entity = entity;
-        this.score = score;
+        this.entities = entities;
     }
 
     public String getValue() {
@@ -63,10 +62,6 @@ public final class NamedEntity {
 
     public String getCat() {
         return cat;
-    }
-
-    public double getScore() {
-        return score;
     }
 
     public int getStart() {
@@ -78,11 +73,11 @@ public final class NamedEntity {
     }
 
     public boolean isLinked() {
-        return entity != null;
+        return entities.size() > 0;
     }
 
-    public LabeledEntity getEntity() {
-        return entity;
+    public List<LinkedEntityScore> getEntities() {
+        return entities;
     }
 
 
@@ -101,9 +96,8 @@ public final class NamedEntity {
         this.end = newEndPos;
     }
 
-    public void link(LabeledEntity entity, double score) {
-        this.entity = Objects.requireNonNull(entity);
-        this.score = score;
+    public void addLink(LabeledEntity entity, String entityDbId, double score) {
+        this.entities.add(new LinkedEntityScore(entity, entityDbId, score));
     }
 
     @Override
@@ -113,15 +107,14 @@ public final class NamedEntity {
         NamedEntity that = (NamedEntity) o;
         return start == that.start &&
                 end == that.end &&
-                Objects.equals(entity, that.entity) &&
-                Objects.equals(score, that.score) &&
+                Objects.equals(entities, that.entities) &&
                 Objects.equals(cat, that.cat) &&
                 Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entity, score, start, end, cat, value);
+        return Objects.hash(entities, start, end, cat, value);
     }
 
     @Override
@@ -133,10 +126,9 @@ public final class NamedEntity {
                     '}';
         }
         return "Linked{" +
-                "entity='" + entity + '\'' +
+                "entities='" + entities + '\'' +
                 ", value='" + value + '\'' +
                 ", cat='" + cat + '\'' +
-                ", score='" + score + '\'' +
                 '}';
     }
 }

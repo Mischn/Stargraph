@@ -60,7 +60,9 @@ public abstract class LuceneScroller implements Iterable<Score> {
                     TopDocs response = indexSearcher.search(
                             holder.getQuery(),
                             (maxEntries < 0) ? Integer.MAX_VALUE : maxEntries,
-                            Sort.RELEVANCE);
+                            Sort.RELEVANCE,
+                            true,
+                            false);
 
                     innerIt = Arrays.asList(response.scoreDocs).iterator();
                     hasNext = innerIt.hasNext();

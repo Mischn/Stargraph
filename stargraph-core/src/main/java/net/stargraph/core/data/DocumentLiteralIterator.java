@@ -26,6 +26,7 @@ package net.stargraph.core.data;
  * ==========================License-End===============================
  */
 
+import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.impl.jena.JenaBaseSearcher;
@@ -33,8 +34,13 @@ import net.stargraph.core.impl.jena.JenaGraphSearcher;
 import net.stargraph.data.Indexable;
 import net.stargraph.model.Document;
 import net.stargraph.model.KBId;
+import net.stargraph.query.Language;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.util.*;
 
@@ -42,7 +48,11 @@ import java.util.*;
  * Produces entity-documents from literals (selected by SPARQL-Query)
  */
 public final class DocumentLiteralIterator implements Iterator<Indexable> {
+    private static Logger logger = LoggerFactory.getLogger(DocumentLiteralIterator.class);
+    private static Marker marker = MarkerFactory.getMarker("core");
+
     private final JenaGraphSearcher graphSearcher;
+    private final Language language;
     private final KBId kbId;
     private final String sparqlQuery;
     private final String docType;
@@ -51,6 +61,7 @@ public final class DocumentLiteralIterator implements Iterator<Indexable> {
 
     public DocumentLiteralIterator(Stargraph stargraph, KBId kbId, String sparqlQuery, String docType, BaseGraphModel model) {
         this.kbId = Objects.requireNonNull(kbId);
+        this.language = stargraph.getKBCore(kbId.getId()).getLanguage();
         this.graphSearcher = (JenaGraphSearcher)stargraph.getKBCore(kbId.getId()).getGraphSearcher(model);
         this.sparqlQuery = Objects.requireNonNull(sparqlQuery);
         this.docType = Objects.requireNonNull(docType);
@@ -58,32 +69,71 @@ public final class DocumentLiteralIterator implements Iterator<Indexable> {
 
     public DocumentLiteralIterator(Stargraph stargraph, KBId kbId, String sparqlQuery, String docType) {
         this.kbId = Objects.requireNonNull(kbId);
+        this.language = stargraph.getKBCore(kbId.getId()).getLanguage();
         this.graphSearcher = (JenaGraphSearcher)stargraph.getKBCore(kbId.getId()).getGraphSearcher();
         this.sparqlQuery = Objects.requireNonNull(sparqlQuery);
         this.docType = Objects.requireNonNull(docType);
     }
 
+    private Language getLiteralLanguage(Node literal) {
+        if (literal.getLiteralLanguage() == null || literal.getLiteralLanguage().length() <= 0) {
+            // assume language of knowledge-base
+            return language;
+        }
+
+        switch (literal.getLiteralLanguage().toLowerCase()) {
+            case "en":
+                return Language.EN;
+            case "de":
+                return Language.DE;
+            case "pt":
+                return Language.PT;
+            default:
+                throw new StarGraphException("Could not determine language from '" + literal.getLiteralLanguage() + "'");
+        }
+    }
+
     private void init() {
         List<Indexable> docs = new ArrayList();
+
         graphSearcher.sparqlQuery(sparqlQuery, new JenaBaseSearcher.SparqlIteration() {
             @Override
             public void process(Binding binding) {
                 // assume to contain ?e (for entitiy) and ?t for (text)
                 Map<String, Node> varMap = JenaGraphSearcher.getVarMap(binding);
-                if (!varMap.get("t").isLiteral()) {
+
+                Node entity = varMap.get("e");
+                Node literal = varMap.get("t");
+                if (!literal.isLiteral()) {
                     return;
                 }
 
-                Document document = new Document(
-                        varMap.get("e").getURI() + "#" + docType,
-                        docType,
-                        varMap.get("e").getURI(),
-                        docType,
-                        null,
-                        varMap.get("t").getLiteralLexicalForm()
-                );
+                String text = null;
+                try {
+                    Language literalLanguage = getLiteralLanguage(literal);
+                    if (literalLanguage.equals(language)) {
+                        text = literal.getLiteralLexicalForm();
+                    } else {
+                        //TODO translate?
+                        logger.warn(marker, "Translation of {} into {} language is currently not supported.", literalLanguage, language);
+                        // translator.translate(literalLanguage, language, t.getLiteralLexicalForm());
+                        text = null;
+                    }
+                } catch (StarGraphException e) {
+                    logger.error(marker, e.getMessage());
+                }
 
-                docs.add(new Indexable(document, kbId));
+                if (text != null) {
+                    Document document = new Document(
+                            entity.getURI() + "#" + docType,
+                            docType,
+                            entity.getURI(),
+                            docType,
+                            null,
+                            text
+                    );
+                    docs.add(new Indexable(document, kbId));
+                }
             }
         });
         innerIt = docs.iterator();

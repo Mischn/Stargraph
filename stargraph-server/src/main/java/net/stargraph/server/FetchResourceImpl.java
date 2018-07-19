@@ -44,6 +44,7 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 final class FetchResourceImpl implements FetchResource {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -88,17 +89,25 @@ final class FetchResourceImpl implements FetchResource {
     }
 
     @Override
-    public Response getDocuments(String dbId, String entityId, List<String> docTypes) {
+    public Response getDocuments(String dbId, String entityId, List<String> docTypes, boolean inOrder) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
         List<String> dTypes;
         if (docTypes.size() == 1 && docTypes.get(0).equals("null")) {
-            dTypes = null;
+            dTypes = stargraph.getDocTypes(dbId);
         } else {
             dTypes = new ArrayList<>(docTypes);
         }
 
         List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, entityId, dTypes);
+        if (inOrder) {
+            List<Document> ordered = new ArrayList<>();
+            for (String dType : dTypes) {
+                ordered.addAll(documents.stream().filter(d -> d.getType().equals(dType)).collect(Collectors.toList()));
+            }
+            documents = ordered;
+        }
+
         List<DocumentEntry> documentEntries = EntityEntryCreator.createDocumentEntries(documents, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(documentEntries).build();

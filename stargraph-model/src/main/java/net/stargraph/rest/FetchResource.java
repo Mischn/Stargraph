@@ -52,5 +52,5 @@ public interface FetchResource {
 
     @GET
     @Path("{kbId}/fetch/documents")
-    Response getDocuments(@PathParam("kbId") String dbId, @QueryParam("entityId") String entityId, @DefaultValue("null") @QueryParam("docTypes") List<String> docTypes);
+    Response getDocuments(@PathParam("kbId") String dbId, @QueryParam("entityId") String entityId, @DefaultValue("null") @QueryParam("docTypes") List<String> docTypes, @DefaultValue("false") @QueryParam("inOrder") boolean inOrder);
 }

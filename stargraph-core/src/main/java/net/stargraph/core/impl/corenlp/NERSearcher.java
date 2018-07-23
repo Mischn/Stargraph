@@ -76,7 +76,8 @@ public final class NERSearcher implements NER {
         long start = System.nanoTime();
         List<NamedEntity> namedEntities = new ArrayList<>();
         try {
-            final List<List<CoreLabel>> sentences = ner.classify(text); //TODO: Improve decoupling, still tied to CoreNLP
+            String input = text + " ."; //TODO remove hack?
+            final List<List<CoreLabel>> sentences = ner.classify(input); //TODO: Improve decoupling, still tied to CoreNLP
             logger.trace(marker, "NER output: {}", sentences);
             namedEntities = postProcessFoundNamedEntities(sentences);
             if (link) {
@@ -201,7 +202,7 @@ public final class NERSearcher implements NER {
     }
 
     private void tryLink(NamedEntity namedEntity) {
-        final int LIMIT = 1; // Currently, we only care about the highest scored entity.
+        final int LIMIT = 3;
 
         if (!namedEntity.getCat().equalsIgnoreCase("DATE")) {
             //TODO: Limit reduce network latency but can hurt precision in some cases

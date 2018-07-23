@@ -87,8 +87,10 @@ public class QueryEngine {
         long startTime = System.currentTimeMillis();
         try {
             switch (mode) {
-                case SA_SPARQL: //TODO ?
-                case SA_SIMPLE_SPARQL: //TODO ?
+                case SA_SPARQL: //TODO not implemented
+                    response = new NoResponse(SA_SPARQL, query);
+                case SA_SIMPLE_SPARQL: //TODO not implemented
+                    response = new NoResponse(SA_SIMPLE_SPARQL, query);
                 case NLI:
                     response = nliQuery(query, language);
                     break;
@@ -106,6 +108,9 @@ public class QueryEngine {
                     break;
                 case DEFINITION:
                     response = definitionQuery(query, language);
+                    break;
+                case CLUE:
+                    response = clueQuery(query, language);
                     break;
                 default:
                     throw new StarGraphException("Input type not yet supported");

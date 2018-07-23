@@ -39,6 +39,15 @@ public final class InteractionModeSelector {
     private Annotator annotator;
     private Language language;
 
+    public static final String ENTITY_SIMILARITY_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,6} (?:similar to|(?:is|are|was|were) like) (\\w+).*$";
+    public static final String FILTER_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,4} (?<obj>objects) (?<expr>\\w+) .*$";
+    public static final String DEFINITION_PATTERN =
+            "(?:^(?:\\s*\\w+)(?:\\s+\\w+){0,4} definition of (\\w+).*$)"
+            + "||"
+            + "(?:^\\s*describe (\\w+).*$)"
+            + "||"
+            + "(?:^\\s*(?:who|what) (?:is|are|was|were) (\\w+).*$)";
+
     public InteractionModeSelector(Annotator annotator, Language language) {
         this.annotator = Objects.requireNonNull(annotator);
         this.language = Objects.requireNonNull(language);
@@ -47,10 +56,10 @@ public final class InteractionModeSelector {
     public InteractionMode detect(String queryString) {
         InteractionMode mode = NLI;
 
-        // TODO
-        if (queryString.trim().startsWith("#")) {
-            return InteractionMode.LIKE_THIS;
-        }
+//        // TODO
+//        if (queryString.trim().startsWith("#")) {
+//            return InteractionMode.LIKE_THIS;
+//        }
 
         if (queryString.contains("SELECT") || queryString.contains("ASK") || queryString.contains("CONSTRUCT")) {
             if (queryString.contains("PREFIX ") || queryString.contains("http:")) {
@@ -60,19 +69,22 @@ public final class InteractionModeSelector {
                 //mode = InteractionMode.SA_SPARQL; //TODO re-activate?
             }
         } else {
-            if (isFilterQuery(queryString)) {
-                mode = InteractionMode.FILTER;
-            } else if (isEntitySimilarityQuery(queryString)) {
+            if (isEntitySimilarityQuery(queryString)) {
                 mode = InteractionMode.ENTITY_SIMILARITY;
-            } else if (queryString.contains("http:")) {
-                mode = InteractionMode.SIMPLE_SPARQL;
-            } else if (queryString.contains(":")) {
-                mode = InteractionMode.SA_SIMPLE_SPARQL;
+            } else if (isFilterQuery(queryString)) {
+                mode = InteractionMode.FILTER;
             } else if (isDefinitionQuery(queryString)) {
                 mode = InteractionMode.DEFINITION;
-            } else if (isClueQuery(queryString)) {
-                mode = InteractionMode.CLUE;
             }
+
+            // TODO
+//            if (queryString.contains("http:")) {
+//                mode = InteractionMode.SIMPLE_SPARQL;
+//            } else if (queryString.contains(":")) {
+//                mode = InteractionMode.SA_SIMPLE_SPARQL;
+//            } else if (isClueQuery(queryString)) {
+//                mode = InteractionMode.CLUE;
+//            }
         }
 
         //TODO: other types will require configurable rules per language.
@@ -80,38 +92,19 @@ public final class InteractionModeSelector {
         return mode;
     }
 
-    private boolean isFilterQuery(String queryString) {
-        String q = queryString.trim().toLowerCase();
-        return q.matches("^.* all objects .*$");
+    private boolean isEntitySimilarityQuery(String queryString){
+        final String q = queryString.trim().toLowerCase();
+        return q.matches(ENTITY_SIMILARITY_PATTERN);
     }
 
-    private boolean isEntitySimilarityQuery(String queryString){
-        if (queryString == null || queryString.isEmpty()) {
-            return false;
-        }
-
+    private boolean isFilterQuery(String queryString) {
         final String q = queryString.trim().toLowerCase();
-        return q.contains("similar to") || q.contains("is like"); //TODO: What if this on the middle of the query?
+        return q.matches(FILTER_PATTERN);
     }
 
     private boolean isDefinitionQuery(String queryString){
-        boolean b = true;
-        String q = queryString.trim().toLowerCase();
-
-        b &= q.contains("who is") || q.contains("who are") || q.contains("what is") || q.contains("what are");
-
-        q = q.replace("who is", "").replace("who are", "").
-                replace("what is", "").replace("what are", "");
-        q = q.replaceAll("\\.", "").replaceAll("\\?", "").replaceAll("\\!", "");
-        /*
-        for(String word : q.split(" ")) {
-            if (!Character.isUpperCase(word.charAt(0)))
-                return false;
-        }
-        */
-        b &= !q.contains("like");
-
-        return b;
+        final String q = queryString.trim().toLowerCase();
+        return q.matches(DEFINITION_PATTERN);
     }
 
     private boolean isClueQuery(String queryString){

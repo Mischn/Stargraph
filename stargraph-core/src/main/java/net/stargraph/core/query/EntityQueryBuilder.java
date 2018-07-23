@@ -29,15 +29,11 @@ package net.stargraph.core.query;
 import net.stargraph.StarGraphException;
 import net.stargraph.query.InteractionMode;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public final class EntityQueryBuilder {
-
-    private final String IS_LIKE = "like";
-    private final String IS_SIMILAR_TO = "similar to";
-
-    public EntityQueryBuilder(){
-
-    }
 
     public EntityQuery parse(String queryString, InteractionMode mode){
 
@@ -58,24 +54,25 @@ public final class EntityQueryBuilder {
     }
 
     private EntityQuery parseSimilarityQuery(String queryString){
-
         String coreEntity = "";
 
-        if(queryString.contains(IS_SIMILAR_TO))
-            coreEntity = queryString.substring(queryString.indexOf(IS_SIMILAR_TO) + IS_SIMILAR_TO.length(), queryString.length()).trim();
-        if(queryString.contains(IS_LIKE))
-            coreEntity = queryString.substring(queryString.indexOf(IS_LIKE) + IS_LIKE.length(), queryString.length()).trim();
+        Pattern p = Pattern.compile(InteractionModeSelector.ENTITY_SIMILARITY_PATTERN);
+        Matcher m = p.matcher(queryString);
+        if (m.matches()) {
+            coreEntity = queryString.substring(m.start(1)).replaceAll("\\?", "").trim();
+        }
 
         return new EntityQuery(coreEntity);
-
     }
 
     private EntityQuery parseDefinitionQuery(String queryString){
-
         String coreEntity = "";
 
-        coreEntity = queryString.replace("Who is", "").replace("Who are", "").
-                replace("What is", "").replace("What are", "").replace("Define", "").replace("\\?", "").trim();
+        Pattern p = Pattern.compile(InteractionModeSelector.DEFINITION_PATTERN);
+        Matcher m = p.matcher(queryString);
+        if (m.matches()) {
+            coreEntity = queryString.substring(m.start(1)).replaceAll("\\?", "").trim();
+        }
 
         return new EntityQuery(coreEntity);
     }

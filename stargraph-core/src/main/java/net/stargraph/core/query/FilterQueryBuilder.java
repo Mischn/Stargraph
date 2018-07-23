@@ -55,10 +55,10 @@ public final class FilterQueryBuilder {
     }
 
     public FilterQuery parse(String queryString, InteractionMode mode){
-        Pattern pattern = Pattern.compile("^.* all (?<text>(?<obj>objects) (?<expr>\\w+) (.*))$");
+        Pattern pattern = Pattern.compile(InteractionModeSelector.FILTER_PATTERN);
         Matcher matcher = pattern.matcher(queryString);
         if (matcher.matches()) {
-            String text = matcher.group("text");
+            String text = queryString.substring(matcher.start("obj"));
             String obj = matcher.group("obj");
             String expr = matcher.group("expr");
 

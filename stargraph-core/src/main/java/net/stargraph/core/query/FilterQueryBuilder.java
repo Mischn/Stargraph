@@ -64,9 +64,11 @@ public final class FilterQueryBuilder {
 
             List<PassageExtraction> extractionFilters = simplePassageIE.extract(text);
             PassageExtraction objectFilter = simplePassageIE.extractModifiers(text, obj);
-            String objectRelation = getObjectRelation(expr);
-            if (objectRelation != null) {
-                extractionFilters.add(new PassageExtraction(objectRelation, objectFilter.getTerms(), objectFilter.getTemporals()));
+            if (objectFilter != null) {
+                String objectRelation = getObjectRelation(expr);
+                if (objectRelation != null) {
+                    extractionFilters.add(new PassageExtraction(objectRelation, objectFilter.getTerms(), objectFilter.getTemporals()));
+                }
             }
 
             return new FilterQuery(extractionFilters);

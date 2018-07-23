@@ -74,9 +74,9 @@ public abstract class SimpleIE<T> {
         RootNode root = null;
         try {
             root = PARSER.parse(text);
-        } catch (ParseTreeException e) {
+        } catch (Exception e) {
             logger.error(marker, "Failed to parse text: '" + text + "'");
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
         traverseRelations(root, node -> yieldRelationalArguments(res, node));
         return res;
@@ -84,10 +84,10 @@ public abstract class SimpleIE<T> {
 
     public T extractModifiers(String text, String word) {
         List<T> res = new ArrayList<>();
-        RootNode root = null;
+        RootNode root;
         try {
             root = PARSER.parse(text);
-        } catch (ParseTreeException e) {
+        } catch (Exception e) {
             logger.error(marker, "Failed to parse text: '" + text + "'");
             return null;
         }

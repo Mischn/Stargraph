@@ -28,88 +28,80 @@ package net.stargraph.core.query.nli;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.annotation.binding.BindAnnotator;
+import net.stargraph.core.annotation.binding.Binding;
+import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
+import net.stargraph.query.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class QuestionAnalysis {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("nli");
 
+    private static final Pattern PUNCT_PATTERN = Pattern.compile(".*(([(){},.;!?<>%])).*");
+
     private Stargraph stargraph;
     private String dbId;
+    private Language language;
     private QueryType queryType;
     private String question;
+
+    private BindAnnotator<DataModelType> bindAnnotator;
     private List<Word> annotatedWords;
-    private Deque<AnalysisStep> steps;
+    private List<Binding<DataModelType>> currBindings;
     private SPARQLQueryBuilder sparqlQueryBuilder;
 
     QuestionAnalysis(Stargraph stargraph, String dbId, String question, QueryType queryType) {
         this.stargraph = stargraph;
         this.dbId = dbId;
-        this.question = Objects.requireNonNull(question);
+        this.language = stargraph.getKBCore(dbId).getLanguage();
         this.queryType = Objects.requireNonNull(queryType);
-        this.steps = new ArrayDeque<>();
+        this.question = Objects.requireNonNull(question);
+        bindAnnotator = new BindAnnotator<>(null, null, null);
         logger.debug(marker, "Analyzing '{}', detected type is '{}'", question, queryType);
     }
 
-    void annotate(List<Word> annotatedWords) {
+    void setAnnotatedWords(List<Word> annotatedWords) {
         this.annotatedWords = Objects.requireNonNull(annotatedWords);
-        this.steps.add(new AnalysisStep(annotatedWords));
     }
 
-    void resolveDataModelBindings(List<DataModelTypePattern> rules) {
-        if (steps.isEmpty()) {
-            throw new IllegalStateException();
-        }
-
-        logger.debug(marker, "Resolving Data Models");
-
-        boolean hasMatch;
-
-        do {
-            hasMatch = false;
-            for (DataModelTypePattern rule : rules) {
-                AnalysisStep step = steps.peek().resolve(rule);
-                if (step != null) {
-                    hasMatch = true;
-                    steps.push(step);
-                    break;
-                }
-            }
-        } while (hasMatch);
+    void resolveDataModelBindings(List<BindingPattern<DataModelType>> bindingPatterns) {
+        logger.info(marker, "RESOLVE DATA MODEL BINDINGS");
+        this.bindAnnotator.setBindingPatterns(bindingPatterns);
+        this.currBindings = bindAnnotator.extractBindings(annotatedWords);
     }
 
     void clean(List<Pattern> stopPatterns) {
-        if (steps.isEmpty()) {
-            throw new IllegalStateException();
-        }
+        logger.info(marker, "CLEAN DATA MODEL BINDINGS");
+        stopPatterns.add(PUNCT_PATTERN);
 
-        logger.debug(marker, "Cleaning up");
-        AnalysisStep step = steps.peek().clean(stopPatterns);
-        if (step != null) {
-            steps.push(step);
-        }
+        List<BindingPattern<DataModelType>> stopBindingPatterns = stopPatterns.stream()
+                .map(p -> new BindingPattern<DataModelType>(p.pattern(), DataModelType.STOP, language))
+                .collect(Collectors.toList());
+        this.bindAnnotator.setBindingPatterns(stopBindingPatterns);
+        this.currBindings = bindAnnotator.extractBindings2(this.currBindings);
+
+        // delete all stop patterns
+        this.currBindings = currBindings.stream().filter(b -> !b.isBound() || !b.getObject().equals(DataModelType.STOP)).collect(Collectors.toList());
     }
 
     void resolveSPARQL(List<QueryPlanPatterns> rules) {
-        if (steps.isEmpty()) {
-            throw new IllegalStateException();
-        }
+        String planId = currBindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : b.getBoundText()).collect(Collectors.joining(" "));
 
-        AnalysisStep last = steps.peek();
-        List<DataModelBinding> bindings = last.getBindings();
-        String planId = last.getAnalyzedQuestionStr();
+        List<DataModelBinding> dataModelBindings = currBindings.stream()
+                .filter(b -> b.isBound())
+                .map(b -> new DataModelBinding(b.getObject(), b.getPlaceHolder(), b.getBoundText()))
+                .collect(Collectors.toList());
 
         QueryPlanPatterns plan = rules.stream()
                 .filter(p -> p.match(planId))
@@ -117,7 +109,7 @@ public final class QuestionAnalysis {
 
         logger.debug(marker, "Creating SPARQL Query Builder, matched plan for '{}' is '{}'", planId, plan);
 
-        sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, dbId, queryType, plan, bindings);
+        sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, dbId, queryType, plan, dataModelBindings);
     }
 
     public SPARQLQueryBuilder getSPARQLQueryBuilder() {
@@ -133,7 +125,7 @@ public final class QuestionAnalysis {
                 "q='" + question + '\'' +
                 ", queryType'" + queryType + '\'' +
                 ", POS=" + annotatedWords +
-                ", Bindings='" + steps.peek().getBindings() + '\'' +
+                ", Bindings='" + currBindings + '\'' +
                 '}';
     }
 }

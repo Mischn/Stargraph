@@ -37,7 +37,6 @@ import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.query.Rules;
 import net.stargraph.core.query.nli.DataModelType;
-import net.stargraph.core.query.nli.DataModelTypePattern;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -80,10 +79,7 @@ public final class DocumentTermsProcessor extends BaseProcessor {
         } else {
             POSAnnotator posAnnotator = stargraph.createPOSAnnotatorFactory().create();
             Rules rules = new Rules(stargraph.getMainConfig());
-            List<BindingPattern<DataModelType>> bindingPatterns = new ArrayList<>();
-            for (DataModelTypePattern p : rules.getDataModelTypeRules(language)) {
-                bindingPatterns.add(new BindingPattern<>(p.getPattern(), p.getDataModelType(), language));
-            }
+            List<BindingPattern<DataModelType>> bindingPatterns = rules.getDataModelBindingPatterns(language);
 
             BindAnnotator ba = new BindAnnotator<>(posAnnotator, language, bindingPatterns);
             textAnnotators.put(language, ba);
@@ -95,7 +91,7 @@ public final class DocumentTermsProcessor extends BaseProcessor {
         List<String> terms = new ArrayList<>();
 
         for (String sentence : splitIntoSentences(text)) {
-            List<Binding> bindings = getBindAnnotator(language).extractBindings(sentence);
+            List<Binding<DataModelType>> bindings = getBindAnnotator(language).extractBindings(sentence);
             for (Binding binding : bindings) {
                 if (binding.isBound()) {
                     DataModelType modelType = (DataModelType) binding.getObject();

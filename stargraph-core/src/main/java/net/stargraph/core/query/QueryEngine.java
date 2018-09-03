@@ -194,7 +194,7 @@ public class QueryEngine {
 
             // create mappings for core entity
             Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), coreEntityScores);
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity()), coreEntityScores);
             answerSet.setMappings(mappings);
 
             return answerSet;
@@ -223,7 +223,7 @@ public class QueryEngine {
 
             // create mappings for core entity
             Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, query.getCoreEntity(), "INSTANCE_1"), coreEntityScores);
+            mappings.put(new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity()), coreEntityScores);
             answerSet.setMappings(mappings);
 
             return answerSet;

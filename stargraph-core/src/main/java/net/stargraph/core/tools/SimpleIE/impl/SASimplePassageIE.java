@@ -8,7 +8,6 @@ import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.core.query.Rules;
 import net.stargraph.core.query.nli.DataModelType;
-import net.stargraph.core.query.nli.DataModelTypePattern;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.model.date.TimeParser;
@@ -31,15 +30,13 @@ public class SASimplePassageIE extends SimpleIE<PassageExtraction> {
         POSAnnotator posAnnotator = stargraph.createPOSAnnotatorFactory().create();
         Language language = stargraph.getKBCore(dbId).getLanguage();
         Rules rules = new Rules(stargraph.getMainConfig());
-        List<BindingPattern<DataModelType>> bindingPatterns = new ArrayList<>();
-        for (DataModelTypePattern p : rules.getDataModelTypeRules(language)) {
-            bindingPatterns.add(new BindingPattern<>(p.getPattern(), p.getDataModelType(), language));
-        }
+        List<BindingPattern<DataModelType>> bindingPatterns = rules.getDataModelBindingPatterns(language);
+
         this.textAnnotator = new BindAnnotator<>(posAnnotator, language, bindingPatterns);
     }
 
     public List<String> extractTerms(List<Word> posAnnotated) {
-        List<Binding> bindings = textAnnotator.extractBindings(posAnnotated);
+        List<Binding<DataModelType>> bindings = textAnnotator.extractBindings(posAnnotated);
 
         List<String> terms = new ArrayList<>();
         for (Binding binding : bindings) {

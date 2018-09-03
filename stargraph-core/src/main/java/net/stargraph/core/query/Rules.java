@@ -29,6 +29,7 @@ package net.stargraph.core.query;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
+import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.query.Language;
 import net.stargraph.UnsupportedLanguageException;
 import net.stargraph.core.query.nli.*;
@@ -45,22 +46,22 @@ public final class Rules {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("query");
 
-    private Map<Language, List<DataModelTypePattern>> dataModelTypePatterns;
+    private Map<Language, List<BindingPattern<DataModelType>>> dataModelBindingPatterns;
     private Map<Language, List<QueryPlanPatterns>> queryPlanPatterns;
     private Map<Language, List<Pattern>> stopPatterns;
     private Map<Language, List<QueryTypePatterns>> queryTypePatterns;
 
     public Rules(Config config) {
         logger.info(marker, "Loading Rules.");
-        this.dataModelTypePatterns = loadDataModelTypePatterns(Objects.requireNonNull(config));
+        this.dataModelBindingPatterns = loadDataModelBindingPatterns(Objects.requireNonNull(config));
         this.queryPlanPatterns = loadQueryPlanPatterns(Objects.requireNonNull(config));
         this.stopPatterns = loadStopPatterns(config);
         this.queryTypePatterns = loadQueryTypePatterns(config);
     }
 
-    public List<DataModelTypePattern> getDataModelTypeRules(Language language) {
-        if (dataModelTypePatterns.containsKey(language)) {
-            return dataModelTypePatterns.get(language);
+    public List<BindingPattern<DataModelType>> getDataModelBindingPatterns(Language language) {
+        if (dataModelBindingPatterns.containsKey(language)) {
+            return dataModelBindingPatterns.get(language);
         }
         throw new UnsupportedLanguageException(language);
     }
@@ -86,8 +87,8 @@ public final class Rules {
         throw new UnsupportedLanguageException(language);
     }
 
-    private Map<Language, List<DataModelTypePattern>> loadDataModelTypePatterns(Config config) {
-        Map<Language, List<DataModelTypePattern>> rulesByLang = new HashMap<>();
+    private Map<Language, List<BindingPattern<DataModelType>>> loadDataModelBindingPatterns(Config config) {
+        Map<Language, List<BindingPattern<DataModelType>>> rulesByLang = new HashMap<>();
         ConfigObject configObject = config.getObject("rules.syntatic-pattern");
 
         configObject.keySet().forEach(strLang -> {
@@ -95,7 +96,7 @@ public final class Rules {
 
             rulesByLang.compute(language, (l, r) -> {
 
-                List<DataModelTypePattern> rules = new ArrayList<>();
+                List<BindingPattern<DataModelType>> rules = new ArrayList<>();
                 List<? extends Config> patternCfg = configObject.toConfig().getConfigList(strLang);
 
                 for (Config cfg : patternCfg) {
@@ -104,7 +105,7 @@ public final class Rules {
                     @SuppressWarnings("unchecked")
                     List<String> patternList = (List<String>) entry.getValue().unwrapped();
                     rules.addAll(patternList.stream()
-                            .map(p -> new DataModelTypePattern(p, DataModelType.valueOf(modelStr)))
+                            .map(p -> new BindingPattern<DataModelType>(p, DataModelType.valueOf(modelStr), l))
                             .collect(Collectors.toList()));
                 }
 

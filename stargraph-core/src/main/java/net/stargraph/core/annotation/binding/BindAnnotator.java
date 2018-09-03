@@ -30,13 +30,30 @@ public class BindAnnotator<T> {
         this.bindingPatterns = bindingPatterns;
     }
 
-    public List<Binding> extractBindings(String sentence) {
+    public void setPosAnnotator(POSAnnotator posAnnotator) {
+        this.posAnnotator = posAnnotator;
+    }
+
+    public void setLanguage(Language language) {
+        this.language = language;
+    }
+
+    public void setBindingPatterns(List<BindingPattern<T>> bindingPatterns) {
+        this.bindingPatterns = bindingPatterns;
+    }
+
+    public List<Binding<T>> extractBindings(String sentence) {
         List<Word> posAnnotated = posAnnotator.run(language, sentence);
         return extractBindings(posAnnotated);
     }
 
-    public List<Binding> extractBindings(List<Word> posAnnotated) {
-        List<Binding> current = posAnnotated.stream().map(w -> new Binding(Arrays.asList(w), null, null)).collect(Collectors.toList());
+    public List<Binding<T>> extractBindings(List<Word> posAnnotated) {
+        List<Binding<T>> initialBindings = posAnnotated.stream().map(w -> new Binding<T>(Arrays.asList(w), null, null)).collect(Collectors.toList());
+        return extractBindings2(initialBindings);
+    }
+
+    public List<Binding<T>> extractBindings2(List<Binding<T>> bindings) {
+        List<Binding<T>> current = new ArrayList<>(bindings);
 
         boolean hasMatch = true;
         while (hasMatch) {
@@ -83,7 +100,6 @@ public class BindAnnotator<T> {
 
 
 
-
     private static <T> String createPlaceholder(String target, T object) {
         int unusedIdx = 1;
         String placeHolder = String.format("%s_%d", object, unusedIdx);
@@ -93,11 +109,11 @@ public class BindAnnotator<T> {
         return placeHolder;
     }
 
-    private static String getLexicalStr(List<Binding> bindings) {
+    private static <T> String getLexicalStr(List<Binding<T>> bindings) {
         return bindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : ((Word)b.getWords().get(0)).getText()).collect(Collectors.joining(" "));
     }
 
-    private static String getPosTagStr(List<Binding> bindings) {
+    private static <T> String getPosTagStr(List<Binding<T>> bindings) {
         return bindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : ((Word)b.getWords().get(0)).getPosTagString()).collect(Collectors.joining(" "));
     }
 
@@ -106,7 +122,7 @@ public class BindAnnotator<T> {
         return StringUtils.countMatches(str.substring(0, idx), " ");
     }
 
-    private List<Binding> replace(List<Binding> bindings, String wordsStr, Matcher matcher, Binding binding) {
+    private List<Binding> replace(List<Binding<T>> bindings, String wordsStr, Matcher matcher, Binding<T> binding) {
         if (!matcher.matches()) {
             throw new IllegalStateException("No match!");
         }
@@ -119,8 +135,8 @@ public class BindAnnotator<T> {
         int startExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.start(2)) : startReplaceWordIdx;
         int endExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.end(2)) : endReplaceWordIdx;
 
-        List<Binding> extracted = bindings.subList(startExtractWordIdx, endExtractWordIdx+1);
-        List<Binding> replaced = bindings.subList(startReplaceWordIdx, endReplaceWordIdx+1);
+        List<Binding<T>> extracted = bindings.subList(startExtractWordIdx, endExtractWordIdx+1);
+        List<Binding<T>> replaced = bindings.subList(startReplaceWordIdx, endReplaceWordIdx+1);
 
         List<Word> extractedWords = new ArrayList<>();
         for (Binding b : extracted) {

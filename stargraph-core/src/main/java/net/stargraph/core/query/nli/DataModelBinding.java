@@ -33,9 +33,9 @@ public final class DataModelBinding {
     private String term;
     private String placeHolder;
 
-    public DataModelBinding(DataModelType modelType, String term, String placeHolder) {
-        this.modelType = Objects.requireNonNull(modelType);
+    public DataModelBinding(DataModelType modelType, String placeHolder, String term) {
         this.term = Objects.requireNonNull(term);
+        this.modelType = Objects.requireNonNull(modelType);
         this.placeHolder = Objects.requireNonNull(placeHolder);
     }
 
@@ -53,10 +53,7 @@ public final class DataModelBinding {
 
     @Override
     public String toString() {
-        return "DataModelBinding{" +
-                "term='" + term + '\'' +
-                ", placeHolder='" + placeHolder + '\'' +
-                '}';
+        return term + "=>(" + placeHolder + ")";
     }
 
     @Override

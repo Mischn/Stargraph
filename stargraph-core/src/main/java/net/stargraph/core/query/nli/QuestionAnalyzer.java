@@ -27,6 +27,7 @@ package net.stargraph.core.query.nli;
  */
 
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
@@ -50,7 +51,7 @@ public final class QuestionAnalyzer {
     private String dbId;
     private Language language;
     private POSAnnotator posAnnotator;
-    private List<DataModelTypePattern> dataModelTypePatterns;
+    private List<BindingPattern<DataModelType>> dataModelBindingPatterns;
     private List<QueryPlanPatterns> queryPlanPatterns;
     private List<Pattern> stopPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
@@ -61,7 +62,7 @@ public final class QuestionAnalyzer {
         this.dbId = dbId;
         this.language = Objects.requireNonNull(language);
         this.posAnnotator = Objects.requireNonNull(posAnnotator);
-        this.dataModelTypePatterns = rules.getDataModelTypeRules(language);
+        this.dataModelBindingPatterns = rules.getDataModelBindingPatterns(language);
         this.queryPlanPatterns = rules.getQueryPlanRules(language);
         this.stopPatterns = rules.getStopRules(language);
         this.queryTypePatterns = rules.getQueryTypeRules(language);
@@ -72,8 +73,8 @@ public final class QuestionAnalyzer {
         try {
             long startTime = System.currentTimeMillis();
             analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
-            analysis.annotate(posAnnotator.run(language, question));
-            analysis.resolveDataModelBindings(dataModelTypePatterns);
+            analysis.setAnnotatedWords(posAnnotator.run(language, question));
+            analysis.resolveDataModelBindings(dataModelBindingPatterns);
             analysis.clean(stopPatterns);
             analysis.resolveSPARQL(queryPlanPatterns);
             logger.info(marker, "{}", getTimingReport(question, startTime));

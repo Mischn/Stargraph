@@ -26,17 +26,33 @@ package net.stargraph.core.annotation;
  * ==========================License-End===============================
  */
 
-import com.typesafe.config.Config;
+import net.stargraph.UnsupportedLanguageException;
+import net.stargraph.query.Language;
+import net.stargraph.StarGraphException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
-import java.util.Objects;
+import java.util.List;
 
-public abstract class AnnotatorFactory {
-    protected Config config;
+public abstract class POSAnnotator {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected Marker marker = MarkerFactory.getMarker("pos-annotator");
 
-    public AnnotatorFactory(Config config) {
-        this.config = Objects.requireNonNull(config);
+    protected abstract List<Word> doRun(Language language, String sentence);
+
+    public final List<Word> run(Language language, String sentence) {
+        logger.debug(marker, "Annotating '{}', language: '{}'", sentence, language);
+        try {
+            return doRun(language, sentence);
+        }
+        catch (UnsupportedLanguageException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            logger.error(marker, "Error caught during annotation of '{}' ({})", sentence, language);
+            throw new StarGraphException(e);
+        }
     }
-
-    public abstract Annotator create();
-
 }

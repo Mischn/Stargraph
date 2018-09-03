@@ -62,8 +62,8 @@ public final class FilterQueryBuilder {
             String obj = matcher.group("obj");
             String expr = matcher.group("expr");
 
-            List<PassageExtraction> extractionFilters = simplePassageIE.extract(text);
-            PassageExtraction objectFilter = simplePassageIE.extractModifiers(text, obj);
+            List<PassageExtraction> extractionFilters = simplePassageIE.extractFromSentence(text);
+            PassageExtraction objectFilter = simplePassageIE.extractModifiersFromSentence(text, obj);
             if (objectFilter != null) {
                 String objectRelation = getObjectRelation(expr);
                 if (objectRelation != null) {

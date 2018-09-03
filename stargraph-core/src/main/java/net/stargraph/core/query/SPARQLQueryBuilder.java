@@ -78,11 +78,11 @@ public final class SPARQLQueryBuilder {
                 .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
     }
 
-    List<DataModelBinding> getBindings() {
+    public List<DataModelBinding> getBindings() {
         return bindings;
     }
 
-    void setNS(Namespace ns) {
+    public void setNS(Namespace ns) {
         this.namespace = Objects.requireNonNull(ns);
     }
 

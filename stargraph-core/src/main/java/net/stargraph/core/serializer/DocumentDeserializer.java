@@ -124,6 +124,14 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
+        // terms
+        List<String> terms = new ArrayList<>();
+        if (node.has("terms")) {
+            for (final JsonNode term : node.get("terms")) {
+                terms.add(term.textValue());
+            }
+        }
+
         // passages
         List<Passage> passages = new ArrayList();
         if (node.has("passages")) {
@@ -148,7 +156,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
             }
         }
 
-        return new Document(id, type, entity, title, summary, text, entities, passages, passageExtractions, extractions);
+        return new Document(id, type, entity, title, summary, text, entities, terms, passages, passageExtractions, extractions);
     }
 
 

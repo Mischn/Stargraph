@@ -66,7 +66,7 @@ public final class PassageExtractionProcessor extends BaseProcessor {
         if (entry instanceof Document) {
             Document document = (Document)entry;
 
-            List<PassageExtraction> passageExtractions = passageIE.extract(document.getText());
+            List<PassageExtraction> passageExtractions = passageIE.extractFromText(document.getText());
 
             holder.set(new Document(
                     document.getId(),
@@ -76,6 +76,7 @@ public final class PassageExtractionProcessor extends BaseProcessor {
                     document.getSummary(),
                     document.getText(),
                     document.getEntities(),
+                    document.getTerms(),
                     document.getPassages(),
                     passageExtractions,
                     document.getExtractions()));

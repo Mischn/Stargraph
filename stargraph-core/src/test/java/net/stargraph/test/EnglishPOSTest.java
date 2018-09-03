@@ -27,7 +27,7 @@ package net.stargraph.test;
  */
 
 import net.stargraph.core.impl.corenlp.CoreNLPAnnotator;
-import net.stargraph.core.annotation.Annotator;
+import net.stargraph.core.annotation.POSAnnotator;
 import net.stargraph.core.annotation.Word;
 import net.stargraph.query.Language;
 import org.testng.Assert;
@@ -39,11 +39,11 @@ import java.util.stream.Collectors;
 
 public final class EnglishPOSTest {
 
-    private Annotator annotator;
+    private POSAnnotator POSAnnotator;
 
     @BeforeClass
     public void beforeClass() {
-        annotator = new CoreNLPAnnotator();
+        POSAnnotator = new CoreNLPAnnotator();
     }
 
     @Test
@@ -149,7 +149,7 @@ public final class EnglishPOSTest {
     }
 
     private String annotate(String sentence) {
-        List<Word> words = annotator.run(Language.EN, sentence);
+        List<Word> words = POSAnnotator.run(Language.EN, sentence);
         return words.stream().map(Word::toString).collect(Collectors.joining(" "));
     }
 }

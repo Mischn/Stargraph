@@ -11,12 +11,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class BindAnnotator<T> extends Annotator {
-    private Annotator posAnnotator;
+public class BindAnnotator<T> extends POSAnnotator {
+    private POSAnnotator posAnnotator;
     private Language language;
     private List<BindingPattern<T>> bindingPatterns;
 
-    public BindAnnotator(Annotator posAnnotator, Language language, List<BindingPattern<T>> bindingPatterns) {
+    public BindAnnotator(POSAnnotator posAnnotator, Language language, List<BindingPattern<T>> bindingPatterns) {
         this.posAnnotator = posAnnotator;
         this.language = language;
         this.bindingPatterns = bindingPatterns;

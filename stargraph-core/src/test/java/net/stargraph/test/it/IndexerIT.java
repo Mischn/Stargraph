@@ -77,7 +77,7 @@ public final class IndexerIT {
 
     @Test
     public void classSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").term("president");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("president");
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein();
         Scores scores = entitySearcher.classSearch(searchParams, rankParams);
         InstanceEntity expected = new InstanceEntity("dbc:Presidents_of_the_United_States", "Presidents of the United States");
@@ -86,7 +86,7 @@ public final class IndexerIT {
 
     @Test
     public void instanceSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").term("baraCk Obuma");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("baraCk Obuma");
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
         Scores scores = entitySearcher.instanceSearch(searchParams, rankParams);
 
@@ -97,7 +97,7 @@ public final class IndexerIT {
 
     @Test
     public void propertySearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").term("position");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("position");
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
         Scores scores = entitySearcher.propertySearch(searchParams, rankParams);
 
@@ -107,7 +107,7 @@ public final class IndexerIT {
 
     @Test
     public void pivotedSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").term("school");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("school");
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
 
         final InstanceEntity obama = new InstanceEntity("dbr:Barack_Obama", "Barack Obama");

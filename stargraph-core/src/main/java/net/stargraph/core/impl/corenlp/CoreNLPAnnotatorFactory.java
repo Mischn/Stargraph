@@ -27,17 +27,17 @@ package net.stargraph.core.impl.corenlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.annotation.Annotator;
-import net.stargraph.core.annotation.AnnotatorFactory;
+import net.stargraph.core.annotation.POSAnnotator;
+import net.stargraph.core.annotation.POSAnnotatorFactory;
 
-public final class CoreNLPAnnotatorFactory extends AnnotatorFactory {
+public final class CoreNLPAnnotatorFactory extends POSAnnotatorFactory {
 
     public CoreNLPAnnotatorFactory(Config config) {
         super(config);
     }
 
     @Override
-    public Annotator create() {
+    public POSAnnotator create() {
         return new CoreNLPAnnotator();
     }
 }

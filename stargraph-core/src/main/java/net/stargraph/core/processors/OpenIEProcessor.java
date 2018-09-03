@@ -33,7 +33,7 @@ import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
 import net.stargraph.model.Extraction;
 import org.lambda3.graphene.core.Graphene;
-import org.lambda3.graphene.core.relation_extraction.model.ExContent;
+import org.lambda3.graphene.core.relation_extraction.model.RelationExtractionContent;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public final class OpenIEProcessor extends BaseProcessor {
             Document document = (Document) entry;
             List<Extraction> extractions = new ArrayList();
 
-            ExContent ec = graphene.doRelationExtraction(document.getText(), false, false);
+            RelationExtractionContent ec = graphene.doRelationExtraction(document.getText(), false, false);
             ec.getExtractions().stream().forEach(e -> {
                 List<String> args = new ArrayList<>();
                 args.add(e.getArg1());
@@ -78,6 +78,7 @@ public final class OpenIEProcessor extends BaseProcessor {
                     document.getSummary(),
                     document.getText(),
                     document.getEntities(),
+                    document.getTerms(),
                     document.getPassages(),
                     document.getPassageExtractions(),
                     extractions

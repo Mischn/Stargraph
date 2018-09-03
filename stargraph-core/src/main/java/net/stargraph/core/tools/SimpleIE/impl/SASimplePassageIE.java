@@ -1,12 +1,8 @@
 package net.stargraph.core.tools.SimpleIE.impl;
 
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.annotation.Binding;
-import net.stargraph.core.annotation.BindingPattern;
-import net.stargraph.core.annotation.BindAnnotator;
+import net.stargraph.core.annotation.*;
 import net.stargraph.core.query.Rules;
-import net.stargraph.core.annotation.Annotator;
-import net.stargraph.core.annotation.Word;
 import net.stargraph.core.query.nli.DataModelType;
 import net.stargraph.core.query.nli.DataModelTypePattern;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
@@ -28,7 +24,7 @@ public class SASimplePassageIE extends SimpleIE<PassageExtraction> {
     private BindAnnotator<DataModelType> textAnnotator;
 
     public SASimplePassageIE(Stargraph stargraph, String dbId) {
-        Annotator posAnnotator = stargraph.createPOSAnnotatorFactory().create();
+        POSAnnotator posAnnotator = stargraph.createPOSAnnotatorFactory().create();
         Language language = stargraph.getKBCore(dbId).getLanguage();
         Rules rules = new Rules(stargraph.getMainConfig());
         List<BindingPattern<DataModelType>> bindingPatterns = new ArrayList<>();

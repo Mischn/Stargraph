@@ -1,18 +1,20 @@
 package net.stargraph.core.tools.SimpleIE;
 
+import edu.stanford.nlp.ling.HasWord;
+import edu.stanford.nlp.ling.SentenceUtils;
+import edu.stanford.nlp.process.DocumentPreprocessor;
 import net.stargraph.core.annotation.POSTag;
 import net.stargraph.core.annotation.Word;
 import net.stargraph.core.tools.SimpleIE.graph.GraphNode;
 import net.stargraph.core.tools.SimpleIE.graph.RootNode;
-import org.lambda3.text.simplification.discourse.utils.parseTree.ParseTreeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -69,26 +71,45 @@ public abstract class SimpleIE<T> {
         extractions.add(createPassage(relation, argumentWords));
     }
 
-    public List<T> extract(String text) {
+    private static List<String> splitIntoSentences(String text) {
+        List<String> res = new ArrayList<>();
+
+        DocumentPreprocessor dp = new DocumentPreprocessor(new StringReader(text));
+        for (List<HasWord> sentence : dp) {
+            res.add(SentenceUtils.listToString(sentence));
+        }
+
+        return res;
+    }
+
+    public List<T> extractFromSentence(String sentence) {
         List<T> res = new ArrayList<>();
         RootNode root = null;
         try {
-            root = PARSER.parse(text);
+            root = PARSER.parse(sentence);
         } catch (Exception e) {
-            logger.error(marker, "Failed to parse text: '" + text + "'");
+            logger.error(marker, "Failed to parse sentence: '" + sentence + "'");
             return new ArrayList<>();
         }
         traverseRelations(root, node -> yieldRelationalArguments(res, node));
         return res;
     }
 
-    public T extractModifiers(String text, String word) {
+    public List<T> extractFromText(String text) {
+        List<T> res = new ArrayList<>();
+        for (String sentence : splitIntoSentences(text)) {
+            res.addAll(extractFromSentence(sentence));
+        }
+        return res;
+    }
+
+    public T extractModifiersFromSentence(String sentence, String word) {
         List<T> res = new ArrayList<>();
         RootNode root;
         try {
-            root = PARSER.parse(text);
+            root = PARSER.parse(sentence);
         } catch (Exception e) {
-            logger.error(marker, "Failed to parse text: '" + text + "'");
+            logger.error(marker, "Failed to parse sentence: '" + sentence + "'");
             return null;
         }
         traverseToWord(root, word, node -> yieldWordModifiers(res, node));

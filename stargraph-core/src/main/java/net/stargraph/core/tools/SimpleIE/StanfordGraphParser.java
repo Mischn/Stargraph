@@ -18,8 +18,8 @@ import java.util.List;
 public class StanfordGraphParser implements GraphParser {
 
     @Override
-    public RootNode parse(String text) throws ParseTreeException {
-        Tree tree = ParseTreeParser.parse(text);
+    public RootNode parse(String sentence) throws ParseTreeException {
+        Tree tree = ParseTreeParser.parse(sentence);
         SemanticGraph sg = SemanticGraphFactory.makeFromTree(tree, SemanticGraphFactory.Mode.BASIC, GrammaticalStructure.Extras.MAXIMAL, null, false, true);
 
         List<GraphNode> nodes = new ArrayList<>();

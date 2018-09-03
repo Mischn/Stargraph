@@ -43,6 +43,7 @@ public final class Document implements Hashable {
     private String summary; // optional
     private String text;
     private List<LabeledEntity> entities;
+    private List<String> terms;
     private List<Passage> passages;
     private List<PassageExtraction> passageExtractions;
     private List<Extraction> extractions;
@@ -52,10 +53,10 @@ public final class Document implements Hashable {
     }
 
     public Document(String id, String type, String entity, String title, String summary, String text) {
-        this(id, type, entity, title, summary, text, null, null, null, null);
+        this(id, type, entity, title, summary, text, null, null, null, null, null);
     }
 
-    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities, List<Passage> passages, List<PassageExtraction> passageExtractions, List<Extraction> extractions) {
+    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities, List<String> terms, List<Passage> passages, List<PassageExtraction> passageExtractions, List<Extraction> extractions) {
         this.id = Objects.requireNonNull(id);
         this.type = type;
         this.entity = entity;
@@ -63,6 +64,7 @@ public final class Document implements Hashable {
         this.text = Objects.requireNonNull(text);
         this.summary = summary;
         this.entities = (entities != null) ? entities : new ArrayList<>();
+        this.terms = (terms != null) ? terms : new ArrayList<>();
         this.passages = (passages != null) ? passages : new ArrayList<>();
         this.passageExtractions = (passageExtractions != null) ? passageExtractions : new ArrayList<>();
         this.extractions = (extractions != null) ? extractions : new ArrayList<>();
@@ -96,6 +98,10 @@ public final class Document implements Hashable {
         return entities;
     }
 
+    public List<String> getTerms() {
+        return terms;
+    }
+
     public List<Passage> getPassages() {return passages; }
 
     public List<PassageExtraction> getPassageExtractions() {
@@ -118,6 +124,7 @@ public final class Document implements Hashable {
                 ", summary='" + abbrevSummary + '\'' +
                 ", text='" + abbrevText + '\'' +
                 ", entities=" + entities +
+                ", terms=" + terms +
                 ", passages=" + passages +
                 ", passageExtractions=" + passageExtractions +
                 ", extractions=" + extractions +

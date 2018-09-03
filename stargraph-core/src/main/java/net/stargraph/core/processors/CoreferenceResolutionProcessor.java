@@ -70,6 +70,7 @@ public final class CoreferenceResolutionProcessor extends BaseProcessor {
                         document.getSummary(),
                         resolved,
                         document.getEntities(),
+                        document.getTerms(),
                         document.getPassages(),
                         document.getPassageExtractions(),
                         document.getExtractions()));

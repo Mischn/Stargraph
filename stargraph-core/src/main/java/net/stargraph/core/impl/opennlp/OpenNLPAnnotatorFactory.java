@@ -27,20 +27,20 @@ package net.stargraph.core.impl.opennlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.annotation.Annotator;
-import net.stargraph.core.annotation.AnnotatorFactory;
+import net.stargraph.core.annotation.POSAnnotator;
+import net.stargraph.core.annotation.POSAnnotatorFactory;
 
 /**
  * Alternative to CoreNLP. Configure it through the stargraph.annotator.factory.class.
  */
-public final class OpenNLPAnnotatorFactory extends AnnotatorFactory {
+public final class OpenNLPAnnotatorFactory extends POSAnnotatorFactory {
 
     public OpenNLPAnnotatorFactory(Config config) {
         super(config);
     }
 
     @Override
-    public Annotator create() {
+    public POSAnnotator create() {
         return new OpenNLPAnnotator(this.config);
     }
 

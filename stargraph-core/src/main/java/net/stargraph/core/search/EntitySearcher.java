@@ -311,8 +311,8 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasPhrases()) {
-            searchParams.phrase(searchParams.getSearchTerm());
+        if (!searchParams.hasSearchPhrases()) {
+            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS, false);
@@ -342,8 +342,8 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.ENTITY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasPhrases()) {
-            searchParams.phrase(searchParams.getSearchTerm());
+        if (!searchParams.hasSearchPhrases()) {
+            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS, false);
@@ -374,8 +374,8 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.PROPERTY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasPhrases()) {
-            searchParams.phrase(searchParams.getSearchTerm());
+        if (!searchParams.hasSearchPhrases()) {
+            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
         SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, false, FUZZINESS, false);
@@ -388,15 +388,15 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+        return Rankers.apply(scores, rankParams, searchParams.getRankableStr());
     }
 
-    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean and) {
+    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean mustPhrases) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.DOCUMENT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS, and);
+        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS, mustPhrases);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -440,7 +440,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        Scores rankedScores = Rankers.apply(propScores, rankParams, searchParams.getSearchTerm());
+        Scores rankedScores = Rankers.apply(propScores, rankParams, searchParams.getRankableStr());
         Scores result = rankedScores;
 
         if (returnBestMatchEntities) {
@@ -514,7 +514,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        Scores rankedScores = Rankers.apply(classScores, rankParams, searchParams.getSearchTerm());
+        Scores rankedScores = Rankers.apply(classScores, rankParams, searchParams.getRankableStr());
         Scores result = rankedScores;
 
         if (returnClassMembers) {
@@ -571,7 +571,9 @@ public class EntitySearcher {
         }
 
         List<String> texts = entityDocs.stream().map(d -> d.getText()).collect(Collectors.toList());
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).phrases(texts);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).searchPhrases(texts.stream()
+                .map(t -> new ModifiableSearchParams.Phrase(t))
+                .collect(Collectors.toList()));
         if (limit != null) {
             searchParams.limit(limit);
         }

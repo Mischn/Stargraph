@@ -55,6 +55,9 @@ class DocumentSerializer extends AbstractSerializer<Document> {
         if (!value.getEntities().isEmpty()) {
             g.writeObjectField("entities", value.getEntities());
         }
+        if (!value.getTerms().isEmpty()) {
+            g.writeObjectField("terms", value.getTerms());
+        }
         if (!value.getPassages().isEmpty()) {
             g.writeObjectField("passages", value.getPassages());
         }

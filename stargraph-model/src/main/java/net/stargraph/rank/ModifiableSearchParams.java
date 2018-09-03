@@ -34,12 +34,41 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class ModifiableSearchParams {
+    public static class Phrase {
+        private String text;
+        private float boost;
+
+        public Phrase(String term) {
+            this(term, 1.0f);
+        }
+
+        public Phrase(String text, float boost) {
+            this.text = text;
+            this.boost = boost;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public float getBoost() {
+            return boost;
+        }
+
+        @Override
+        public String toString() {
+            return "Phrase{" +
+                    "text='" + text + '\'' +
+                    ", boost=" + boost +
+                    '}';
+        }
+    }
 
     private int limit;
     private String dbId;
     private String modelId;
-    private String searchTerm;
-    private List<String> phrases;
+    private List<String> searchTerms;
+    private List<Phrase> searchPhrases;
     private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
@@ -49,20 +78,20 @@ public final class ModifiableSearchParams {
         this.lookup = true;
     }
 
-    public final ModifiableSearchParams term(String searchTerm) {
-        this.searchTerm = searchTerm;
-        this.phrases = null;
+    public final ModifiableSearchParams searchTermsFromStr(String searchText) {
+        this.searchTerms = Arrays.asList(searchText.split("\\s+"));
+        this.searchPhrases = null;
         return this;
     }
 
-    public final ModifiableSearchParams phrases(List<String> phrases) {
-        this.phrases = phrases;
-        this.searchTerm = phrases.stream().collect(Collectors.joining(" "));
+    public final ModifiableSearchParams searchPhrases(List<Phrase> searchPhrases) {
+        this.searchPhrases = searchPhrases;
+        this.searchTerms = null;
         return this;
     }
 
-    public final ModifiableSearchParams phrase(String phrase) {
-        return phrases(Arrays.asList(phrase));
+    public final ModifiableSearchParams searchPhrase(Phrase searchPhrase) {
+        return searchPhrases(Arrays.asList(searchPhrase));
     }
 
     public final ModifiableSearchParams lookup(boolean lookup) {
@@ -98,16 +127,28 @@ public final class ModifiableSearchParams {
         return KBId.of(dbId, modelId);
     }
 
-    public final String getSearchTerm() {
-        return searchTerm;
+    public List<String> getSearchTerms() {
+        return searchTerms;
     }
 
-    public List<String> getPhrases() {
-        return phrases;
+    public List<Phrase> getSearchPhrases() {
+        return searchPhrases;
     }
 
-    public boolean hasPhrases() {
-        return phrases != null;
+    public boolean hasSearchTerms() { return searchTerms != null; }
+
+    public boolean hasSearchPhrases() {
+        return searchPhrases != null;
+    }
+
+    public String getRankableStr() {
+        if (hasSearchPhrases()) {
+            return searchPhrases.stream().map(p -> p.getText()).collect(Collectors.joining(" "));
+        }
+        if (hasSearchTerms()) {
+            return searchTerms.stream().collect(Collectors.joining(" "));
+        }
+        return null;
     }
 
     public boolean isLookup() {

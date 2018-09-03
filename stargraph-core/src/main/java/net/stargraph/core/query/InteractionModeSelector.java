@@ -26,7 +26,7 @@ package net.stargraph.core.query;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.annotation.Annotator;
+import net.stargraph.core.annotation.POSAnnotator;
 import net.stargraph.core.query.nli.ClueAnalyzer;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -36,20 +36,20 @@ import java.util.Objects;
 import static net.stargraph.query.InteractionMode.NLI;
 
 public final class InteractionModeSelector {
-    private Annotator annotator;
+    private POSAnnotator POSAnnotator;
     private Language language;
 
-    public static final String ENTITY_SIMILARITY_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,6} (?:similar to|(?:is|are|was|were) like) (\\w+).*$";
+    public static final String ENTITY_SIMILARITY_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,6} (?:similar to|similar \\w+ for|(?:is|are|was|were) like) ([^\\s]+).*$";
     public static final String FILTER_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,4} (?<obj>objects) (?<expr>\\w+) .*$";
     public static final String DEFINITION_PATTERN =
-            "(?:^(?:\\s*\\w+)(?:\\s+\\w+){0,4} definition of (\\w+).*$)"
+            "(?:^(?:\\s*\\w+)(?:\\s+\\w+){0,4} definition of ([^\\s]+).*$)"
             + "||"
-            + "(?:^\\s*describe (\\w+).*$)"
+            + "(?:^\\s*describe ([^\\s]+).*$)"
             + "||"
-            + "(?:^\\s*(?:who|what) (?:is|are|was|were) (\\w+).*$)";
+            + "(?:^\\s*(?:who|what) (?:is|are|was|were) ([^\\s]+).*$)";
 
-    public InteractionModeSelector(Annotator annotator, Language language) {
-        this.annotator = Objects.requireNonNull(annotator);
+    public InteractionModeSelector(POSAnnotator POSAnnotator, Language language) {
+        this.POSAnnotator = Objects.requireNonNull(POSAnnotator);
         this.language = Objects.requireNonNull(language);
     }
 
@@ -109,7 +109,7 @@ public final class InteractionModeSelector {
 
     private boolean isClueQuery(String queryString){
 
-        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(annotator);
+        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(POSAnnotator);
         return clueAnalyzer.isClue(queryString);
     }
 

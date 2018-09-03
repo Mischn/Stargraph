@@ -27,9 +27,9 @@ package net.stargraph.core.impl.opennlp;
  */
 
 import com.typesafe.config.Config;
+import net.stargraph.core.annotation.POSAnnotator;
 import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
-import net.stargraph.core.annotation.Annotator;
 import net.stargraph.core.annotation.PartOfSpeechSet;
 import net.stargraph.core.annotation.Word;
 import opennlp.tools.postag.POSModel;
@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class OpenNLPAnnotator extends Annotator {
+public final class OpenNLPAnnotator extends POSAnnotator {
     private ConcurrentHashMap<Language, TokenizerModel> tokenizerModels;
     private ConcurrentHashMap<Language, POSModel> posModels;
     private File modelsDir;

@@ -33,7 +33,7 @@ public final class AnnotatorFactoryTest {
 //        System.setProperty("stargraph.annotator.factory.class", CoreNLPAnnotatorFactory.class.getCanonicalName());
 //        ConfigFactory.invalidateCaches();
 //        Config config = ConfigFactory.load().getConfig("stargraph");
-//        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
+//        POSAnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
 //        Assert.assertNotNull(factory);
 //        Assert.assertEquals(factory.create().getClass(), CoreNLPAnnotator.class);
 //    }
@@ -44,7 +44,7 @@ public final class AnnotatorFactoryTest {
 //        System.setProperty("stargraph.annotator.factory.models-dir", "/tmp"); //nothing is being read until being used.
 //        ConfigFactory.invalidateCaches();
 //        Config config = ConfigFactory.load().getConfig("stargraph");
-//        AnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
+//        POSAnnotatorFactory factory = Analyzers.createAnnotatorFactory(config);
 //        Assert.assertNotNull(factory);
 //        Assert.assertEquals(factory.create().getClass(), OpenNLPAnnotator.class);
 //    }

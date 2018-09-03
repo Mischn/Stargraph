@@ -81,7 +81,7 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
             }
             String searchTerm = searchTerms.get(language);
 
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).term(searchTerm).lookup(false);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).searchTermsFromStr(searchTerm).lookup(false);
             ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.min(threshold));
             Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rankParams, false, true, 1, true);
 

@@ -88,6 +88,7 @@ public final class PassageProcessor extends BaseProcessor {
                     document.getSummary(),
                     document.getText(),
                     document.getEntities(),
+                    document.getTerms(),
                     passages,
                     document.getPassageExtractions(),
                     document.getExtractions()));

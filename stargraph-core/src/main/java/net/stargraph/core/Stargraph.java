@@ -31,6 +31,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 import net.stargraph.ModelUtils;
 import net.stargraph.StarGraphException;
+import net.stargraph.core.annotation.POSAnnotatorFactory;
 import net.stargraph.core.data.BaseDataProviderFactory;
 import net.stargraph.core.data.BaseDocumentProviderFactory;
 import net.stargraph.core.graph.BaseGraphModelProviderFactory;
@@ -40,7 +41,6 @@ import net.stargraph.core.impl.corenlp.NERSearcher;
 import net.stargraph.core.index.Indexer;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.processors.Processors;
-import net.stargraph.core.annotation.AnnotatorFactory;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.core.search.Searcher;
 import net.stargraph.data.DataProviderFactory;
@@ -313,13 +313,13 @@ public final class Stargraph {
         }
     }
 
-    public AnnotatorFactory createPOSAnnotatorFactory() {
+    public POSAnnotatorFactory createPOSAnnotatorFactory() {
         Config mainConfig = getMainConfig();
         try {
             String className = mainConfig.getString("annotator.factory.class");
             Class<?> providerClazz = Class.forName(className);
             Constructor<?> constructor = providerClazz.getConstructors()[0];
-            return (AnnotatorFactory) constructor.newInstance(mainConfig);
+            return (POSAnnotatorFactory) constructor.newInstance(mainConfig);
         } catch (Exception e) {
             throw new StarGraphException("Can't initialize annotators.", e);
         }

@@ -40,7 +40,6 @@ import net.stargraph.model.Document;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.model.PassageExtraction;
-import net.stargraph.model.date.TimeRange;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
@@ -236,7 +235,7 @@ public class QueryEngine {
     public QueryResponse likeThisQuery(String userQuery, Language language) {
         List<String> docTypes = core.getDocTypes();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(userQuery);
         Scores entityScores = entitySearcher.likeThisInstanceSearch(searchParams, docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(LIKE_THIS, userQuery);
@@ -250,140 +249,68 @@ public class QueryEngine {
         return new NoResponse(LIKE_THIS, userQuery);
     }
 
-    private double determineScore(FilterResult filterResult) {
-        double maxScore = 0;
-        double score = 0;
 
-        for (FilterResult.SingleFilterResult sfr : filterResult.getSingleFilterResults()) {
-
-            // relation
-            maxScore += 1;
-            score += (sfr.isMatchedRelation()) ? 1 * sfr.getMatchedRelation().getValue() : 0;
-
-            // terms
-            maxScore += sfr.getFilter().getTerms().size();
-            for (Score s : sfr.getMatchedTerms()) {
-                if (s != null) {
-                    score += s.getValue();
-                }
-            }
-
-            // temporals
-            maxScore += sfr.getFilter().getTemporals().size();
-            for (Score s : sfr.getMatchedTemporals()) {
-                if (s != null) {
-                    score += s.getValue();
-                }
-            }
-        }
-
-        return (maxScore == 0)? 0 : (score / maxScore);
-    }
-
-    private Score rerankDocuments(Score documentScore, List<PassageExtraction> queryFilters, ModifiableRankParams relationRankParams, ModifiableRankParams termRankParams, List<FilterResult> filterResults) {
-        Document document = (Document) documentScore.getEntry();
-
-        logger.debug(marker, "Re-Rank document {} with respect to filters", document.getId());
-
-        FilterResult filterResult = new FilterResult(queryFilters, document.getId(), document.getEntity());
-        for (FilterResult.SingleFilterResult sfr : filterResult.getSingleFilterResults()) {
-            PassageExtraction f = sfr.getFilter();
-
-            logger.debug(marker, "Check query passage-extraction: {}", f);
-
-            // rank document's extractions to the target extraction
-            Scores passageExScores = new Scores(document.getPassageExtractions().stream().map(pe -> new Score(pe, 0)).collect(Collectors.toList()));
-            Scores ranked = Rankers.apply(passageExScores, relationRankParams, f);
-
-            if (ranked.size() > 0) {
-                // matched relation
-                PassageExtraction matchedEx = (PassageExtraction) ranked.get(0).getEntry();
-                sfr.setMatchedRelation(matchedEx.getRelation(), ranked.get(0).getValue());
-
-                for (int idx = 0; idx < f.getTerms().size(); idx++) {
-                    String termFilter = f.getTerms().get(idx);
-                    for (String term : matchedEx.getTerms()) {
-                        Double sim = Rankers.matchSimilarity(termFilter.trim().toLowerCase(), term.trim().toLowerCase(), termRankParams);
-                        if (sim != null) {
-                            // matched (relation &) term
-                            sfr.addMatchedTerm(idx, term, sim);
-                            break;
-                        }
-                    }
-                }
-
-                for (int idx = 0; idx < f.getTemporals().size(); idx++) {
-                    TimeRange temporalFilter = f.getTemporals().get(idx);
-                    for (TimeRange temporal : matchedEx.getTemporals()) {
-                        if (temporalFilter.containsInterval(temporal)) {
-                            // matched (relation &) temporal
-                            sfr.addMatchedTemporal(idx, temporal, 1);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            logger.debug(marker, sfr.toString());
-        }
-
-        filterResults.add(filterResult);
-
-        // calculate final score (take into account the old document score, a small factor is sufficient to have at least some ranking even if no filters match)
-        final double oldScoreFactor = 0.1;
-        double finalScore = (oldScoreFactor * documentScore.getValue()) + ((1. - oldScoreFactor) * determineScore(filterResult));
-
-        return new Score(document, finalScore);
-    }
 
     public QueryResponse filterQuery(String userQuery, Language language) {
-        final int LIMIT = 50;
+        final boolean RE_RANK = true;
+        final int LIMIT_SEARCH_SPACE = -1;
+        final int LIMIT = 30;
         List<String> docTypes = core.getDocTypes();
 
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(stargraph, dbId);
         FilterQuery filterQuery = queryBuilder.parse(userQuery, FILTER);
 
+        // get query filters
         List<PassageExtraction> queryFilters = filterQuery.getExtractionFilters();
         queryFilters.forEach(ef -> {
-            logger.info(marker, "Extraction-Filter: {}", ef);
+            logger.info(marker, "Query-Filter: {}", ef);
         });
 
-        List<String> searchTerms = new ArrayList<>();
-        for (PassageExtraction extractionFilter : queryFilters) {
-            searchTerms.add(extractionFilter.getRelation());
-            searchTerms.addAll(extractionFilter.getTerms());
-            for (TimeRange timeRange : extractionFilter.getTemporals()) {
-                searchTerms.add(String.valueOf(timeRange.getFrom().getYear()));
-                if (timeRange.getFrom().getYear() != timeRange.getTo().getYear()) {
-                    searchTerms.add(String.valueOf(timeRange.getTo().getYear()));
-                }
+        // extract initial search phrases
+        // TODO term search takes too long!!
+        List<ModifiableSearchParams.Phrase> searchPhrases = new ArrayList<>();
+        for (PassageExtraction queryFilter : queryFilters) {
+            searchPhrases.addAll(queryFilter.getTerms().stream().map(t -> new ModifiableSearchParams.Phrase(t)).collect(Collectors.toList()));
+        }
+        if (searchPhrases.size() <= 0) {
+            for (PassageExtraction queryFilter : queryFilters) {
+                searchPhrases.add(new ModifiableSearchParams.Phrase(queryFilter.getRelation()));
             }
         }
-        logger.debug(marker, "Search-terms: {}", searchTerms);
+        logger.debug(marker, "Search-phrases: {}", searchPhrases);
 
+        // search for initial search phrases (limit the search space)
         Scores documentScores;
-        if (searchTerms.size() > 0) {
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrases(searchTerms);
+        if (searchPhrases.size() > 0) {
+            logger.info(marker, "Search phrases for document-search: " + searchPhrases);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(searchPhrases).limit(LIMIT_SEARCH_SPACE);
             documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true, false));
-        } else {
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).term(userQuery);
+        } else
+            {
+            logger.info(marker, "Search term for similar-document-search: " + userQuery);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(userQuery).limit(LIMIT_SEARCH_SPACE);
             documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, docTypes, true));
         }
 
-        // re-rank
-        ModifiableRankParams relationRankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.2));
-        if (relationRankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) relationRankParams);
-        }
-        ModifiableRankParams termRankParams = ParamsBuilder.levenshtein().threshold(Threshold.max(3));
-        if (termRankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) termRankParams);
-        }
+        // re-rank results
         List<FilterResult> filterResults = new ArrayList<>();
-        documentScores = new Scores(documentScores.stream().map(s -> rerankDocuments(s, queryFilters, relationRankParams, termRankParams, filterResults)).collect(Collectors.toList()));
-        documentScores.sort(true);
+        if (RE_RANK) {
+            FilterQueryEngine filterQueryEngine = new FilterQueryEngine();
 
-        // limit
+            // re-rank
+            ModifiableRankParams relationRankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.2));
+            if (relationRankParams instanceof ModifiableIndraParams) {
+                core.configureDistributionalParams((ModifiableIndraParams) relationRankParams);
+            }
+            ModifiableRankParams termRankParams = ParamsBuilder.levenshtein(); //TODO threshold?
+            if (termRankParams instanceof ModifiableIndraParams) {
+                core.configureDistributionalParams((ModifiableIndraParams) termRankParams);
+            }
+            documentScores = new Scores(documentScores.stream().map(s -> filterQueryEngine.rerankDocuments(s, queryFilters, relationRankParams, termRankParams, filterResults)).collect(Collectors.toList()));
+            documentScores.sort(true);
+        }
+
+        // limit results
         documentScores = new Scores(documentScores.stream().limit(LIMIT).collect(Collectors.toList()));
 
         // now map documents back to their entities
@@ -521,7 +448,7 @@ public class QueryEngine {
     }
 
     protected Scores searchClass(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
         return entitySearcher.classSearch(searchParams, rankParams);
     }
@@ -549,7 +476,7 @@ public class QueryEngine {
     }
 
     protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
         return entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
     }
@@ -585,7 +512,7 @@ public class QueryEngine {
     }
 
     protected Scores searchPivot(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(binding.getTerm());
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(binding.getTerm())));
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
         return entitySearcher.instanceSearch(searchParams, rankParams);
     }
@@ -610,7 +537,7 @@ public class QueryEngine {
     }
 
     protected Scores searchInstance(String instanceTerm) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).phrase(instanceTerm);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(instanceTerm)));
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
         return entitySearcher.instanceSearch(searchParams, rankParams);
     }
@@ -631,7 +558,7 @@ public class QueryEngine {
                 .findAny().orElseThrow(() -> new StarGraphException("Unmapped placeholder '" + placeHolder + "'"));
     }
 
-    private static class Triple {
+    public static class Triple {
         Triple(DataModelBinding s, DataModelBinding p, DataModelBinding o) {
             this.s = s;
             this.p = p;

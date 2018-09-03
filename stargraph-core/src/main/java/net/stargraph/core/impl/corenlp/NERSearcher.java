@@ -211,7 +211,7 @@ public final class NERSearcher implements NER {
                 logger.debug(marker, "Trying to link '{}' to knowledge-base '{}'", namedEntity, entitySearcherDbId);
 
                 ModifiableSearchParams searchParams =
-                        ModifiableSearchParams.create(entitySearcherDbId).term(namedEntity.getValue()).limit(LIMIT);
+                        ModifiableSearchParams.create(entitySearcherDbId).searchPhrase(new ModifiableSearchParams.Phrase(namedEntity.getValue())).limit(LIMIT);
 
                 final Scores scores = entitySearcher.instanceSearch(searchParams, ParamsBuilder.levenshtein());
                 for (Score score : scores) {

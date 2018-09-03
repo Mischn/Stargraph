@@ -108,19 +108,25 @@ public final class DocumentLiteralIterator implements Iterator<Indexable> {
                     return;
                 }
 
-                String text = null;
-                try {
-                    Language literalLanguage = getLiteralLanguage(literal);
-                    if (literalLanguage.equals(language)) {
-                        text = literal.getLiteralLexicalForm();
-                    } else {
-                        //TODO translate?
-                        logger.warn(marker, "Translation of {} into {} language is currently not supported.", literalLanguage, language);
-                        // translator.translate(literalLanguage, language, t.getLiteralLexicalForm());
-                        text = null;
-                    }
-                } catch (StarGraphException e) {
-                    logger.error(marker, e.getMessage());
+                String text = literal.getLiteralLexicalForm();
+//                String text = null;
+//                try {
+//                    Language literalLanguage = getLiteralLanguage(literal);
+//                    if (literalLanguage.equals(language)) {
+//                        text = literal.getLiteralLexicalForm();
+//                    } else {
+//                        //TODO translate?
+//                        logger.warn(marker, "Translation of {} into {} language is currently not supported.", literalLanguage, language);
+//                        // translator.translate(literalLanguage, language, t.getLiteralLexicalForm());
+//                        text = null;
+//                    }
+//                } catch (StarGraphException e) {
+//                    logger.error(marker, e.getMessage());
+//                }
+
+                // data-fixes TODO remove or outsource
+                if (entity.getURI().equals("https://www.rijksmuseum.nl/en/collection/SK-A-3989") && docType.equals("provenance")) {
+                    text = literal.getLiteralLexicalForm(); // english
                 }
 
                 if (text != null) {

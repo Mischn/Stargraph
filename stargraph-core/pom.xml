@@ -46,14 +46,14 @@
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xmx4g</argLine>
+                    <argLine>-Xmx30g -Xms30g -XX:MaxPermSize=256m</argLine>
                 </configuration>
             </plugin>
 
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xmx8g</argLine>
+                    <argLine>-Xmx30g -Xms30g -XX:MaxPermSize=256m</argLine>
                 </configuration>
             </plugin>
         </plugins>

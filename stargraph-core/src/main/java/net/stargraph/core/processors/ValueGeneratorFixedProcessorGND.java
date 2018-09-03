@@ -34,6 +34,7 @@ import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.jena.JenaBaseSearcher;
 import net.stargraph.core.impl.jena.JenaGraphSearcher;
+import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -44,19 +45,21 @@ import org.apache.jena.sparql.engine.binding.Binding;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to create passages.
  */
-public final class ValueGeneratorFixedProcessor extends BaseProcessor {
-    public static String name = "value-generator-fixed";
+public final class ValueGeneratorFixedProcessorGND extends BaseProcessor {
+    public static String name = "value-generator-fixed-gnd";
 
     private Stargraph stargraph;
     private Map<Language, List<String>> properties;
     private SparqlCreator sparqlCreator;
 
-    public ValueGeneratorFixedProcessor(Stargraph stargraph, Config config) {
+    public ValueGeneratorFixedProcessorGND(Stargraph stargraph, Config config) {
         super(config);
         this.stargraph = stargraph;
         this.sparqlCreator = new SparqlCreator();
@@ -77,6 +80,16 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
                 + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings), false) + " "
                 + sparqlCreator.createLangFilter("?t", Arrays.asList(language), true)
                 + " }";
+    }
+
+    private String edit(String literalText) {
+        Pattern pattern = Pattern.compile("^\\s*?([^,]*?\\w[^,]*?)\\s*?,\\s*(.*?)$");
+        Matcher matcher = pattern.matcher(literalText);
+        if (matcher.matches()) {
+            return matcher.group(2) + " " + matcher.group(1);
+        } else {
+            return literalText;
+        }
     }
 
     @Override
@@ -113,7 +126,7 @@ public final class ValueGeneratorFixedProcessor extends BaseProcessor {
                         return;
                     }
 
-                    otherValues.add(varMap.get("t").getLiteralLexicalForm());
+                    otherValues.add(edit(varMap.get("t").getLiteralLexicalForm()));
                 }
             });
 

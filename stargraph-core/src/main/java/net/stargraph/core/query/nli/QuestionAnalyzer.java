@@ -27,12 +27,12 @@ package net.stargraph.core.query.nli;
  */
 
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.annotation.POSAnnotator;
 import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
 import net.stargraph.UnmappedQueryTypeException;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.Rules;
-import net.stargraph.core.annotation.Annotator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -49,18 +49,18 @@ public final class QuestionAnalyzer {
     private Stargraph stargraph;
     private String dbId;
     private Language language;
-    private Annotator annotator;
+    private POSAnnotator POSAnnotator;
     private List<DataModelTypePattern> dataModelTypePatterns;
     private List<QueryPlanPatterns> queryPlanPatterns;
     private List<Pattern> stopPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
 
-    public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, Annotator annotator, Rules rules) {
+    public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, POSAnnotator POSAnnotator, Rules rules) {
         logger.info(marker, "Creating analyzer for '{}'", language);
         this.stargraph = stargraph;
         this.dbId = dbId;
         this.language = Objects.requireNonNull(language);
-        this.annotator = Objects.requireNonNull(annotator);
+        this.POSAnnotator = Objects.requireNonNull(POSAnnotator);
         this.dataModelTypePatterns = rules.getDataModelTypeRules(language);
         this.queryPlanPatterns = rules.getQueryPlanRules(language);
         this.stopPatterns = rules.getStopRules(language);
@@ -72,7 +72,7 @@ public final class QuestionAnalyzer {
         try {
             long startTime = System.currentTimeMillis();
             analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
-            analysis.annotate(annotator.run(language, question));
+            analysis.annotate(POSAnnotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelTypePatterns);
             analysis.clean(stopPatterns);
             analysis.resolveSPARQL(queryPlanPatterns);

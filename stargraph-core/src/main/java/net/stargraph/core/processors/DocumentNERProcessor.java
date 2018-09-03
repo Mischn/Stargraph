@@ -81,6 +81,7 @@ public final class DocumentNERProcessor extends BaseProcessor {
                     document.getSummary(),
                     document.getText(),
                     entities,
+                    document.getTerms(),
                     document.getPassages(),
                     document.getPassageExtractions(),
                     document.getExtractions()));

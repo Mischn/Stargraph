@@ -31,7 +31,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 import net.stargraph.ModelUtils;
 import net.stargraph.StarGraphException;
-import net.stargraph.core.annotation.POSAnnotatorFactory;
+import net.stargraph.core.annotation.pos.POSAnnotatorFactory;
 import net.stargraph.core.data.BaseDataProviderFactory;
 import net.stargraph.core.data.BaseDocumentProviderFactory;
 import net.stargraph.core.graph.BaseGraphModelProviderFactory;

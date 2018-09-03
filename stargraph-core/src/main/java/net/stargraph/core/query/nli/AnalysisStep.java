@@ -26,8 +26,8 @@ package net.stargraph.core.query.nli;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.annotation.POSTag;
-import net.stargraph.core.annotation.Word;
+import net.stargraph.core.annotation.pos.POSTag;
+import net.stargraph.core.annotation.pos.Word;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,4 +1,4 @@
-package net.stargraph.core.annotation;
+package net.stargraph.core.annotation.pos;
 
 /*-
  * ==========================License-Start=============================
@@ -26,45 +26,17 @@ package net.stargraph.core.annotation;
  * ==========================License-End===============================
  */
 
+import com.typesafe.config.Config;
+
 import java.util.Objects;
 
-public class Word {
-    protected POSTag posTag;
-    protected String text;
+public abstract class POSAnnotatorFactory {
+    protected Config config;
 
-    public Word(POSTag posTag, String text) {
-        this.posTag = posTag;
-        this.text = text;
+    public POSAnnotatorFactory(Config config) {
+        this.config = Objects.requireNonNull(config);
     }
 
-    public POSTag getPosTag() {
-        return posTag;
-    }
+    public abstract POSAnnotator create();
 
-    public String getPosTagString() {
-        return posTag.getTag();
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    @Override
-    public String toString() {
-        return text + "/" + posTag;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Word word = (Word) o;
-        return Objects.equals(posTag, word.posTag) &&
-                Objects.equals(text, word.text);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(posTag, text);
-    }
 }

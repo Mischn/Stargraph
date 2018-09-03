@@ -28,7 +28,7 @@ package net.stargraph.core.query;
 
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.annotation.POSAnnotator;
+import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.query.nli.QuestionAnalyzer;
 import net.stargraph.query.Language;
 
@@ -38,7 +38,7 @@ public final class Analyzers {
     private Stargraph stargraph;
     private String dbId;
     private Rules rules;
-    private POSAnnotator POSAnnotator;
+    private POSAnnotator posAnnotator;
     private ConcurrentHashMap<Language, QuestionAnalyzer> questionAnalyzers;
 
     public Analyzers(Stargraph stargraph, String dbId) {
@@ -46,11 +46,11 @@ public final class Analyzers {
         this.stargraph = stargraph;
         this.dbId = dbId;
         this.rules = new Rules(config);
-        this.POSAnnotator = stargraph.createPOSAnnotatorFactory().create();
+        this.posAnnotator = stargraph.createPOSAnnotatorFactory().create();
         this.questionAnalyzers = new ConcurrentHashMap<>();
     }
 
     public QuestionAnalyzer getQuestionAnalyzer(Language language) {
-        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, dbId, lang, POSAnnotator, rules));
+        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, dbId, lang, posAnnotator, rules));
     }
 }

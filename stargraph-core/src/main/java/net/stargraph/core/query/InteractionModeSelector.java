@@ -26,7 +26,7 @@ package net.stargraph.core.query;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.annotation.POSAnnotator;
+import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.query.nli.ClueAnalyzer;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -36,7 +36,7 @@ import java.util.Objects;
 import static net.stargraph.query.InteractionMode.NLI;
 
 public final class InteractionModeSelector {
-    private POSAnnotator POSAnnotator;
+    private POSAnnotator posAnnotator;
     private Language language;
 
     public static final String ENTITY_SIMILARITY_PATTERN = "^(?:\\s*\\w+)(?:\\s+\\w+){0,6} (?:similar to|similar \\w+ for|(?:is|are|was|were) like) ([^\\s]+).*$";
@@ -48,8 +48,8 @@ public final class InteractionModeSelector {
             + "||"
             + "(?:^\\s*(?:who|what) (?:is|are|was|were) ([^\\s]+).*$)";
 
-    public InteractionModeSelector(POSAnnotator POSAnnotator, Language language) {
-        this.POSAnnotator = Objects.requireNonNull(POSAnnotator);
+    public InteractionModeSelector(POSAnnotator posAnnotator, Language language) {
+        this.posAnnotator = Objects.requireNonNull(posAnnotator);
         this.language = Objects.requireNonNull(language);
     }
 
@@ -109,7 +109,7 @@ public final class InteractionModeSelector {
 
     private boolean isClueQuery(String queryString){
 
-        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(POSAnnotator);
+        ClueAnalyzer clueAnalyzer = new ClueAnalyzer(posAnnotator);
         return clueAnalyzer.isClue(queryString);
     }
 

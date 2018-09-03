@@ -27,8 +27,8 @@ package net.stargraph.core.impl.opennlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.annotation.POSAnnotator;
-import net.stargraph.core.annotation.POSAnnotatorFactory;
+import net.stargraph.core.annotation.pos.POSAnnotator;
+import net.stargraph.core.annotation.pos.POSAnnotatorFactory;
 
 /**
  * Alternative to CoreNLP. Configure it through the stargraph.annotator.factory.class.

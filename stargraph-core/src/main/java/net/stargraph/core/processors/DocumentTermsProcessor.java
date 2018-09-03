@@ -31,7 +31,10 @@ import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.ling.SentenceUtils;
 import edu.stanford.nlp.process.DocumentPreprocessor;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.annotation.*;
+import net.stargraph.core.annotation.binding.BindAnnotator;
+import net.stargraph.core.annotation.binding.Binding;
+import net.stargraph.core.annotation.binding.BindingPattern;
+import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.query.Rules;
 import net.stargraph.core.query.nli.DataModelType;
 import net.stargraph.core.query.nli.DataModelTypePattern;
@@ -92,16 +95,15 @@ public final class DocumentTermsProcessor extends BaseProcessor {
         List<String> terms = new ArrayList<>();
 
         for (String sentence : splitIntoSentences(text)) {
-            List<Word> words = getBindAnnotator(language).run(language, sentence);
-            for (Word word : words) {
-                if (word instanceof Binding) {
-                    Binding binding = (Binding) word;
+            List<Binding> bindings = getBindAnnotator(language).extractBindings(sentence);
+            for (Binding binding : bindings) {
+                if (binding.isBound()) {
                     DataModelType modelType = (DataModelType) binding.getObject();
                     if (modelType.equals(DataModelType.INSTANCE)
                             || modelType.equals(DataModelType.CLASS)
                             || modelType.equals(DataModelType.ATCLASS)
                             || modelType.equals(DataModelType.COMPLEX_CLASS)) {
-                        terms.add(binding.getText());
+                        terms.add(binding.getBoundText());
                     }
                 }
             }

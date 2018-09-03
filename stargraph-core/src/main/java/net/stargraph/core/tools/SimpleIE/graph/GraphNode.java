@@ -1,8 +1,8 @@
 package net.stargraph.core.tools.SimpleIE.graph;
 
 import net.stargraph.IDGenerator;
-import net.stargraph.core.annotation.POSTag;
-import net.stargraph.core.annotation.Word;
+import net.stargraph.core.annotation.pos.POSTag;
+import net.stargraph.core.annotation.pos.Word;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -1,9 +1,9 @@
 package net.stargraph.core.tools.SimpleIE.impl;
 
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.ner.NamedEntity;
-import net.stargraph.core.annotation.Word;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.model.date.TimeParser;

@@ -27,11 +27,11 @@ package net.stargraph.core.impl.opennlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.annotation.POSAnnotator;
-import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
-import net.stargraph.core.annotation.PartOfSpeechSet;
-import net.stargraph.core.annotation.Word;
+import net.stargraph.core.annotation.pos.POSAnnotator;
+import net.stargraph.core.annotation.pos.PartOfSpeechSet;
+import net.stargraph.core.annotation.pos.Word;
+import net.stargraph.query.Language;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.Tokenizer;

@@ -1,8 +1,13 @@
-package net.stargraph.core.annotation;
+package net.stargraph.core.annotation.binding;
 
-import net.stargraph.UnsupportedLanguageException;
+import net.stargraph.core.annotation.pos.POSAnnotator;
+import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.query.Language;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,7 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class BindAnnotator<T> extends POSAnnotator {
+public class BindAnnotator<T> {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected Marker marker = MarkerFactory.getMarker("bind-annotator");
+
     private POSAnnotator posAnnotator;
     private Language language;
     private List<BindingPattern<T>> bindingPatterns;
@@ -22,15 +30,20 @@ public class BindAnnotator<T> extends POSAnnotator {
         this.bindingPatterns = bindingPatterns;
     }
 
-    public List<Word> extractBindings(List<Word> posAnnotated) {
-        List<Word> currWords = new ArrayList<>(posAnnotated);
+    public List<Binding> extractBindings(String sentence) {
+        List<Word> posAnnotated = posAnnotator.run(language, sentence);
+        return extractBindings(posAnnotated);
+    }
+
+    public List<Binding> extractBindings(List<Word> posAnnotated) {
+        List<Binding> current = posAnnotated.stream().map(w -> new Binding(Arrays.asList(w), null, null)).collect(Collectors.toList());
 
         boolean hasMatch = true;
         while (hasMatch) {
             hasMatch = false;
 
-            String lexicalStr = getLexicalStr(currWords);
-            String posTagStr = getPosTagStr(currWords);
+            String lexicalStr = getLexicalStr(current);
+            String posTagStr = getPosTagStr(current);
             logger.debug(marker, "{} / {}", lexicalStr, posTagStr);
 
             for (BindingPattern<T> rule : bindingPatterns) {
@@ -44,16 +57,16 @@ public class BindAnnotator<T> extends POSAnnotator {
                     logger.debug(marker, "Matched lexical rule: {} -> {}", rule.getPattern(), trgObject);
                     String placeHolder = createPlaceholder(lexicalStr, trgObject);
 
-                    Binding binding = new Binding(trgObject, "tmp", placeHolder);
-                    currWords = replace(currWords, lexicalStr, lexicalMatcher, binding);
+                    Binding binding = new Binding(null, trgObject, placeHolder);
+                    current = replace(current, lexicalStr, lexicalMatcher, binding);
 
                     hasMatch = true;
                 } else if (rule.isPosPattern() && posTagMatcher.matches()) {
                     logger.debug(marker, "Matched POS rule: {} -> {}", rule.getPattern(), trgObject);
                     String placeHolder = createPlaceholder(posTagStr, trgObject);
 
-                    Binding binding = new Binding(trgObject, "tmp", placeHolder);
-                    currWords = replace(currWords, posTagStr, posTagMatcher, binding);
+                    Binding binding = new Binding(null, trgObject, placeHolder);
+                    current = replace(current, posTagStr, posTagMatcher, binding);
                     hasMatch = true;
                 }
 
@@ -63,17 +76,8 @@ public class BindAnnotator<T> extends POSAnnotator {
             }
         }
 
-        return currWords;
+        return current;
     }
-
-    @Override
-    protected List<Word> doRun(Language language, String sentence) {
-        if (!language.equals(this.language)) {
-            throw new UnsupportedLanguageException(language);
-        }
-        return extractBindings(posAnnotator.run(language, sentence));
-    }
-
 
 
 
@@ -89,12 +93,12 @@ public class BindAnnotator<T> extends POSAnnotator {
         return placeHolder;
     }
 
-    private static String getLexicalStr(List<Word> words) {
-        return words.stream().map(w -> (w instanceof Binding)? ((Binding) w).getPlaceHolder() : w.getText()).collect(Collectors.joining(" "));
+    private static String getLexicalStr(List<Binding> bindings) {
+        return bindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : ((Word)b.getWords().get(0)).getText()).collect(Collectors.joining(" "));
     }
 
-    private static String getPosTagStr(List<Word> words) {
-        return words.stream().map(w -> (w instanceof Binding)? ((Binding) w).getPlaceHolder() : w.getPosTagString()).collect(Collectors.joining(" "));
+    private static String getPosTagStr(List<Binding> bindings) {
+        return bindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : ((Word)b.getWords().get(0)).getPosTagString()).collect(Collectors.joining(" "));
     }
 
 
@@ -102,7 +106,7 @@ public class BindAnnotator<T> extends POSAnnotator {
         return StringUtils.countMatches(str.substring(0, idx), " ");
     }
 
-    private List<Word> replace(List<Word> words, String wordsStr, Matcher matcher, Binding binding) {
+    private List<Binding> replace(List<Binding> bindings, String wordsStr, Matcher matcher, Binding binding) {
         if (!matcher.matches()) {
             throw new IllegalStateException("No match!");
         }
@@ -115,18 +119,23 @@ public class BindAnnotator<T> extends POSAnnotator {
         int startExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.start(2)) : startReplaceWordIdx;
         int endExtractWordIdx = (matcher.groupCount() >= 2)? wordIndex(wordsStr, matcher.end(2)) : endReplaceWordIdx;
 
-        List<Word> extracted = words.subList(startExtractWordIdx, endExtractWordIdx+1);
-        List<Word> replaced = words.subList(startReplaceWordIdx, endReplaceWordIdx+1);
+        List<Binding> extracted = bindings.subList(startExtractWordIdx, endExtractWordIdx+1);
+        List<Binding> replaced = bindings.subList(startReplaceWordIdx, endReplaceWordIdx+1);
+
+        List<Word> extractedWords = new ArrayList<>();
+        for (Binding b : extracted) {
+            extractedWords.addAll(b.getWords());
+        }
 
         logger.debug(marker, "Replaced '{}' with '{}'", replaced, binding.getPlaceHolder());
 
-        // set text
-        binding.setText(getLexicalStr(extracted));
+        // set Words
+        binding.setWords(extractedWords);
 
-        List<Word> result = new ArrayList<>();
-        result.addAll(words.subList(0, startReplaceWordIdx));
+        List<Binding> result = new ArrayList<>();
+        result.addAll(bindings.subList(0, startReplaceWordIdx));
         result.addAll(Arrays.asList(binding));
-        result.addAll(words.subList(endReplaceWordIdx+1, words.size()));
+        result.addAll(bindings.subList(endReplaceWordIdx+1, bindings.size()));
 
         return result;
     }

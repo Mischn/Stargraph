@@ -1,5 +1,6 @@
-package net.stargraph.core.annotation;
+package net.stargraph.core.annotation.binding;
 
+import net.stargraph.core.annotation.pos.PartOfSpeechSet;
 import net.stargraph.query.Language;
 
 import java.util.List;

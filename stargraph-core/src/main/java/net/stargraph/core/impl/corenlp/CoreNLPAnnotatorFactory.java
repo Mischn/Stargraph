@@ -27,8 +27,8 @@ package net.stargraph.core.impl.corenlp;
  */
 
 import com.typesafe.config.Config;
-import net.stargraph.core.annotation.POSAnnotator;
-import net.stargraph.core.annotation.POSAnnotatorFactory;
+import net.stargraph.core.annotation.pos.POSAnnotator;
+import net.stargraph.core.annotation.pos.POSAnnotatorFactory;
 
 public final class CoreNLPAnnotatorFactory extends POSAnnotatorFactory {
 

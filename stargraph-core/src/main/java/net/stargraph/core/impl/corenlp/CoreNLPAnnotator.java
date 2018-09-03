@@ -29,9 +29,9 @@ package net.stargraph.core.impl.corenlp;
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import net.stargraph.UnsupportedLanguageException;
-import net.stargraph.core.annotation.POSAnnotator;
-import net.stargraph.core.annotation.PartOfSpeechSet;
-import net.stargraph.core.annotation.Word;
+import net.stargraph.core.annotation.pos.POSAnnotator;
+import net.stargraph.core.annotation.pos.PartOfSpeechSet;
+import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.query.Language;
 
 import java.io.StringReader;

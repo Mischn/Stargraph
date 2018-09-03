@@ -28,9 +28,9 @@ package net.stargraph.core.query.nli;
 
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.annotation.pos.Word;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
-import net.stargraph.core.annotation.Word;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;

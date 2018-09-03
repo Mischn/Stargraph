@@ -1,4 +1,4 @@
-package net.stargraph.core.annotation;
+package net.stargraph.core.annotation.pos;
 
 /*-
  * ==========================License-Start=============================
@@ -26,28 +26,33 @@ package net.stargraph.core.annotation;
  * ==========================License-End===============================
  */
 
+import net.stargraph.UnsupportedLanguageException;
 import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
-import net.stargraph.UnsupportedLanguageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
-import java.util.HashSet;
+import java.util.List;
 
-public abstract class PartOfSpeechSet extends HashSet<POSTag> {
+public abstract class POSAnnotator {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected Marker marker = MarkerFactory.getMarker("pos-annotator");
 
-    public final POSTag valueOf(String tagName) {
-        return this.stream().filter(pos -> pos.getTag().equals(tagName))
-                .findFirst().orElseThrow(() -> new StarGraphException("No mapping for '" + tagName + "'"));
-    }
+    protected abstract List<Word> doRun(Language language, String sentence);
 
-    public static PartOfSpeechSet getPOSSet(Language language) {
-        switch (language) {
-            case EN:
-                return EnglishPOSSet.getInstance();
-            case DE:
-            case PT:
-                throw new UnsupportedLanguageException(language);
-            default:
-                throw new StarGraphException("Unknown Language: '" + language + "'");
+    public final List<Word> run(Language language, String sentence) {
+        logger.debug(marker, "Annotating '{}', language: '{}'", sentence, language);
+        try {
+            return doRun(language, sentence);
+        }
+        catch (UnsupportedLanguageException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            logger.error(marker, "Error caught during annotation of '{}' ({})", sentence, language);
+            throw new StarGraphException(e);
         }
     }
 }

@@ -27,7 +27,7 @@ package net.stargraph.core.query.nli;
  */
 
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.annotation.POSAnnotator;
+import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.query.Language;
 import net.stargraph.StarGraphException;
 import net.stargraph.UnmappedQueryTypeException;
@@ -49,18 +49,18 @@ public final class QuestionAnalyzer {
     private Stargraph stargraph;
     private String dbId;
     private Language language;
-    private POSAnnotator POSAnnotator;
+    private POSAnnotator posAnnotator;
     private List<DataModelTypePattern> dataModelTypePatterns;
     private List<QueryPlanPatterns> queryPlanPatterns;
     private List<Pattern> stopPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
 
-    public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, POSAnnotator POSAnnotator, Rules rules) {
+    public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, POSAnnotator posAnnotator, Rules rules) {
         logger.info(marker, "Creating analyzer for '{}'", language);
         this.stargraph = stargraph;
         this.dbId = dbId;
         this.language = Objects.requireNonNull(language);
-        this.POSAnnotator = Objects.requireNonNull(POSAnnotator);
+        this.posAnnotator = Objects.requireNonNull(posAnnotator);
         this.dataModelTypePatterns = rules.getDataModelTypeRules(language);
         this.queryPlanPatterns = rules.getQueryPlanRules(language);
         this.stopPatterns = rules.getStopRules(language);
@@ -72,7 +72,7 @@ public final class QuestionAnalyzer {
         try {
             long startTime = System.currentTimeMillis();
             analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
-            analysis.annotate(POSAnnotator.run(language, question));
+            analysis.annotate(posAnnotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelTypePatterns);
             analysis.clean(stopPatterns);
             analysis.resolveSPARQL(queryPlanPatterns);

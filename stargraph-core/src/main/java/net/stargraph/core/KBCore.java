@@ -132,9 +132,8 @@ public final class KBCore {
 
         indexers.values().forEach(Indexer::stop);
         indexSearchers.values().forEach(Searcher::stop);
-        BaseGraphModel m = getGraphModel();
-        if (m != null) {
-            m.close();
+        if (graphModel != null) {
+            graphModel.close();
         }
 
         this.running = false;

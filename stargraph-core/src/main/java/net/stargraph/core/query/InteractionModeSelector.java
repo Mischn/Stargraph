@@ -44,9 +44,9 @@ public final class InteractionModeSelector {
     public static final String DEFINITION_PATTERN =
             "(?:^(?:\\s*\\w+)(?:\\s+\\w+){0,4} definition of ([^\\s]+).*$)"
             + "||"
-            + "(?:^\\s*describe ([^\\s]+).*$)"
-            + "||"
-            + "(?:^\\s*(?:who|what) (?:is|are|was|were) ([^\\s]+).*$)";
+            + "(?:^\\s*describe ([^\\s]+).*$)";
+//            + "||"
+//            + "(?:^\\s*(?:who|what) (?:is|are|was|were) ([^\\s]+).*$)";
 
     public InteractionModeSelector(POSAnnotator posAnnotator, Language language) {
         this.posAnnotator = Objects.requireNonNull(posAnnotator);

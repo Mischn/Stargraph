@@ -48,14 +48,12 @@ public final class Rules {
 
     private Map<Language, List<BindingPattern<DataModelType>>> dataModelBindingPatterns;
     private Map<Language, List<QueryPlanPatterns>> queryPlanPatterns;
-    private Map<Language, List<Pattern>> stopPatterns;
     private Map<Language, List<QueryTypePatterns>> queryTypePatterns;
 
     public Rules(Config config) {
         logger.info(marker, "Loading Rules.");
         this.dataModelBindingPatterns = loadDataModelBindingPatterns(Objects.requireNonNull(config));
         this.queryPlanPatterns = loadQueryPlanPatterns(Objects.requireNonNull(config));
-        this.stopPatterns = loadStopPatterns(config);
         this.queryTypePatterns = loadQueryTypePatterns(config);
     }
 
@@ -69,13 +67,6 @@ public final class Rules {
     public List<QueryPlanPatterns> getQueryPlanRules(Language language) {
         if (queryPlanPatterns.containsKey(language)) {
             return queryPlanPatterns.get(language);
-        }
-        throw new UnsupportedLanguageException(language);
-    }
-
-    public List<Pattern> getStopRules(Language language) {
-        if (stopPatterns.containsKey(language)) {
-            return stopPatterns.get(language);
         }
         throw new UnsupportedLanguageException(language);
     }
@@ -138,24 +129,6 @@ public final class Rules {
             });
 
             rulesByLang.put(language, plans);
-        });
-
-        return rulesByLang;
-    }
-
-    private Map<Language, List<Pattern>> loadStopPatterns(Config config) {
-        Map<Language, List<Pattern>> rulesByLang = new LinkedHashMap<>();
-        ConfigObject configObject = config.getObject("rules.stop-pattern");
-
-        configObject.keySet().forEach(strLang -> {
-            Language language = Language.valueOf(strLang.toUpperCase());
-            List<String> patternStr = configObject.toConfig().getStringList(strLang);
-
-            rulesByLang.compute(language,
-                    (lang, pattern) -> patternStr.stream().map(Pattern::compile).collect(Collectors.toList()));
-
-            logger.info(marker, "Loaded {} Stop patterns for '{}'", rulesByLang.get(language).size(), language);
-
         });
 
         return rulesByLang;

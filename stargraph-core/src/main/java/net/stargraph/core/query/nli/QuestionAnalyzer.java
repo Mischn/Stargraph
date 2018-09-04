@@ -26,14 +26,14 @@ package net.stargraph.core.query.nli;
  * ==========================License-End===============================
  */
 
+import net.stargraph.StarGraphException;
+import net.stargraph.UnmappedQueryTypeException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
-import net.stargraph.query.Language;
-import net.stargraph.StarGraphException;
-import net.stargraph.UnmappedQueryTypeException;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.Rules;
+import net.stargraph.query.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -41,7 +41,6 @@ import org.slf4j.MarkerFactory;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 public final class QuestionAnalyzer {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -53,7 +52,6 @@ public final class QuestionAnalyzer {
     private POSAnnotator posAnnotator;
     private List<BindingPattern<DataModelType>> dataModelBindingPatterns;
     private List<QueryPlanPatterns> queryPlanPatterns;
-    private List<Pattern> stopPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
 
     public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, POSAnnotator posAnnotator, Rules rules) {
@@ -64,7 +62,6 @@ public final class QuestionAnalyzer {
         this.posAnnotator = Objects.requireNonNull(posAnnotator);
         this.dataModelBindingPatterns = rules.getDataModelBindingPatterns(language);
         this.queryPlanPatterns = rules.getQueryPlanRules(language);
-        this.stopPatterns = rules.getStopRules(language);
         this.queryTypePatterns = rules.getQueryTypeRules(language);
     }
 
@@ -75,7 +72,7 @@ public final class QuestionAnalyzer {
             analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
             analysis.setAnnotatedWords(posAnnotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelBindingPatterns);
-            analysis.clean(stopPatterns);
+            analysis.clean();
             analysis.resolveSPARQL(queryPlanPatterns);
             logger.info(marker, "{}", getTimingReport(question, startTime));
             return analysis;

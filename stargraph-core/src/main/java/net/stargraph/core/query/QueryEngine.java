@@ -87,28 +87,37 @@ public class QueryEngine {
         try {
             switch (mode) {
                 case SA_SPARQL: //TODO not implemented
+                    logger.debug(marker, "Interaction-Mode: SA_SPARQL");
                     response = new NoResponse(SA_SPARQL, query);
                 case SA_SIMPLE_SPARQL: //TODO not implemented
+                    logger.debug(marker, "Interaction-Mode: SA_SIMPLE_SPARQL");
                     response = new NoResponse(SA_SIMPLE_SPARQL, query);
                 case NLI:
+                    logger.debug(marker, "Interaction-Mode: NLI");
                     response = nliQuery(query, language);
                     break;
                 case SPARQL:
+                    logger.debug(marker, "Interaction-Mode: SPARQL");
                     response = sparqlQuery(query);
                     break;
                 case ENTITY_SIMILARITY:
+                    logger.debug(marker, "Interaction-Mode: ENTITY_SIMILARITY");
                     response = entitySimilarityQuery(query, language);
                     break;
                 case LIKE_THIS:
+                    logger.debug(marker, "Interaction-Mode: LIKE_THIS");
                     response = likeThisQuery(query, language);
                     break;
                 case FILTER:
+                    logger.debug(marker, "Interaction-Mode: FILTER");
                     response = filterQuery(query, language);
                     break;
                 case DEFINITION:
+                    logger.debug(marker, "Interaction-Mode: DEFINITION");
                     response = definitionQuery(query, language);
                     break;
                 case CLUE:
+                    logger.debug(marker, "Interaction-Mode: CLUE");
                     response = clueQuery(query, language);
                     break;
                 default:
@@ -364,7 +373,7 @@ public class QueryEngine {
 
         if (triple.p.getModelType() != DataModelType.TYPE) {
             // if predicate is not a type assume: I (C|P) V pattern
-            logger.debug(marker, "Assume 'I (C|P) V' pattern");
+            logger.debug(marker, "Assume 'I (C|P) V / V (C|P) I' pattern");
 
             boolean subjPivot = true;
             InstanceEntity pivot = resolvePivot(triple.s, builder);
@@ -377,7 +386,7 @@ public class QueryEngine {
         }
         else {
             // Probably is: V T C
-            logger.debug(marker, "Assume 'V T C' pattern");
+            logger.debug(marker, "Assume 'V T C / C T V' pattern");
 
             DataModelBinding binding = triple.s.getModelType() == DataModelType.VARIABLE ? triple.o : triple.s;
             resolveClass(binding, builder);

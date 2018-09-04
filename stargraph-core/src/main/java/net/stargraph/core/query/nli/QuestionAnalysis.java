@@ -81,9 +81,9 @@ public final class QuestionAnalysis {
         this.currBindings = bindAnnotator.extractBindings(annotatedWords);
     }
 
-    void clean(List<Pattern> stopPatterns) {
+    void clean() {
         logger.info(marker, "CLEAN DATA MODEL BINDINGS");
-        stopPatterns.add(PUNCT_PATTERN);
+        List<Pattern> stopPatterns = Arrays.asList(PUNCT_PATTERN);
 
         List<BindingPattern<DataModelType>> stopBindingPatterns = stopPatterns.stream()
                 .map(p -> new BindingPattern<DataModelType>(p.pattern(), DataModelType.STOP, language))
@@ -97,6 +97,8 @@ public final class QuestionAnalysis {
 
     void resolveSPARQL(List<QueryPlanPatterns> rules) {
         String planId = currBindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : b.getBoundText()).collect(Collectors.joining(" "));
+
+        logger.debug(marker, "Check for planID: '" + planId + "'");
 
         List<DataModelBinding> dataModelBindings = currBindings.stream()
                 .filter(b -> b.isBound())

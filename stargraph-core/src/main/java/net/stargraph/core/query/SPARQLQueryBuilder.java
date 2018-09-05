@@ -58,11 +58,6 @@ public final class SPARQLQueryBuilder {
         this.mappings = new ConcurrentHashMap<>();
     }
 
-    @Override
-    public String toString() {
-        return build();
-    }
-
     public QueryPlanPatterns getTriplePatterns() {
         return triplePatterns;
     }
@@ -97,7 +92,7 @@ public final class SPARQLQueryBuilder {
         return Collections.emptyList();
     }
 
-    Map<DataModelBinding, List<Score>> getMappings() {
+    public Map<DataModelBinding, List<Score>> getMappings() {
         return mappings;
     }
 
@@ -108,7 +103,7 @@ public final class SPARQLQueryBuilder {
         mappings.computeIfAbsent(binding, (b) -> new Scores()).addAll(newScores);
     }
 
-    String build() {
+    public String build() {
         final int LIMIT = 500;
         String limitStr = sparqlCreator.createLimit(LIMIT);
 
@@ -277,4 +272,23 @@ public final class SPARQLQueryBuilder {
         return namespace != null ? namespace.expandURI(uri) : uri;
     }
 
+
+    @Override
+    public String toString() {
+        StringBuilder strb = new StringBuilder();
+        strb.append("Triple-Patterns:");
+        for (TriplePattern triplePattern : triplePatterns) {
+            strb.append("\n\t").append(triplePattern);
+        }
+        strb.append("\n\n").append("Bindings & Mappings:");
+        for (DataModelBinding binding : bindings) {
+            strb.append("\n\t").append(binding);
+            if (mappings.containsKey(binding) && mappings.get(binding).size() > 0) {
+                strb.append("\n\t\t").append("Mappings: ").append(mappings.get(binding));
+            } else {
+                strb.append("\n\t\t").append("NO MAPPINGS");
+            }
+        }
+        return strb.toString();
+    }
 }

@@ -53,7 +53,7 @@ public final class DataModelBinding {
 
     @Override
     public String toString() {
-        return term + "=>(" + placeHolder + ")";
+        return placeHolder +  " = '" + term + "'";
     }
 
     @Override

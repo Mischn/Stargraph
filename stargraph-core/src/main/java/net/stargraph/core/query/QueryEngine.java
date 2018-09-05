@@ -159,7 +159,14 @@ public class QueryEngine {
             resolve(triple, queryBuilder);
         });
 
+        logger.info(marker, "SPARQLQueryBuilder:");
+        logger.info(marker, queryBuilder.toString());
+
         String sparqlQueryStr = queryBuilder.build();
+
+        logger.info(marker, "SPARQLQueryString:");
+        logger.info(marker, sparqlQueryStr);
+
 
         Map<String, List<LabeledEntity>> vars = graphSearcher.select(sparqlQueryStr);
 

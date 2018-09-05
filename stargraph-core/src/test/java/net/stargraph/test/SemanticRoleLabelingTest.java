@@ -28,7 +28,7 @@ package net.stargraph.test;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.query.Language;
-import net.stargraph.core.query.Analyzers;
+import net.stargraph.core.query.nli.Analyzers;
 import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.nli.QuestionAnalysis;

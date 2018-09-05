@@ -26,8 +26,6 @@ package net.stargraph.core.query.nli;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.query.TriplePattern;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

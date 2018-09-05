@@ -32,6 +32,7 @@ import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.QueryPlanPatterns;
+import net.stargraph.core.query.nli.TriplePattern;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;

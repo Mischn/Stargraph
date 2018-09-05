@@ -6,7 +6,7 @@ import net.stargraph.core.annotation.binding.Binding;
 import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.annotation.pos.Word;
-import net.stargraph.core.query.Rules;
+import net.stargraph.core.query.nli.Rules;
 import net.stargraph.core.query.nli.DataModelType;
 import net.stargraph.core.tools.SimpleIE.SimpleIE;
 import net.stargraph.model.PassageExtraction;

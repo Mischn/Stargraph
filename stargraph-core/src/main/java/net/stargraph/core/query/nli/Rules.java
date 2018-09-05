@@ -1,4 +1,4 @@
-package net.stargraph.core.query;
+package net.stargraph.core.query.nli;
 
 /*-
  * ==========================License-Start=============================
@@ -29,10 +29,10 @@ package net.stargraph.core.query;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
-import net.stargraph.core.annotation.binding.BindingPattern;
-import net.stargraph.query.Language;
 import net.stargraph.UnsupportedLanguageException;
-import net.stargraph.core.query.nli.*;
+import net.stargraph.core.annotation.binding.BindingPattern;
+import net.stargraph.core.query.QueryType;
+import net.stargraph.query.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;

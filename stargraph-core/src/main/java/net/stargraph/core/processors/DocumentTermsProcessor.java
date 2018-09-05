@@ -35,7 +35,7 @@ import net.stargraph.core.annotation.binding.BindAnnotator;
 import net.stargraph.core.annotation.binding.Binding;
 import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
-import net.stargraph.core.query.Rules;
+import net.stargraph.core.query.nli.Rules;
 import net.stargraph.core.query.nli.DataModelType;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;

@@ -26,7 +26,7 @@ package net.stargraph.core.query.response;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.query.FilterResult;
+import net.stargraph.core.query.filter.FilterResult;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;

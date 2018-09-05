@@ -1,4 +1,4 @@
-package net.stargraph.core.query;
+package net.stargraph.core.query.entity;
 
 /*-
  * ==========================License-Start=============================
@@ -12,10 +12,10 @@ package net.stargraph.core.query;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,31 +26,40 @@ package net.stargraph.core.query;
  * ==========================License-End===============================
  */
 
-import com.typesafe.config.Config;
-import net.stargraph.core.Stargraph;
-import net.stargraph.core.annotation.pos.POSAnnotator;
-import net.stargraph.core.query.nli.QuestionAnalyzer;
-import net.stargraph.query.Language;
+public class EntityQuery {
 
-import java.util.concurrent.ConcurrentHashMap;
+    private String coreEntity;
+    private String text;
 
-public final class Analyzers {
-    private Stargraph stargraph;
-    private String dbId;
-    private Rules rules;
-    private POSAnnotator posAnnotator;
-    private ConcurrentHashMap<Language, QuestionAnalyzer> questionAnalyzers;
+    public EntityQuery(){
 
-    public Analyzers(Stargraph stargraph, String dbId) {
-        Config config = stargraph.getMainConfig();
-        this.stargraph = stargraph;
-        this.dbId = dbId;
-        this.rules = new Rules(config);
-        this.posAnnotator = stargraph.createPOSAnnotatorFactory().create();
-        this.questionAnalyzers = new ConcurrentHashMap<>();
     }
 
-    public QuestionAnalyzer getQuestionAnalyzer(Language language) {
-        return questionAnalyzers.computeIfAbsent(language, lang -> new QuestionAnalyzer(stargraph, dbId, lang, posAnnotator, rules));
+    public EntityQuery(String coreEntity){
+        this.coreEntity = coreEntity;
+    }
+
+    public String getCoreEntity() {
+        return coreEntity;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setCoreEntity(String coreEntity) {
+        this.coreEntity = coreEntity;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public String toString() {
+        return "EntityQuery{" +
+                "coreEntity='" + coreEntity + '\'' +
+                ", text='" + text + '\'' +
+                '}';
     }
 }

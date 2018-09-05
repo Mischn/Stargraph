@@ -1,4 +1,4 @@
-package net.stargraph.core.query.nli;
+package net.stargraph.core.query.clue;
 
 /*-
  * ==========================License-Start=============================

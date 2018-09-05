@@ -27,7 +27,7 @@ package net.stargraph.core.query;
  */
 
 import net.stargraph.core.annotation.pos.POSAnnotator;
-import net.stargraph.core.query.nli.ClueAnalyzer;
+import net.stargraph.core.query.clue.ClueAnalyzer;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
 

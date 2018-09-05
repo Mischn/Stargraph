@@ -28,7 +28,7 @@ package net.stargraph.server;
 
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.query.FilterResult;
+import net.stargraph.core.query.filter.FilterResult;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;

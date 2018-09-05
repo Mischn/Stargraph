@@ -32,7 +32,6 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.annotation.binding.BindingPattern;
 import net.stargraph.core.annotation.pos.POSAnnotator;
 import net.stargraph.core.query.QueryType;
-import net.stargraph.core.query.Rules;
 import net.stargraph.query.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

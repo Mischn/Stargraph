@@ -35,59 +35,47 @@ import net.stargraph.core.query.nli.QueryPlanPatterns;
 import net.stargraph.core.query.nli.TriplePattern;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
-import net.stargraph.rank.Scores;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class SPARQLQueryBuilder {
-    private SparqlCreator sparqlCreator;
-    private List<String> classURIs;
-    private QueryType queryType;
-    private QueryPlanPatterns triplePatterns;
-    private List<DataModelBinding> bindings;
+    private final SparqlCreator sparqlCreator;
+    private final List<String> classURIs;
+    private final QueryType queryType;
+    private final QueryPlanPatterns triplePatterns;
+    private final List<DataModelBinding> bindings;
     private Map<DataModelBinding, List<Score>> mappings;
     private Namespace namespace;
 
-    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings) {
+    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings, Map<DataModelBinding, List<Score>> mappings) {
         this.sparqlCreator = new SparqlCreator();
         this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
         this.triplePatterns = Objects.requireNonNull(triplePatterns);
         this.bindings = Objects.requireNonNull(bindings);
-        this.mappings = new ConcurrentHashMap<>();
-    }
-
-    public QueryPlanPatterns getTriplePatterns() {
-        return triplePatterns;
-    }
-
-    public QueryType getQueryType() {
-        return queryType;
-    }
-
-    public DataModelBinding getBinding(String placeHolder) {
-        return bindings.stream()
-                .filter(b -> b.getPlaceHolder().equals(placeHolder))
-                .findFirst()
-                .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
-    }
-
-    public List<DataModelBinding> getBindings() {
-        return bindings;
+        this.mappings = Objects.requireNonNull(mappings);
     }
 
     public void setNS(Namespace ns) {
         this.namespace = Objects.requireNonNull(ns);
     }
 
-    boolean isResolved(DataModelBinding binding) {
-        return mappings.containsKey(binding);
+
+    // BINDINGS
+
+    public List<DataModelBinding> getBindings() {
+        return bindings;
     }
 
-    List<Score> getMappings(DataModelBinding binding) {
-        if (mappings.containsKey(binding)) {
+    // MAPPINGS
+
+    public boolean hasMappings(DataModelBinding dataModelBinding) {
+        return mappings.containsKey(dataModelBinding) && mappings.get(dataModelBinding).size() > 0;
+    }
+
+    public List<Score> getMappings(DataModelBinding binding) {
+        if (hasMappings(binding)) {
             return mappings.get(binding);
         }
         return Collections.emptyList();
@@ -97,12 +85,28 @@ public final class SPARQLQueryBuilder {
         return mappings;
     }
 
-    void addMapping(DataModelBinding binding, List<Score> scores) {
-        final Scores newScores = new Scores(scores.size());
-        // Expanding the Namespace for all entities
-        scores.forEach(s -> newScores.add(new Score(namespace.expand(s.getEntry()), s.getValue())));
-        mappings.computeIfAbsent(binding, (b) -> new Scores()).addAll(newScores);
+    // OTHER
+
+    public QueryType getQueryType() {
+        return queryType;
     }
+
+    public QueryPlanPatterns getTriplePatterns() {
+        return triplePatterns;
+    }
+
+    public DataModelBinding getBinding(String placeHolder) {
+        return bindings.stream()
+                .filter(b -> b.getPlaceHolder().equals(placeHolder))
+                .findFirst()
+                .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
+    }
+
+
+
+
+
+
 
     public String build() {
         final int LIMIT = 500;

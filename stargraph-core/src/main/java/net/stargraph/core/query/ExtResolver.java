@@ -1,18 +1,13 @@
-package net.stargraph.query;
+package net.stargraph.core.query;
 
-import net.stargraph.core.Stargraph;
-import net.stargraph.core.query.QueryEngine;
-import net.stargraph.core.query.QueryResponse;
+import net.stargraph.core.Namespace;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,32 +15,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Allows to define better-mappings for NLI queries
- */
-public class ExtQueryEngine extends QueryEngine {
-    private Logger logger = LoggerFactory.getLogger(getClass());
-    private Marker marker = MarkerFactory.getMarker("query");
+public class ExtResolver extends Resolver {
+    private Map<String, List<String>> customMappings;
 
-    private Map<String, List<String>> betterMappings;
-
-    public ExtQueryEngine(String dbId, Stargraph stargraph) {
-        super(dbId, stargraph);
-        this.betterMappings = new HashMap<>();
+    public ExtResolver(EntitySearcher entitySearcher, Namespace namespace, String dbId) {
+        super(entitySearcher, namespace, dbId);
+        this.customMappings = new HashMap<>();
     }
 
-    public void setBetterMappings(Map<String, List<String>> betterMappings) {
-        logger.info(marker, "Defined better mappings {}", betterMappings);
-        this.betterMappings = betterMappings;
+    public void setCustomMappings(Map<String, List<String>> customMappings) {
+        logger.info(marker, "Defined custom mappings {}", customMappings);
+        this.customMappings = customMappings;
     }
 
-    public void clearBetterMappings() {
-        betterMappings.clear();
-    }
-
-    @Override
-    public QueryResponse query(String query) {
-        return super.query(query);
+    public void clearCustomMappings() {
+        this.customMappings.clear();
     }
 
     // assumes the id to consist of ' '-joined property-ids
@@ -64,11 +48,11 @@ public class ExtQueryEngine extends QueryEngine {
     }
 
     @Override
-    protected Scores searchClass(DataModelBinding binding) {
-        if (betterMappings.containsKey(binding.getTerm())) {
+    public Scores searchClass(DataModelBinding binding) {
+        if (customMappings.containsKey(binding.getTerm())) {
 
             // lookup classes
-            Scores scores = new Scores(betterMappings.get(binding.getTerm()).stream()
+            Scores scores = new Scores(customMappings.get(binding.getTerm()).stream()
                     .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
@@ -76,6 +60,8 @@ public class ExtQueryEngine extends QueryEngine {
             if (scores.size() > 0) {
                 logger.info(marker, "Used better mappings for '{}'", binding.getTerm());
                 return scores;
+            } else {
+                logger.warn(marker, "Better mappings for '{}' were available ({}), but could not find any instances", binding.getTerm(), customMappings.get(binding.getTerm()));
             }
         }
 
@@ -83,11 +69,11 @@ public class ExtQueryEngine extends QueryEngine {
     }
 
     @Override
-    protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
-        if (betterMappings.containsKey(binding.getTerm())) {
+    public Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
+        if (customMappings.containsKey(binding.getTerm())) {
 
             // lookup property-paths
-            Scores scores = new Scores(betterMappings.get(binding.getTerm()).stream()
+            Scores scores = new Scores(customMappings.get(binding.getTerm()).stream()
                     .map(id -> getPropertyPath(id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
@@ -95,6 +81,8 @@ public class ExtQueryEngine extends QueryEngine {
             if (scores.size() > 0) {
                 logger.info(marker, "Used better mappings for '{}'", binding.getTerm());
                 return scores;
+            } else {
+                logger.warn(marker, "Better mappings for '{}' were available ({}), but could not find any instances", binding.getTerm(), customMappings.get(binding.getTerm()));
             }
         }
 
@@ -102,11 +90,11 @@ public class ExtQueryEngine extends QueryEngine {
     }
 
     @Override
-    protected Scores searchPivot(DataModelBinding binding) {
-        if (betterMappings.containsKey(binding.getTerm())) {
+    public Scores searchPivot(DataModelBinding binding) {
+        if (customMappings.containsKey(binding.getTerm())) {
 
             // lookup pivots
-            Scores scores = new Scores(betterMappings.get(binding.getTerm()).stream()
+            Scores scores = new Scores(customMappings.get(binding.getTerm()).stream()
                     .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
@@ -114,6 +102,8 @@ public class ExtQueryEngine extends QueryEngine {
             if (scores.size() > 0) {
                 logger.info(marker, "Used better mappings for '{}'", binding.getTerm());
                 return scores;
+            } else {
+                logger.warn(marker, "Better mappings for '{}' were available ({}), but could not find any instances", binding.getTerm(), customMappings.get(binding.getTerm()));
             }
         }
 
@@ -121,11 +111,11 @@ public class ExtQueryEngine extends QueryEngine {
     }
 
     @Override
-    protected Scores searchInstance(String instanceTerm) {
-        if (betterMappings.containsKey(instanceTerm)) {
+    public Scores searchInstance(String instanceTerm) {
+        if (customMappings.containsKey(instanceTerm)) {
 
             // lookup instances
-            Scores scores = new Scores(betterMappings.get(instanceTerm).stream()
+            Scores scores = new Scores(customMappings.get(instanceTerm).stream()
                     .map(id -> entitySearcher.getInstanceEntity(dbId, id))
                     .filter(e -> e != null)
                     .map(e -> new Score(e, 1))
@@ -133,6 +123,8 @@ public class ExtQueryEngine extends QueryEngine {
             if (scores.size() > 0) {
                 logger.info(marker, "Used better mappings for '{}'", instanceTerm);
                 return scores;
+            } else {
+                logger.warn(marker, "Better mappings for '{}' were available ({}), but could not find any instances", instanceTerm, customMappings.get(instanceTerm));
             }
         }
 

@@ -28,13 +28,43 @@ package net.stargraph.core.query.nli;
 
 import net.stargraph.StarGraphException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public final class TriplePattern {
-    private String pattern;
+    public static class BoundTriple {
+        private DataModelBinding s;
+        private DataModelBinding p;
+        private DataModelBinding o;
 
+        public BoundTriple(DataModelBinding s, DataModelBinding p, DataModelBinding o) {
+            this.s = s;
+            this.p = p;
+            this.o = o;
+        }
+
+        public DataModelBinding getS() {
+            return s;
+        }
+
+        public DataModelBinding getP() {
+            return p;
+        }
+
+        public DataModelBinding getO() {
+            return o;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("<%s %s %s> (%s = '%s', %s = '%s', %s = '%s')", s.getPlaceHolder(), p.getPlaceHolder(), o.getPlaceHolder(),
+                    s.getPlaceHolder(), s.getTerm(),
+                    p.getPlaceHolder(), p.getTerm(),
+                    o.getPlaceHolder(), o.getTerm());
+        }
+    }
+
+    private String pattern;
 
     public TriplePattern(String pattern) {
         this.pattern = Objects.requireNonNull(pattern);
@@ -44,24 +74,28 @@ public final class TriplePattern {
         return pattern;
     }
 
-    public List<DataModelBinding> map(List<DataModelBinding> bindingList) {
-        List<DataModelBinding> mapped = new ArrayList<>();
-
-        for (String s : pattern.split("\\s")) {
-            if (!s.startsWith("?VAR") && !s.startsWith("TYPE")) {
-                mapped.add(bindingList.stream()
-                        .filter(b -> b.getPlaceHolder().equals(s))
-                        .findAny().orElseThrow(() -> new StarGraphException("Unmapped placeholder '" + s + "'")));
-            }
-        }
-
-        return mapped;
+    public BoundTriple toBoundTriple(List<DataModelBinding> bindings) {
+        String[] components = pattern.split("\\s");
+        return new BoundTriple(map(components[0], bindings), map(components[1], bindings), map(components[2], bindings));
     }
+
+    private DataModelBinding map(String placeHolder, List<DataModelBinding> bindings) {
+        if (placeHolder.startsWith("?VAR")) {
+            return new DataModelBinding(DataModelType.VARIABLE, placeHolder, placeHolder);
+        }
+        if (placeHolder.startsWith("TYPE")) {
+            return new DataModelBinding(DataModelType.TYPE, placeHolder, placeHolder);
+        }
+        return bindings.stream()
+                .filter(b -> b.getPlaceHolder().equals(placeHolder))
+                .findAny().orElseThrow(() -> new StarGraphException("Unmapped placeholder '" + placeHolder + "'"));
+    }
+
 
     @Override
     public String toString() {
-        return "Triple{" +
-                "pattern='" + pattern + '\'' +
-                '}';
+        return pattern;
     }
+
+
 }

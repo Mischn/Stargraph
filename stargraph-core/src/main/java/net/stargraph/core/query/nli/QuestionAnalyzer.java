@@ -68,11 +68,11 @@ public final class QuestionAnalyzer {
         QuestionAnalysis analysis = null;
         try {
             long startTime = System.currentTimeMillis();
-            analysis = new QuestionAnalysis(stargraph, dbId, question, selectQueryType(question));
+            analysis = new QuestionAnalysis(language, question, selectQueryType(question));
             analysis.setAnnotatedWords(posAnnotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelBindingPatterns);
             analysis.clean();
-            analysis.resolveSPARQL(queryPlanPatterns);
+            analysis.determineQueryPlanPatterns(queryPlanPatterns);
             logger.info(marker, "{}", getTimingReport(question, startTime));
             return analysis;
         }

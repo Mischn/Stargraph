@@ -69,9 +69,10 @@ public class QueryEngine {
     protected Analyzers analyzers;
     protected GraphSearcher graphSearcher;
     protected EntitySearcher entitySearcher;
-    protected InteractionModeSelector modeSelector;
     protected Namespace namespace;
     protected Language language;
+    protected InteractionModeSelector modeSelector;
+    protected ExtResolver resolver; // currently, all interactions share this one resolver. Could be customized for each interaction mode
 
     public QueryEngine(String dbId, Stargraph stargraph) {
         this.stargraph = stargraph;
@@ -83,6 +84,15 @@ public class QueryEngine {
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
         this.modeSelector = new InteractionModeSelector(stargraph.createPOSAnnotatorFactory().create(), language);
+        this.resolver = new ExtResolver(entitySearcher, namespace, dbId);
+    }
+
+    public void setCustomMappings(Map<String, List<String>> customMappings) {
+        this.resolver.setCustomMappings(customMappings);
+    }
+
+    public void clearCustomMappings() {
+        this.resolver.clearCustomMappings();
     }
 
     public QueryResponse query(String query) {
@@ -154,16 +164,18 @@ public class QueryEngine {
     private QueryResponse nliQuery(String userQuery, Language language) {
         QuestionAnalyzer analyzer = this.analyzers.getQuestionAnalyzer(language);
         QuestionAnalysis analysis = analyzer.analyse(userQuery);
-        SPARQLQueryBuilder queryBuilder = analysis.getSPARQLQueryBuilder();
-        queryBuilder.setNS(namespace);
 
-        QueryPlanPatterns triplePatterns = queryBuilder.getTriplePatterns();
-        List<DataModelBinding> bindings = queryBuilder.getBindings();
-
-        triplePatterns.forEach(triplePattern -> {
-            Triple triple = asTriple(triplePattern, bindings);
-            resolve(triple, queryBuilder);
+        logger.info(marker, "Resolve triples:");
+        resolver.reset();
+        analysis.getTriplePatterns().forEach(triplePattern -> {
+            resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
         });
+
+        SPARQLQueryBuilder queryBuilder = new SPARQLQueryBuilder(stargraph, dbId, analysis.getQueryType(),
+                analysis.getTriplePatterns(),
+                analysis.getBindings(),
+                resolver.getMappings());
+        queryBuilder.setNS(namespace);
 
         logger.info(marker, "SPARQLQueryBuilder:");
         logger.info(marker, queryBuilder.toString());
@@ -172,7 +184,6 @@ public class QueryEngine {
 
         logger.info(marker, "SPARQLQueryString:");
         logger.info(marker, sparqlQueryStr);
-
 
         Map<String, List<LabeledEntity>> vars = graphSearcher.select(sparqlQueryStr);
 
@@ -203,23 +214,27 @@ public class QueryEngine {
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, ENTITY_SIMILARITY);
-        Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
-        Score coreEntityScore = coreEntityScores.get(0);
 
-        Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity)coreEntityScore.getEntry(), docTypes, null);
-        if (!entityScores.isEmpty()) {
-            AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
+        // create mappings for core entity
+        DataModelBinding coreEntityBinding = new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity());
 
-            answerSet.setEntityAnswers(entityScores);
-            answerSet.setCoreEntity(coreEntityScore);
-            answerSet.setDocTypes(docTypes);
+        resolver.reset();
+        resolver.resolveInstance(coreEntityBinding, 1);
 
-            // create mappings for core entity
-            Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity()), coreEntityScores);
-            answerSet.setMappings(mappings);
+        if (resolver.hasMappings(coreEntityBinding)) {
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding).get(0);
 
-            return answerSet;
+            Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity) coreEntityScore.getEntry(), docTypes, null);
+            if (!entityScores.isEmpty()) {
+                AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
+
+                answerSet.setEntityAnswers(entityScores);
+                answerSet.setCoreEntity(coreEntityScore);
+                answerSet.setDocTypes(docTypes);
+                answerSet.setMappings(resolver.getMappings());
+
+                return answerSet;
+            }
         }
 
         return new NoResponse(NLI, userQuery);
@@ -230,25 +245,30 @@ public class QueryEngine {
 
         EntityQueryBuilder queryBuilder = new EntityQueryBuilder();
         EntityQuery query = queryBuilder.parse(userQuery, DEFINITION);
-        Scores coreEntityScores = resolveScoredInstance(query.getCoreEntity());
-        Score coreEntityScore = coreEntityScores.get(0);
 
-        List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((InstanceEntity)coreEntityScore.getEntry()).getId(), definitionDocTypes);
-        if (!documents.isEmpty()) {
-            AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
+        // create mappings for core entity
+        DataModelBinding coreEntityBinding = new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity());
 
-            answerSet.setDocumentAnswers(documents.stream().map(d -> new Score(d, 1)).collect(Collectors.toList()));
-            answerSet.setTextAnswers(documents.stream().map(d -> d.getText()).collect(Collectors.toList()));
+        resolver.reset();
+        resolver.resolveInstance(coreEntityBinding, 1);
 
-            answerSet.setCoreEntity(coreEntityScore);
-            answerSet.setDocTypes(definitionDocTypes);
+        if (resolver.hasMappings(coreEntityBinding)) {
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding).get(0);
 
-            // create mappings for core entity
-            Map<DataModelBinding, List<Score>> mappings = new HashMap<>();
-            mappings.put(new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity()), coreEntityScores);
-            answerSet.setMappings(mappings);
+            List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((InstanceEntity) coreEntityScore.getEntry()).getId(), definitionDocTypes);
+            if (!documents.isEmpty()) {
+                AnswerSetResponse answerSet = new AnswerSetResponse(DEFINITION, userQuery);
 
-            return answerSet;
+                answerSet.setDocumentAnswers(documents.stream().map(d -> new Score(d, 1)).collect(Collectors.toList()));
+                answerSet.setTextAnswers(documents.stream().map(d -> d.getText()).collect(Collectors.toList()));
+
+                answerSet.setCoreEntity(coreEntityScore);
+                answerSet.setDocTypes(definitionDocTypes);
+
+                answerSet.setMappings(resolver.getMappings());
+
+                return answerSet;
+            }
         }
 
         return new NoResponse(DEFINITION, userQuery);
@@ -381,222 +401,5 @@ public class QueryEngine {
         return new NoResponse(CLUE, userQuery);
     }
 
-    private void resolve(Triple triple, SPARQLQueryBuilder builder) {
-        logger.debug(marker, "Resolve triple {}", triple);
 
-        if (triple.p.getModelType() != DataModelType.TYPE) {
-            // if predicate is not a type assume: I (C|P) V pattern
-            logger.debug(marker, "Assume 'I (C|P) V / V (C|P) I' pattern");
-
-            boolean subjPivot = true;
-            InstanceEntity pivot = resolvePivot(triple.s, builder);
-            if (pivot == null) {
-                subjPivot = false;
-                pivot = resolvePivot(triple.o, builder);
-            }
-
-            resolvePredicate(pivot, !subjPivot, subjPivot, triple.p, builder);
-        }
-        else {
-            // Probably is: V T C
-            logger.debug(marker, "Assume 'V T C / C T V' pattern");
-
-            DataModelBinding binding = triple.s.getModelType() == DataModelType.VARIABLE ? triple.o : triple.s;
-            resolveClass(binding, builder);
-        }
-    }
-
-    private boolean isURI(String str) {
-        return (str.toLowerCase().startsWith("http://") || str.toLowerCase().startsWith("https://"));
-    }
-
-    private InstanceEntity resolveUri(String str) {
-        InstanceEntity instance = null;
-        if (isURI(str.trim())) {
-            instance = entitySearcher.getInstanceEntity(dbId, str.trim());
-        }
-        return instance;
-    }
-
-    public Scores rescoreClasses(Scores scores) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
-
-        List<String> noRootIds = new ArrayList<>();
-        for (Score score : scores) {
-            String id = score.getRankableView().getId();
-            List<String> otherIds = scores.stream().map(s -> s.getRankableView().getId()).filter(i -> !i.equals(id)).collect(Collectors.toList());
-            if (entitySearcher.isClassMember(id, otherIds, searchParams)) {
-                noRootIds.add(id);
-            }
-        }
-
-        // boost roots
-        Scores rescored = new Scores();
-        for (Score score : scores) {
-            double s = (!noRootIds.contains(score.getRankableView().getId()))? 1 : 0;
-            double newScore = (0.5 * score.getValue()) + (0.5 * s);
-            rescored.add(new Score(score.getEntry(), newScore));
-        }
-
-        // order
-        rescored.sort(true);
-
-        return rescored;
-    }
-
-    private void resolveClass(DataModelBinding binding, SPARQLQueryBuilder builder) {
-        if (binding.getModelType() == DataModelType.CLASS) {
-            final int PRE_LIMIT = 50;
-            final int LIMIT = 3;
-            Scores scores;
-
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
-                scores = searchClass(binding);
-
-                // re-rank classes
-                scores = rescoreClasses(new Scores(scores.stream().limit(PRE_LIMIT).collect(Collectors.toList()))); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
-                logger.debug(marker, "Results: {}", scores);
-            }
-
-            logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
-            builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
-        }
-    }
-
-    protected Scores searchClass(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
-        ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.classSearch(searchParams, rankParams);
-    }
-
-    private void resolvePredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding, SPARQLQueryBuilder builder) {
-        if ((binding.getModelType() == DataModelType.CLASS
-                || binding.getModelType() == DataModelType.PROPERTY) && !builder.isResolved(binding)) {
-            final int LIMIT = 6;
-            Scores scores;
-
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
-                scores = searchPredicate(pivot, incomingEdges, outgoingEdges, binding);
-                logger.debug(marker, "Results: {}", scores);
-            }
-
-            logger.debug(marker, "Map {} to binding {}", scores.stream().limit(LIMIT).collect(Collectors.toList()), binding);
-            builder.addMapping(binding, scores.stream().limit(LIMIT).collect(Collectors.toList()));
-        }
-    }
-
-    protected Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
-        ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
-    }
-
-    private InstanceEntity resolvePivot(DataModelBinding binding, SPARQLQueryBuilder builder) {
-        List<Score> mappings = builder.getMappings(binding);
-        if (!mappings.isEmpty()) {
-            logger.debug(marker, "Pivot was already resolved");
-            logger.debug(marker, "Return " + mappings.get(0));
-            return (InstanceEntity)mappings.get(0).getEntry();
-        }
-
-        if (binding.getModelType() == DataModelType.INSTANCE) {
-            Scores scores;
-
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve pivot, searching for term '{}'", binding.getTerm());
-                scores = searchPivot(binding);
-                logger.debug(marker, "Results: {}", scores);
-            }
-
-            logger.debug(marker, "Map {} to binding {}", scores.get(0), binding);
-            InstanceEntity instance = (InstanceEntity) scores.get(0).getEntry();
-            builder.addMapping(binding, Collections.singletonList(scores.get(0)));
-            return instance;
-        }
-        return null;
-    }
-
-    protected Scores searchPivot(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(binding.getTerm())));
-        ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.instanceSearch(searchParams, rankParams);
-    }
-
-    private Scores resolveScoredInstance(String instanceTerm) {
-        final int LIMIT = 6;
-        Scores scores;
-
-        // check for concrete URI
-        InstanceEntity resolvedUri = resolveUri(instanceTerm);
-        if (resolvedUri != null) {
-            scores = new Scores();
-            scores.add(new Score(resolvedUri, 1));
-        } else {
-            logger.debug(marker, "Resolve instance/resource, searching for term '{}'", instanceTerm);
-            scores = searchInstance(instanceTerm);
-            logger.debug(marker, "Results: {}", scores);
-        }
-
-        logger.debug(marker, "Return: {}", scores.stream().limit(LIMIT).collect(Collectors.toList()));
-        return new Scores(scores.stream().limit(LIMIT).collect(Collectors.toList()));
-    }
-
-    protected Scores searchInstance(String instanceTerm) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(instanceTerm)));
-        ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.instanceSearch(searchParams, rankParams);
-    }
-
-    private Triple asTriple(TriplePattern pattern, List<DataModelBinding> bindings) {
-        String[] components = pattern.getPattern().split("\\s");
-        return new Triple(map(components[0], bindings), map(components[1], bindings), map(components[2], bindings));
-    }
-
-    private DataModelBinding map(String placeHolder, List<DataModelBinding> bindings) {
-        if (placeHolder.startsWith("?VAR") || placeHolder.startsWith("TYPE")) {
-            DataModelType type = placeHolder.startsWith("?VAR") ? DataModelType.VARIABLE : DataModelType.TYPE;
-            return new DataModelBinding(type, placeHolder, placeHolder);
-        }
-
-        return bindings.stream()
-                .filter(b -> b.getPlaceHolder().equals(placeHolder))
-                .findAny().orElseThrow(() -> new StarGraphException("Unmapped placeholder '" + placeHolder + "'"));
-    }
-
-    public static class Triple {
-        Triple(DataModelBinding s, DataModelBinding p, DataModelBinding o) {
-            this.s = s;
-            this.p = p;
-            this.o = o;
-        }
-
-        public DataModelBinding s;
-        public DataModelBinding p;
-        public DataModelBinding o;
-
-        @Override
-        public String toString() {
-            return String.format("<%s %s %s>     (%s='%s', %s='%s', %s='%s')", s.getPlaceHolder(), p.getPlaceHolder(), o.getPlaceHolder(),
-                    s.getPlaceHolder(), s.getTerm(),
-                    p.getPlaceHolder(), p.getTerm(),
-                    o.getPlaceHolder(), o.getTerm());
-        }
-    }
 }

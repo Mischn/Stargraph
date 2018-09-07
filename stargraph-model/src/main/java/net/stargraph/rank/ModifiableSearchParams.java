@@ -29,69 +29,20 @@ package net.stargraph.rank;
 import net.stargraph.model.BuiltInModel;
 import net.stargraph.model.KBId;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public final class ModifiableSearchParams {
-    public static class Phrase {
-        private String text;
-        private float boost;
-
-        public Phrase(String term) {
-            this(term, 1.0f);
-        }
-
-        public Phrase(String text, float boost) {
-            this.text = text;
-            this.boost = boost;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        public float getBoost() {
-            return boost;
-        }
-
-        @Override
-        public String toString() {
-            return "Phrase{" +
-                    "text='" + text + '\'' +
-                    ", boost=" + boost +
-                    '}';
-        }
-    }
-
-    private int limit;
     private String dbId;
     private String modelId;
-    private List<String> searchTerms;
-    private List<Phrase> searchPhrases;
+    private int searchSpaceLimit; // this will be applied before a potential ranking (may not retrieve the best ranked results)
+    private int resultLimit; // this will be applied at the very end
     private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
         // defaults
-        this.limit = -1;
         this.dbId = dbId;
+        this.modelId = null;
+        this.resultLimit = -1;
+        this.searchSpaceLimit = -1;
         this.lookup = true;
-    }
-
-    public final ModifiableSearchParams searchTermsFromStr(String searchText) {
-        this.searchTerms = Arrays.asList(searchText.split("\\s+"));
-        this.searchPhrases = null;
-        return this;
-    }
-
-    public final ModifiableSearchParams searchPhrases(List<Phrase> searchPhrases) {
-        this.searchPhrases = searchPhrases;
-        this.searchTerms = null;
-        return this;
-    }
-
-    public final ModifiableSearchParams searchPhrase(Phrase searchPhrase) {
-        return searchPhrases(Arrays.asList(searchPhrase));
     }
 
     public final ModifiableSearchParams lookup(boolean lookup) {
@@ -99,8 +50,13 @@ public final class ModifiableSearchParams {
         return this;
     }
 
-    public final ModifiableSearchParams limit(int maxEntries) {
-        this.limit = maxEntries;
+    public final ModifiableSearchParams searchSpaceLimit(int maxEntries) {
+        this.searchSpaceLimit = maxEntries;
+        return this;
+    }
+
+    public final ModifiableSearchParams resultLimit(int maxEntries) {
+        this.resultLimit = maxEntries;
         return this;
     }
 
@@ -114,9 +70,12 @@ public final class ModifiableSearchParams {
         return this;
     }
 
+    public final int getSearchSpaceLimit() {
+        return searchSpaceLimit;
+    }
 
-    public final int getLimit() {
-        return limit;
+    public final int getResultLimit() {
+        return resultLimit;
     }
 
     public final String getDbId() {
@@ -127,35 +86,21 @@ public final class ModifiableSearchParams {
         return KBId.of(dbId, modelId);
     }
 
-    public List<String> getSearchTerms() {
-        return searchTerms;
-    }
-
-    public List<Phrase> getSearchPhrases() {
-        return searchPhrases;
-    }
-
-    public boolean hasSearchTerms() { return searchTerms != null; }
-
-    public boolean hasSearchPhrases() {
-        return searchPhrases != null;
-    }
-
-    public String getRankableStr() {
-        if (hasSearchPhrases()) {
-            return searchPhrases.stream().map(p -> p.getText()).collect(Collectors.joining(" "));
-        }
-        if (hasSearchTerms()) {
-            return searchTerms.stream().collect(Collectors.joining(" "));
-        }
-        return null;
-    }
-
     public boolean isLookup() {
         return lookup;
     }
 
     public static ModifiableSearchParams create(String dbId) {
         return new ModifiableSearchParams(dbId);
+    }
+
+    public ModifiableSearchParams clone() {
+        ModifiableSearchParams res = new ModifiableSearchParams(dbId);
+        res.dbId = dbId;
+        res.modelId = modelId;
+        res.searchSpaceLimit = searchSpaceLimit;
+        res.resultLimit = resultLimit;
+        res.lookup = lookup;
+        return res;
     }
 }

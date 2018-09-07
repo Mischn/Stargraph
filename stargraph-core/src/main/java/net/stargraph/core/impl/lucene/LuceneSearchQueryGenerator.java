@@ -4,9 +4,11 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
+import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
+import net.stargraph.rank.ModifiableSearchString;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.TermsQuery;
@@ -66,12 +68,12 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         //Query query = new FuzzyQuery(new Term("value", searchParams.getSearchTerm()), maxEdits, 0, 50, false); // Problem: This does not take into account multiple words of the search term
 
         BooleanQuery query = new BooleanQuery.Builder()
-                .add(myMatch("value", searchParams, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
-                .add(myMatch("otherValues", searchParams, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
+                .add(myMatch("value", searchString, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
+                .add(myMatch("otherValues", searchString, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
                 .build();
 
@@ -79,11 +81,11 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         BooleanQuery query = new BooleanQuery.Builder()
                 .add(boolQuery("isClass", true), BooleanClause.Occur.MUST)
-                .add(myMatch("value", searchParams, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
-                .add(myMatch("otherValues", searchParams, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
+                .add(myMatch("value", searchString, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
+                .add(myMatch("otherValues", searchString, fuzzy, maxEdits, mustPhrases), BooleanClause.Occur.SHOULD)
                 .setMinimumNumberShouldMatch(1)
                 .build();
 
@@ -91,22 +93,22 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -127,11 +129,11 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
 
 
 
-    private Query myMatch(String field, ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
-        if (searchParams.hasSearchPhrases()) {
-            return phrasesMatch(field, searchParams.getSearchPhrases(), fuzzy, maxEdits, mustPhrases);
+    private Query myMatch(String field, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+        if (searchString.hasSearchPhrases()) {
+            return phrasesMatch(field, searchString.getSearchPhrases(), fuzzy, maxEdits, mustPhrases);
         } else {
-            return termsMatch(field, searchParams.getSearchTerms(), fuzzy, maxEdits);
+            return termsMatch(field, searchString.getSearchTerms(), fuzzy, maxEdits);
         }
     }
 
@@ -140,10 +142,10 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     // this is not really a phrase query since the order of the terms in a phrase is not considered, but ES' MatchPhraseQuery does not support fuzziness.
-    private static Query phrasesMatch(String field, List<ModifiableSearchParams.Phrase> phrases, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    private static Query phrasesMatch(String field, List<ModifiableSearchString.Phrase> phrases, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         BooleanQuery.Builder boolQueryBuilder = new BooleanQuery.Builder();
 
-        for (ModifiableSearchParams.Phrase phrase : phrases) {
+        for (ModifiableSearchString.Phrase phrase : phrases) {
             Query b = matchHelper(field, phrase.getText(), fuzzy, maxEdits, true);
 
             // boost

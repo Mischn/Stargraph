@@ -28,7 +28,7 @@ public abstract class LuceneScroller implements Iterable<Score> {
     public LuceneScroller(IndexSearcher indexSearcher, SearchQueryHolder<Query> holder) {
         this.indexSearcher = Objects.requireNonNull(indexSearcher);
         this.holder = Objects.requireNonNull(holder);
-        this.maxEntries = holder.getSearchParams().getLimit();
+        this.maxEntries = holder.getSearchParams().getSearchSpaceLimit();
 
     }
 

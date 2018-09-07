@@ -29,10 +29,8 @@ package net.stargraph.server;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.rank.ModifiableRankParams;
-import net.stargraph.rank.ModifiableSearchParams;
-import net.stargraph.rank.ParamsBuilder;
-import net.stargraph.rank.Scores;
+import net.stargraph.core.search.SearchQueryGenerator;
+import net.stargraph.rank.*;
 import net.stargraph.rest.EntityEntry;
 import net.stargraph.rest.SearchResource;
 import org.slf4j.Logger;
@@ -41,6 +39,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,9 +59,10 @@ final class SearchResourceImpl implements SearchResource {
     public Response instanceSearch(String dbId, String instanceTerm, String model, int topk) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(instanceTerm).limit(topk);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr(instanceTerm);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.instanceSearch(searchParams, rankParams);
+        Scores scores = entitySearcher.instanceSearch(searchParams, searchString, rankParams);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
@@ -72,9 +72,10 @@ final class SearchResourceImpl implements SearchResource {
     public Response classSearch(String dbId, String classTerm, String model, int topk) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(classTerm).limit(topk);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr(classTerm);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.classSearch(searchParams, rankParams);
+        Scores scores = entitySearcher.classSearch(searchParams, searchString, rankParams);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
@@ -84,9 +85,10 @@ final class SearchResourceImpl implements SearchResource {
     public Response propertySearch(String dbId, String propertyTerm, String model, int topk) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(propertyTerm).limit(topk);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr(propertyTerm);
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.propertySearch(searchParams, rankParams);
+        Scores scores = entitySearcher.propertySearch(searchParams, searchString, rankParams);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();
@@ -96,9 +98,10 @@ final class SearchResourceImpl implements SearchResource {
     public Response pivotedSearch(String dbId, String id, String relationTerm, boolean incomingEdges, boolean outgoingEdges, int range, String model, int topk) {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(relationTerm).limit(topk);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
+        String rankString = relationTerm;
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankParams, incomingEdges, outgoingEdges, range, false);
+        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), false);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();

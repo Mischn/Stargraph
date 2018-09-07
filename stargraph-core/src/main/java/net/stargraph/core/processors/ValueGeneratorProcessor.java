@@ -31,6 +31,7 @@ import com.typesafe.config.ConfigObject;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -79,11 +80,12 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
             if (!searchTerms.containsKey(language)) {
                 throw new StarGraphException("No search-term specified for language: " + language);
             }
-            String searchTerm = searchTerms.get(language);
+            String searchStr = searchTerms.get(language);
 
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).searchTermsFromStr(searchTerm).lookup(false);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).lookup(false);
+            String rankString = searchStr;
             ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.min(threshold));
-            Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rankParams, false, true, 1, true);
+            Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), true);
 
             List<String> otherValues = (entity.getOtherValues() != null)? new ArrayList<>(entity.getOtherValues()) : new ArrayList<>();
             scores.stream()

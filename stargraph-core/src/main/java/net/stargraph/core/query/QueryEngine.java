@@ -167,6 +167,7 @@ public class QueryEngine {
 
         logger.info(marker, "Resolve triples:");
         resolver.reset();
+
         analysis.getTriplePatterns().forEach(triplePattern -> {
             resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
         });
@@ -224,7 +225,8 @@ public class QueryEngine {
         if (resolver.hasMappings(coreEntityBinding)) {
             Score coreEntityScore = resolver.getMappings(coreEntityBinding).get(0);
 
-            Scores entityScores = entitySearcher.similarInstanceSearch(dbId, (InstanceEntity) coreEntityScore.getEntry(), docTypes, null);
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+            Scores entityScores = entitySearcher.similarInstanceSearch((InstanceEntity) coreEntityScore.getEntry(), searchParams, docTypes);
             if (!entityScores.isEmpty()) {
                 AnswerSetResponse answerSet = new AnswerSetResponse(ENTITY_SIMILARITY, userQuery);
 
@@ -277,8 +279,9 @@ public class QueryEngine {
     public QueryResponse likeThisQuery(String userQuery, Language language) {
         List<String> docTypes = core.getDocTypes();
 
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(userQuery);
-        Scores entityScores = entitySearcher.likeThisInstanceSearch(searchParams, docTypes);
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr(userQuery);
+        Scores entityScores = entitySearcher.likeThisInstanceSearch(searchParams, searchString, docTypes);
         if (!entityScores.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(LIKE_THIS, userQuery);
 
@@ -295,8 +298,8 @@ public class QueryEngine {
 
     public QueryResponse filterQuery(String userQuery, Language language) {
         final boolean RE_RANK = true;
-        final int LIMIT_SEARCH_SPACE = -1;
-        final int LIMIT = 30;
+        final int SEARCH_SPACE_LIMIT = -1;
+        final int RESULT_LIMIT = 30;
         List<String> docTypes = core.getDocTypes();
 
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(stargraph, dbId);
@@ -310,13 +313,13 @@ public class QueryEngine {
 
         // extract initial search phrases
         // TODO term search takes too long!!
-        List<ModifiableSearchParams.Phrase> searchPhrases = new ArrayList<>();
+        List<ModifiableSearchString.Phrase> searchPhrases = new ArrayList<>();
         for (PassageExtraction queryFilter : queryFilters) {
-            searchPhrases.addAll(queryFilter.getTerms().stream().map(t -> new ModifiableSearchParams.Phrase(t)).collect(Collectors.toList()));
+            searchPhrases.addAll(queryFilter.getTerms().stream().map(t -> new ModifiableSearchString.Phrase(t)).collect(Collectors.toList()));
         }
         if (searchPhrases.size() <= 0) {
             for (PassageExtraction queryFilter : queryFilters) {
-                searchPhrases.add(new ModifiableSearchParams.Phrase(queryFilter.getRelation()));
+                searchPhrases.add(new ModifiableSearchString.Phrase(queryFilter.getRelation()));
             }
         }
         logger.debug(marker, "Search-phrases: {}", searchPhrases);
@@ -325,13 +328,15 @@ public class QueryEngine {
         Scores documentScores;
         if (searchPhrases.size() > 0) {
             logger.info(marker, "Search phrases for document-search: " + searchPhrases);
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(searchPhrases).limit(LIMIT_SEARCH_SPACE);
-            documentScores = new Scores(entitySearcher.documentSearch(searchParams, docTypes, true, false));
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(SEARCH_SPACE_LIMIT);
+            ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrases(searchPhrases);
+            documentScores = new Scores(entitySearcher.documentSearch(searchParams, searchString, docTypes, true, false));
         } else
             {
             logger.info(marker, "Search term for similar-document-search: " + userQuery);
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchTermsFromStr(userQuery).limit(LIMIT_SEARCH_SPACE);
-            documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, docTypes, true));
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(SEARCH_SPACE_LIMIT);
+            ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr(userQuery);
+            documentScores = new Scores(entitySearcher.similarDocumentSearch(searchParams, searchString, docTypes, true));
         }
 
         // re-rank results
@@ -353,7 +358,7 @@ public class QueryEngine {
         }
 
         // limit results
-        documentScores = new Scores(documentScores.stream().limit(LIMIT).collect(Collectors.toList()));
+        documentScores = new Scores(documentScores.stream().limit(RESULT_LIMIT).collect(Collectors.toList()));
 
         // now map documents back to their entities
         Scores entityScores = new Scores();

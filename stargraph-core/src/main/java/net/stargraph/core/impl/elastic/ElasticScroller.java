@@ -66,7 +66,7 @@ public abstract class ElasticScroller implements Iterable<Score> {
         this.elasticClient = Objects.requireNonNull(client);
         this.holder = Objects.requireNonNull(holder);
         this.fields = new String[]{"_source"};
-        this.maxEntries = holder.getSearchParams().getLimit();
+        this.maxEntries = holder.getSearchParams().getSearchSpaceLimit();
         this.scrollTime = new TimeValue(Integer.valueOf(System.getProperty(scrollTimeKey, "120")), TimeUnit.SECONDS);
         this.maxScrollSize = Integer.valueOf(System.getProperty(scrollSizeKey, "8000"));
         logger.trace(marker, "{}={}", scrollTimeKey, scrollTime);

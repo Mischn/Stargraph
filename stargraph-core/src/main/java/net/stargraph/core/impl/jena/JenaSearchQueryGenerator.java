@@ -30,9 +30,11 @@ import net.stargraph.core.Namespace;
 import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
+import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
+import net.stargraph.rank.ModifiableSearchString;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -91,33 +93,35 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         String query = "SELECT ?s ?p ?o {"
                 + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings, Arrays.asList("?s", "?p", "?o")), false)
                 + "}"
-                + sparqlCreator.createLimit(searchParams.getLimit());
+                + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
 
         return new JenaQueryHolder(query, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases) {
+    public SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes) {
+        assert (propertyTypes.size() > 0);
+
         Namespace namespace = getNamespace();
 
         String id = namespace.expandURI(pivot.getId());
@@ -129,38 +133,47 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         Map<String, List<String>> varBindingsO = new HashMap<>();
         varBindingsO.put("?o", Arrays.asList("<" + id + ">"));
 
+        Map<String, List<String>> varBindingsType = new HashMap<>();
+        varBindingsType.put("?p", classURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
+
+        String nonTypePropertyFilter = (!propertyTypes.contains(PropertyType.TYPE))? " . " + sparqlCreator.createEqualsFilterStr(varBindingsType, true) : "";
+        if (!propertyTypes.contains(PropertyType.NON_TYPE) && propertyTypes.contains(PropertyType.TYPE)) {
+            varBindingsS.put("?p", varBindingsType.get("?p"));
+            varBindingsO.put("?p", varBindingsType.get("?p"));
+        }
+
         String query;
         if (inSubject && inObject) {
             query = "SELECT ?s ?p ?o {"
                     + "{"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")), false)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
                     + "} UNION {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")), false)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
                     + "}"
                     + "}"
-                    + sparqlCreator.createLimit(searchParams.getLimit());
+                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         } else if (inSubject) {
             query = "SELECT ?s ?p ?o {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")), false)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
                     + "}"
-                    + sparqlCreator.createLimit(searchParams.getLimit());
+                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         } else if (inObject) {
             query = "SELECT ?s ?p ?o {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")), false)
+                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
                     + "}"
-                    + sparqlCreator.createLimit(searchParams.getLimit());
+                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         } else {
             query = "SELECT ?s ?p ?o {"
                     + "?s ?p ?o ."
                     + "}"
-                    + sparqlCreator.createLimit(searchParams.getLimit());
+                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         }
 
         return new JenaQueryHolder(query, searchParams);
     }
 
     @Override
-    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+    public SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

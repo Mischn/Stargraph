@@ -33,6 +33,7 @@ import net.stargraph.core.KBCore;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.index.Indexer;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
 import org.testng.Assert;
@@ -41,6 +42,7 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import static net.stargraph.test.TestUtils.copyResource;
 import static net.stargraph.test.TestUtils.createGraphModelPath;
@@ -77,18 +79,20 @@ public final class IndexerIT {
 
     @Test
     public void classSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("president");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama");
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr("president");
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein();
-        Scores scores = entitySearcher.classSearch(searchParams, rankParams);
+        Scores scores = entitySearcher.classSearch(searchParams, searchString, rankParams);
         InstanceEntity expected = new InstanceEntity("dbc:Presidents_of_the_United_States", "Presidents of the United States");
         Assert.assertEquals(expected, scores.get(0).getEntry());
     }
 
     @Test
     public void instanceSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("baraCk Obuma");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama");
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr("baraCk Obuma");
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        Scores scores = entitySearcher.instanceSearch(searchParams, rankParams);
+        Scores scores = entitySearcher.instanceSearch(searchParams, searchString, rankParams);
 
         Assert.assertEquals(1, scores.size());
         InstanceEntity expected = new InstanceEntity("dbr:Barack_Obama", "Barack Obama");
@@ -97,9 +101,10 @@ public final class IndexerIT {
 
     @Test
     public void propertySearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("position");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama");
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr("position");
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
-        Scores scores = entitySearcher.propertySearch(searchParams, rankParams);
+        Scores scores = entitySearcher.propertySearch(searchParams, searchString, rankParams);
 
         PropertyEntity expected = new PropertyEntity("dbp:office", "office");
         Assert.assertEquals(expected, scores.get(0).getEntry());
@@ -107,11 +112,12 @@ public final class IndexerIT {
 
     @Test
     public void pivotedSearchTest() {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama").searchTermsFromStr("school");
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama");
+        String rankString = "school";
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
 
         final InstanceEntity obama = new InstanceEntity("dbr:Barack_Obama", "Barack Obama");
-        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankParams, false, true, 1, false);
+        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false);
 
         PropertyEntity expected = new PropertyEntity("dbp:education", "education");
         Assert.assertEquals(expected, scores.get(0).getEntry());

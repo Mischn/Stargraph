@@ -34,10 +34,7 @@ import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.LabeledEntity;
 import net.stargraph.query.Language;
-import net.stargraph.rank.ModifiableSearchParams;
-import net.stargraph.rank.ParamsBuilder;
-import net.stargraph.rank.Score;
-import net.stargraph.rank.Scores;
+import net.stargraph.rank.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -210,10 +207,10 @@ public final class NERSearcher implements NER {
             for (String entitySearcherDbId : entitySearcherDbIds) {
                 logger.debug(marker, "Trying to link '{}' to knowledge-base '{}'", namedEntity, entitySearcherDbId);
 
-                ModifiableSearchParams searchParams =
-                        ModifiableSearchParams.create(entitySearcherDbId).searchPhrase(new ModifiableSearchParams.Phrase(namedEntity.getValue())).limit(LIMIT);
+                ModifiableSearchParams searchParams = ModifiableSearchParams.create(entitySearcherDbId).searchSpaceLimit(LIMIT); //TODO use resultLimit to increase performance at cost of runtime?
+                ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrase(new ModifiableSearchString.Phrase(namedEntity.getValue()));
 
-                final Scores scores = entitySearcher.instanceSearch(searchParams, ParamsBuilder.levenshtein());
+                final Scores scores = entitySearcher.instanceSearch(searchParams, searchString, ParamsBuilder.levenshtein());
                 for (Score score : scores) {
                     logger.debug(marker, "Found {}'", score.getRankableView().getId());
                     namedEntity.addLink((LabeledEntity)score.getEntry(), entitySearcherDbId, score.getValue());

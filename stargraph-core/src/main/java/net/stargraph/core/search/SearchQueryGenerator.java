@@ -28,10 +28,15 @@ package net.stargraph.core.search;
 
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
+import net.stargraph.rank.ModifiableSearchString;
 
 import java.util.List;
 
 public interface SearchQueryGenerator {
+    public static enum PropertyType {
+        TYPE,
+        NON_TYPE
+    }
 
     // return resource entities that match any of the given ids
     SearchQueryHolder entitiesWithIds(List<String> idList, ModifiableSearchParams searchParams);
@@ -49,21 +54,21 @@ public interface SearchQueryGenerator {
     // return facts that represent a class relationship between arbitrary subjects and objects of the given ids
     SearchQueryHolder findClassFacts(List<String> subjIdList, List<String> objIdList, ModifiableSearchParams searchParams);
 
-    // return resource entities whose value or otherValues match the searchTerm
-    SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases);
+    // return resource entities whose value or otherValues match the searchString
+    SearchQueryHolder findInstanceInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases);
 
-    // return class resource entities whose value or otherValues match the searchTerm
-    SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases);
+    // return class resource entities whose value or otherValues match the searchString
+    SearchQueryHolder findClassInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases);
 
-    // return properties whose hyponyms, hypernyms or synonyms match the searchTerm (why not including the value?)
-    SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, boolean fuzzy, int maxEdits, boolean mustPhrases);
+    // return properties whose hyponyms, hypernyms or synonyms match the searchString (why not including the value?)
+    SearchQueryHolder findPropertyInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, boolean fuzzy, int maxEdits, boolean mustPhrases);
 
-    // return documents whose text matches the searchTerm
-    SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases);
+    // return documents whose text matches the searchString
+    SearchQueryHolder findDocumentInstances(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument, boolean fuzzy, int maxEdits, boolean mustPhrases);
 
-    // return documents that are similar to the searchTerm
-    SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument);
+    // return documents that are similar to the searchString
+    SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument);
 
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
-    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject);
+    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes);
 }

@@ -132,6 +132,32 @@ public class SparqlCreator {
         return stmtJoin(bindStatements);
     }
 
+    public String createRegexFilterStr(Map<String, List<String>> varFilters, boolean caseSensitive, boolean negate) {
+
+        List<String> filterStatements = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : varFilters.entrySet()) {
+            StringJoiner innerJoiner = new StringJoiner((negate)? " && ": " || ", "FILTER(", ")");
+            for (String regexPattern : entry.getValue()) {
+                innerJoiner.add(((negate)? "!": "") + "regex(" + entry.getKey() + ", \"" + regexPattern + "\""+ ((caseSensitive)? "" : ", \"i\"") + ")");
+            }
+            filterStatements.add(innerJoiner.toString());
+        }
+        return stmtJoin(filterStatements);
+    }
+
+    public String createEqualsFilterStr(Map<String, List<String>> varFilters, boolean negate) {
+
+        List<String> filterStatements = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : varFilters.entrySet()) {
+            StringJoiner innerJoiner = new StringJoiner((negate)? " && ": " || ", "FILTER(", ")");
+            for (String value : entry.getValue()) {
+                innerJoiner.add(entry.getKey() + ((negate)? " != ": " == ") + value);
+            }
+            filterStatements.add(innerJoiner.toString());
+        }
+        return stmtJoin(filterStatements);
+    }
+
 
     public PathPattern createPathPattern(String startVar, int properties, String endVar, String propertyVarPrefix, String waypointVarPrefix) {
         StringBuilder pattern = new StringBuilder();

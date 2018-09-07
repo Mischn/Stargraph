@@ -57,9 +57,8 @@ public final class ClassIdentiferProcessor extends BaseProcessor {
         if (entry instanceof InstanceEntity) {
             InstanceEntity entity = (InstanceEntity)entry;
 
-            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId()).lookup(false).limit(1);
-            boolean isClass = entitySearcher.getClassMembers(entity, searchParams).size() > 0;
-
+            ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId());
+            boolean isClass = entitySearcher.isClass(entity, searchParams);
             holder.set(new InstanceEntity(entity.getId(), entity.getValue(), isClass, entity.getOtherValues()));
         }
     }

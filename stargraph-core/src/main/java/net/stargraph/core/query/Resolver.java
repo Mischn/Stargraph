@@ -12,7 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -177,9 +180,10 @@ public class Resolver {
     }
 
     public Scores searchClass(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrase(new ModifiableSearchString.Phrase(binding.getTerm()));
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.classSearch(searchParams, rankParams);
+        return entitySearcher.classSearch(searchParams, searchString, rankParams);
     }
 
 
@@ -215,9 +219,10 @@ public class Resolver {
     }
 
     public Scores searchPredicate(InstanceEntity pivot, boolean incomingEdges, boolean outgoingEdges, DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrase(new ModifiableSearchParams.Phrase(binding.getTerm()));
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+        String rankString = binding.getTerm();
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.pivotedSearch(pivot, searchParams, rankParams, incomingEdges, outgoingEdges, 1, false);
+        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, 1, false);
     }
 
 
@@ -257,9 +262,10 @@ public class Resolver {
     }
 
     public Scores searchPivot(DataModelBinding binding) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(binding.getTerm())));
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrase(new ModifiableSearchString.Phrase(binding.getTerm()));
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.instanceSearch(searchParams, rankParams);
+        return entitySearcher.instanceSearch(searchParams, searchString, rankParams);
     }
 
 
@@ -296,8 +302,9 @@ public class Resolver {
     }
 
     public Scores searchInstance(String instanceTerm) {
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchPhrases(Arrays.asList(new ModifiableSearchParams.Phrase(instanceTerm)));
+        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrase(new ModifiableSearchString.Phrase(instanceTerm));
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein(); // threshold defaults to auto
-        return entitySearcher.instanceSearch(searchParams, rankParams);
+        return entitySearcher.instanceSearch(searchParams, searchString, rankParams);
     }
 }

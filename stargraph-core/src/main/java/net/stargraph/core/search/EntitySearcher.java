@@ -26,10 +26,7 @@ package net.stargraph.core.search;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.KBCore;
-import net.stargraph.core.ModelCreator;
-import net.stargraph.core.Namespace;
-import net.stargraph.core.Stargraph;
+import net.stargraph.core.*;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
@@ -59,6 +56,7 @@ public class EntitySearcher {
     public EntitySearcher(Stargraph stargraph) {
         this.stargraph = stargraph;
     }
+
 
     /**
      * Returns an instance for the given id.
@@ -228,6 +226,7 @@ public class EntitySearcher {
                 .filter(x -> x instanceof InstanceEntity)
                 .map(x -> (InstanceEntity)x)
                 .distinct()
+                .limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit())
                 .collect(Collectors.toList());
     }
 
@@ -264,6 +263,7 @@ public class EntitySearcher {
                 .filter(x -> x instanceof InstanceEntity)
                 .map(x -> (InstanceEntity)x)
                 .distinct()
+                .limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit())
                 .collect(Collectors.toList());
     }
 
@@ -290,6 +290,7 @@ public class EntitySearcher {
 
         searchParams.model(BuiltInModel.FACT);
         searchParams.lookup(false);
+        searchParams.searchSpaceLimit(1);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(entityId), classIds, searchParams);
         Searcher searcher = core.getGraphSearcher();
@@ -301,21 +302,43 @@ public class EntitySearcher {
     }
 
     /**
+     * Check if entity is a class.
+     * @param entity
+     * @return
+     */
+    public boolean isClass(InstanceEntity entity, ModifiableSearchParams searchParams) {
+        return isClass(entity.getId(), searchParams);
+    }
+
+    /**
+     * Check if entity is a class.
+     * @param entityId
+     * @return
+     */
+    public boolean isClass(String entityId, ModifiableSearchParams searchParams) {
+        searchParams.searchSpaceLimit(1);
+        return getClassMembers(entityId, searchParams).size() > 0;
+    }
+
+
+
+
+    /**
      * Search instances by their value & otherValues (fuzzy match with searchTerm).
      * @param searchParams
      * @param rankParams
      * @return
      */
-    public Scores instanceSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
+    public Scores instanceSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, ModifiableRankParams rankParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.ENTITY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasSearchPhrases()) {
-            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
+        if (!searchString.hasSearchPhrases()) {
+            searchString.searchPhrase(new ModifiableSearchString.Phrase(searchString.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, true, FUZZINESS, false);
+        SearchQueryHolder holder = searchQueryGenerator.findInstanceInstances(searchParams, searchString, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -326,9 +349,9 @@ public class EntitySearcher {
 //        if (rankParams instanceof ModifiableIndraParams) {
 //            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
 //        }
-//        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+//        scores = Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
 
-        return scores;
+        return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
     /**
@@ -337,16 +360,16 @@ public class EntitySearcher {
      * @param rankParams
      * @return
      */
-    public Scores classSearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
+    public Scores classSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, ModifiableRankParams rankParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.ENTITY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasSearchPhrases()) {
-            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
+        if (!searchString.hasSearchPhrases()) {
+            searchString.searchPhrase(new ModifiableSearchString.Phrase(searchString.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, true, FUZZINESS, false);
+        SearchQueryHolder holder = searchQueryGenerator.findClassInstances(searchParams, searchString, true, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -357,9 +380,9 @@ public class EntitySearcher {
 //        if (rankParams instanceof ModifiableIndraParams) {
 //            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
 //        }
-//        return Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+//        scores = Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
 
-        return scores;
+        return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
 
@@ -369,16 +392,16 @@ public class EntitySearcher {
      * @param rankParams
      * @return
      */
-    public Scores propertySearch(ModifiableSearchParams searchParams, ModifiableRankParams rankParams) {
+    public Scores propertySearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, ModifiableRankParams rankParams) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.PROPERTY);
         // ensure to use phrase (TODO this is not transparent to calling methods)
-        if (!searchParams.hasSearchPhrases()) {
-            searchParams.searchPhrase(new ModifiableSearchParams.Phrase(searchParams.getSearchTerms().stream().collect(Collectors.joining(" "))));
+        if (!searchString.hasSearchPhrases()) {
+            searchString.searchPhrase(new ModifiableSearchString.Phrase(searchString.getSearchTerms().stream().collect(Collectors.joining(" "))));
         }
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, false, FUZZINESS, false);
+        SearchQueryHolder holder = searchQueryGenerator.findPropertyInstances(searchParams, searchString,false, FUZZINESS, false);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
@@ -388,21 +411,23 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        return Rankers.apply(scores, rankParams, searchParams.getRankableStr());
+        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
+
+        return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
-    public Scores documentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument, boolean mustPhrases) {
+    public Scores documentSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument, boolean mustPhrases) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.DOCUMENT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, docTypes, entityDocument, true, FUZZINESS, mustPhrases);
+        SearchQueryHolder holder = searchQueryGenerator.findDocumentInstances(searchParams, searchString, docTypes, entityDocument, true, FUZZINESS, mustPhrases);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        return scores;
+        return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
     /**
@@ -415,19 +440,13 @@ public class EntitySearcher {
      * @param returnBestMatchEntities
      * @return
      */
-    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
-        return pivotedSearch(ModelCreator.createInstance(pivotId, null), searchParams, rankParams, incomingEdges, outgoingEdges, range, returnBestMatchEntities);
+    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
+        return pivotedSearch(ModelCreator.createInstance(pivotId, null), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, propertyTypes, returnBestMatchEntities);
     }
-    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, incomingEdges, outgoingEdges, new PruningMethod() {
-            @Override
-            public List<Route> traverse(List<Route> routes) {
-                //TODO strategies for pruning
-                return routes;
-            }
-        });
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, propertyTypes,null);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -440,7 +459,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        Scores rankedScores = Rankers.apply(propScores, rankParams, searchParams.getRankableStr());
+        Scores rankedScores = Rankers.apply(propScores, rankParams, rankString);
         Scores result = rankedScores;
 
         if (returnBestMatchEntities) {
@@ -459,20 +478,22 @@ public class EntitySearcher {
             }
         }
 
-        return result;
+        return new Scores(result.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
 
-    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
+
+
+
+     public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {
+         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), returnBestMatchEntities);
+     }
+
+
+    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams, range, true, true, new PruningMethod() {
-            @Override
-            public List<Route> traverse(List<Route> routes) {
-                //TODO strategies for pruning
-                return routes;
-            }
-        });
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
 
         // filter for resource entities
         neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());
@@ -514,7 +535,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        Scores rankedScores = Rankers.apply(classScores, rankParams, searchParams.getRankableStr());
+        Scores rankedScores = Rankers.apply(classScores, rankParams, rankString);
         Scores result = rankedScores;
 
         if (returnClassMembers) {
@@ -527,25 +548,25 @@ public class EntitySearcher {
             result = new Scores(classMembers.get(bestClass).stream().map(m -> new Score(m, bestScore.getValue())).collect(Collectors.toList()));
         }
 
-        return result;
+        return new Scores(result.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
-    public Scores similarDocumentSearch(ModifiableSearchParams searchParams, List<String> docTypes, boolean entityDocument) {
+    public Scores similarDocumentSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.DOCUMENT);
         SearchQueryGenerator searchQueryGenerator = core.getSearchQueryGenerator(searchParams.getKbId().getModel());
-        SearchQueryHolder holder = searchQueryGenerator.findSimilarDocuments(searchParams, docTypes, entityDocument);
+        SearchQueryHolder holder = searchQueryGenerator.findSimilarDocuments(searchParams, searchString, docTypes, entityDocument);
         Searcher searcher = core.getSearcher(searchParams.getKbId().getModel());
 
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        return scores;
+        return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
-    public Scores likeThisInstanceSearch(ModifiableSearchParams searchParams, List<String> docTypes) {
-        Scores scores = similarDocumentSearch(searchParams, docTypes, true);
+    public Scores likeThisInstanceSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes) {
+        Scores scores = similarDocumentSearch(searchParams, searchString, docTypes, true);
 
         // now map documents back to their entities
         Scores entityScores = new Scores();
@@ -558,10 +579,11 @@ public class EntitySearcher {
             }
         }
 
-        return entityScores;
+        return new Scores(entityScores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
-    public Scores similarInstanceSearch(String dbId, InstanceEntity entity, List<String> docTypes, Integer limit) {
+    public Scores similarInstanceSearch(InstanceEntity entity, ModifiableSearchParams searchParams, List<String> docTypes) {
+        String dbId = searchParams.getDbId();
 
         // Search for entity-documents
         List<Document> entityDocs = getDocumentsForResourceEntity(dbId, entity.getId(), docTypes);
@@ -571,14 +593,10 @@ public class EntitySearcher {
         }
 
         List<String> texts = entityDocs.stream().map(d -> d.getText()).collect(Collectors.toList());
-        ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).model(BuiltInModel.DOCUMENT).searchPhrases(texts.stream()
-                .map(t -> new ModifiableSearchParams.Phrase(t))
-                .collect(Collectors.toList()));
-        if (limit != null) {
-            searchParams.limit(limit);
-        }
 
-        Scores scores = similarDocumentSearch(searchParams, null, true);
+        searchParams.model(BuiltInModel.DOCUMENT);
+        ModifiableSearchString searchString = ModifiableSearchString.create().searchPhrases(texts.stream().map(t -> new ModifiableSearchString.Phrase(t)).collect(Collectors.toList()));
+        Scores scores = similarDocumentSearch(searchParams, searchString, null, true);
 
         // now map documents back to their entities
         Scores entitiyScores = new Scores();
@@ -594,7 +612,7 @@ public class EntitySearcher {
             }
         }
 
-        return entitiyScores;
+        return new Scores(entitiyScores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
 
 
@@ -613,13 +631,39 @@ public class EntitySearcher {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
+    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod) {
+        Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
+        InstanceEntity myPivot = namespace.shrink(pivot);
+
+        if (range == 0) {
+            return Arrays.asList(new Route(myPivot));
+        }
+
+        Map<InstanceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
+        Map<Integer, List<Route>> neighbours = new HashMap<>();
+        neighbourSearchRec(
+                new Route(myPivot),
+                searchParams.clone().resultLimit(-1),
+                range,
+                range,
+                incomingEdges,
+                outgoingEdges,
+                propertyTypes,
+                pruningMethod,
+                directNeighbours,
+                neighbours
+        );
+
+        return neighbours.values().stream().flatMap(Collection::stream).limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList());
+    }
+
     // direct neighbours only
-    private List<Route> directNeighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges) {
+    private List<Route> directNeighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
-        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams, outgoingEdges, incomingEdges);
+        SearchQueryHolder holder = searchQueryGenerator.findPivotFacts(pivot, searchParams, outgoingEdges, incomingEdges, propertyTypes);
         Searcher searcher = core.getGraphSearcher();
 
         // Fetch initial candidates from the search engine
@@ -638,42 +682,19 @@ public class EntitySearcher {
         return result;
     }
 
-    private List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod) {
-        Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
-        InstanceEntity myPivot = namespace.shrink(pivot);
-
-        if (range == 0) {
-            return Arrays.asList(new Route(myPivot));
-        }
-
-        Map<InstanceEntity, List<Route>> directNeighbours = new HashMap<>(); // for avoiding redundant calculations
-        Map<Integer, List<Route>> neighbours = new HashMap<>();
-        neighbourSearchRec(
-                new Route(myPivot),
-                searchParams,
-                range,
-                range,
-                incomingEdges,
-                outgoingEdges,
-                pruningMethod,
-                directNeighbours,
-                neighbours
-        );
-
-        return neighbours.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
-    }
-
-    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
         if (leftRange == 0 || !(route.getLastWaypoint() instanceof InstanceEntity)) {
             return;
         }
 
+//        System.out.println(route.getWaypoints());
+//        System.out.println(route.getPropertyPath());
         InstanceEntity currPivot = (InstanceEntity) route.getLastWaypoint();
         List<Route> directNs;
         if (directNeighbours.containsKey(currPivot)) {
             directNs = directNeighbours.get(currPivot);
         } else {
-            directNs = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges);
+            directNs = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges, propertyTypes);
             directNeighbours.put(currPivot, directNs);
         }
 
@@ -695,9 +716,15 @@ public class EntitySearcher {
         }
 
         // recursion
-        pruningMethod.traverse(newRoutes).forEach(r -> {
-            neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, pruningMethod, directNeighbours, routes);
-        });
+        if (pruningMethod == null) {
+            newRoutes.forEach(r -> {
+                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, propertyTypes, pruningMethod, directNeighbours, routes);
+            });
+        } else {
+            pruningMethod.traverse(newRoutes).forEach(r -> {
+                neighbourSearchRec(r, searchParams, range, leftRange - 1, incomingEdges, outgoingEdges, propertyTypes, pruningMethod, directNeighbours, routes);
+            });
+        }
     }
 
 }

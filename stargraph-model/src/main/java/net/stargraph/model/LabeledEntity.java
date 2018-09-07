@@ -38,7 +38,7 @@ public abstract class LabeledEntity implements Hashable, Rankable {
             throw new IllegalArgumentException("`id` is required");
         }
 
-        if (value == null || value.isEmpty()) {
+        if (value == null) {
             throw new IllegalArgumentException("`value` is required");
         }
 

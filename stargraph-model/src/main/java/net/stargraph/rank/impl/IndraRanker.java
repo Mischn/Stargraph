@@ -83,7 +83,7 @@ public final class IndraRanker extends BaseRanker {
         }
 
         List<TextPair> pairs = inputScores.stream()
-                .map(score -> new TextPair(score.getRankableView().getValue(), target.getValue()))
+                .map(score -> new TextPair(score.getRankableView().getRankableValue(), target.getRankableValue()))
                 .collect(Collectors.toList());
 
         RelatednessRequest request = new RelatednessRequest()
@@ -107,7 +107,7 @@ public final class IndraRanker extends BaseRanker {
 
     private Score find(Scores scores, List<Score> found, String text, double v) {
         for (Score score : scores) {
-            if (!found.contains(score) && score.getRankableView().getValue().equals(text)) {
+            if (!found.contains(score) && score.getRankableView().getRankableValue().equals(text)) {
                 Score res = new Score(score.getRankableView(), v);
                 found.add(score);
                 return res;

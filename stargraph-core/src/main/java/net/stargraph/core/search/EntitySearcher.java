@@ -27,6 +27,7 @@ package net.stargraph.core.search;
  */
 
 import net.stargraph.core.*;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
@@ -52,9 +53,11 @@ public class EntitySearcher {
     private Marker marker = MarkerFactory.getMarker("elastic");
 
     private Stargraph stargraph;
+    private ModelCreator modelCreator;
 
     public EntitySearcher(Stargraph stargraph) {
         this.stargraph = stargraph;
+        this.modelCreator = new ModelCreator(this);
     }
 
 
@@ -289,7 +292,6 @@ public class EntitySearcher {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
-        searchParams.lookup(false);
         searchParams.searchSpaceLimit(1);
         SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
         SearchQueryHolder holder = searchQueryGenerator.findClassFacts(Arrays.asList(entityId), classIds, searchParams);
@@ -440,13 +442,14 @@ public class EntitySearcher {
      * @param returnBestMatchEntities
      * @return
      */
-    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
-        return pivotedSearch(ModelCreator.createInstance(pivotId, null), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, propertyTypes, returnBestMatchEntities);
+    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
+        Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
+        return pivotedSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, allowCycles, propertyTypes, returnBestMatchEntities);
     }
-    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, propertyTypes,null);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes,null);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -486,14 +489,14 @@ public class EntitySearcher {
 
 
      public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {
-         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), returnBestMatchEntities);
+         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), returnBestMatchEntities);
      }
 
 
     public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, false, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
 
         // filter for resource entities
         neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());
@@ -631,7 +634,7 @@ public class EntitySearcher {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
-    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod) {
+    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
         InstanceEntity myPivot = namespace.shrink(pivot);
 
@@ -648,6 +651,7 @@ public class EntitySearcher {
                 range,
                 incomingEdges,
                 outgoingEdges,
+                allowCycles,
                 propertyTypes,
                 pruningMethod,
                 directNeighbours,
@@ -674,15 +678,15 @@ public class EntitySearcher {
             Fact fact = (Fact)score.getEntry();
             if (outgoingEdges && fact.getSubject().equals(pivot)) {
                 result.add(new Route(pivot).extend(fact.getPredicate(), fact.getObject()));
-            } else if (incomingEdges && fact.getObject().equals(pivot) && fact.getSubject() instanceof LabeledEntity) {
-                result.add(new Route(pivot).extend(fact.getPredicate(), (LabeledEntity) fact.getSubject()));
+            } else if (incomingEdges && fact.getObject().equals(pivot) && fact.getSubject() instanceof NodeEntity) {
+                result.add(new Route(pivot).extend(fact.getPredicate(), (NodeEntity) fact.getSubject()));
             }
         }
 
         return result;
     }
 
-    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
         if (leftRange == 0 || !(route.getLastWaypoint() instanceof InstanceEntity)) {
             return;
         }
@@ -702,13 +706,14 @@ public class EntitySearcher {
         List<Route> newRoutes = new ArrayList<>();
         for (Route directN : directNs) {
             PropertyEntity newProperty = directN.getPropertyPath().getLastProperty();
-            LabeledEntity newWaypoint = directN.getLastWaypoint();
-            Route newRoute = route.extend(newProperty, newWaypoint);
+            NodeEntity newWaypoint = directN.getLastWaypoint();
 
-            // don't allow links back to previous waypoint
-            if ((route.getWaypoints().size() >= 2) && newWaypoint.equals(route.getWaypoints().get(route.getWaypoints().size() - 2))) {
+            // don't allow links back to any previously visited waypoints (=cycles)
+            if ((!allowCycles) && (route.getWaypoints().contains(newWaypoint))) {
                 continue;
             }
+
+            Route newRoute = route.extend(newProperty, newWaypoint);
 
             // add to result
             newRoutes.add(newRoute);
@@ -718,11 +723,11 @@ public class EntitySearcher {
         // recursion
         if (pruningMethod == null) {
             newRoutes.forEach(r -> {
-                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, propertyTypes, pruningMethod, directNeighbours, routes);
+                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, pruningMethod, directNeighbours, routes);
             });
         } else {
             pruningMethod.traverse(newRoutes).forEach(r -> {
-                neighbourSearchRec(r, searchParams, range, leftRange - 1, incomingEdges, outgoingEdges, propertyTypes, pruningMethod, directNeighbours, routes);
+                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, pruningMethod, directNeighbours, routes);
             });
         }
     }

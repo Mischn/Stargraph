@@ -56,7 +56,7 @@ public final class DocumentFileIterator implements Iterator<Indexable> {
 
     public DocumentFileIterator(Stargraph stargraph, KBId kbId, File file) {
         this.kbId = Objects.requireNonNull(kbId);
-        this.mapper = ObjectSerializer.createMapper(kbId);
+        this.mapper = ObjectSerializer.createMapper(stargraph, kbId);
 
         try {
             this.lineIt = FileUtils.lineIterator(file, "UTF-8");

@@ -48,7 +48,7 @@ public final class ElasticSearcher extends IndexSearcher {
 
     public ElasticSearcher(KBId kbId, Stargraph core) {
         super(kbId, core);
-        this.mapper = ObjectSerializer.createMapper(kbId);
+        this.mapper = ObjectSerializer.createMapper(stargraph, kbId);
     }
 
     @Override

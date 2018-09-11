@@ -39,7 +39,7 @@ public final class RankTestUtils {
             }
 
             @Override
-            public String getValue() {
+            public String getRankableValue() {
                 return v;
             }
 

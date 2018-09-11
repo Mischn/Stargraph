@@ -1,10 +1,7 @@
 package net.stargraph.server;
 
 import net.stargraph.core.Namespace;
-import net.stargraph.model.Document;
-import net.stargraph.model.LabeledEntity;
-import net.stargraph.model.PropertyEntity;
-import net.stargraph.model.ValueEntity;
+import net.stargraph.model.*;
 import net.stargraph.rank.Score;
 import net.stargraph.rest.DocumentEntry;
 import net.stargraph.rest.EntityEntry;
@@ -23,11 +20,11 @@ public class EntityEntryCreator {
     public static EntityEntry createPropertyEntityEntry(PropertyEntity propertyEntity, String dbId, Namespace namespace) {
         return createScoredEntityEntry(new Score(propertyEntity, 1), dbId, namespace);
     }
-    public static List<EntityEntry> createLabeledEntityEntries(List<LabeledEntity> labeledEntities, String dbId, Namespace namespace) {
+    public static List<EntityEntry> createLabeledEntityEntries(List<NodeEntity> labeledEntities, String dbId, Namespace namespace) {
         return labeledEntities.stream().map(e -> createLabeledEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
     }
-    public static EntityEntry createLabeledEntityEntry(LabeledEntity labeledEntity, String dbId, Namespace namespace) {
-        return createScoredEntityEntry(new Score(labeledEntity, 1), dbId, namespace);
+    public static EntityEntry createLabeledEntityEntry(NodeEntity nodeEntity, String dbId, Namespace namespace) {
+        return createScoredEntityEntry(new Score(nodeEntity, 1), dbId, namespace);
     }
     public static List<EntityEntry> createScoredEntityEntries(List<Score> entityScores, String dbId, Namespace namespace) {
         return entityScores.stream().map(e -> createScoredEntityEntry(e, dbId, namespace)).collect(Collectors.toList());
@@ -37,7 +34,7 @@ public class EntityEntryCreator {
                 dbId,
                 (entityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
                 (entityScore.getEntry() instanceof ValueEntity)? entityScore.getRankableView().getId() : namespace.expandURI(entityScore.getRankableView().getId()),
-                entityScore.getRankableView().getValue(),
+                (entityScore.getEntry() instanceof Entity)? ((ValueEntity)entityScore.getEntry()).getValue() : entityScore.getRankableView().getRankableValue(),
                 entityScore.getValue()
         );
     }

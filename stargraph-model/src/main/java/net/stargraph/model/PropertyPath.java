@@ -54,9 +54,9 @@ public class PropertyPath implements Hashable, Rankable {
     }
 
     @Override
-    public String getValue() {
+    public String getRankableValue() {
         //TODO redefine interface of Rankable to compare multiple strings?
-        return properties.stream().map(p -> p.getValue()).collect(Collectors.joining(" "));
+        return properties.stream().map(p -> p.getRankableValue()).collect(Collectors.joining(" "));
     }
 
     @Override

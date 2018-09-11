@@ -101,7 +101,7 @@ final class SearchResourceImpl implements SearchResource {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
         String rankString = relationTerm;
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), false);
+        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, false, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), false);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();

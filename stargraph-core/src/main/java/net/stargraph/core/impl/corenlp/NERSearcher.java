@@ -32,7 +32,7 @@ import net.stargraph.core.ner.LinkedEntityScore;
 import net.stargraph.core.ner.NamedEntity;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
@@ -184,7 +184,7 @@ public final class NERSearcher implements NER {
             Optional<NamedEntity> reference = findReference(linkedNamedEntities, namedEntity.getValue());
             if (reference.isPresent()) {
                 for (LinkedEntityScore score : reference.get().getEntities()) {
-                    namedEntity.addLink((LabeledEntity)score.getEntry(), score.getDbId(), score.getValue());
+                    namedEntity.addLink((NodeEntity)score.getEntry(), score.getDbId(), score.getValue());
                 }
             } else {
                 tryLink(namedEntity);
@@ -213,7 +213,7 @@ public final class NERSearcher implements NER {
                 final Scores scores = entitySearcher.instanceSearch(searchParams, searchString, ParamsBuilder.levenshtein());
                 for (Score score : scores) {
                     logger.debug(marker, "Found {}'", score.getRankableView().getId());
-                    namedEntity.addLink((LabeledEntity)score.getEntry(), entitySearcherDbId, score.getValue());
+                    namedEntity.addLink((NodeEntity)score.getEntry(), entitySearcherDbId, score.getValue());
                 }
             }
         }

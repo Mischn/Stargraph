@@ -28,13 +28,15 @@ package net.stargraph.test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.ModelCreator;
 import net.stargraph.ModelUtils;
+import net.stargraph.core.model.InstanceEntityImpl;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.core.processors.Processors;
 import net.stargraph.core.processors.RegExFilterProcessor;
 import net.stargraph.data.Indexable;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.Processor;
+import net.stargraph.model.Fact;
 import net.stargraph.model.KBId;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -54,8 +56,12 @@ public final class RegExFilterProcessorTest {
         System.out.println(ModelUtils.toStr(defaultCfg));
         Processor processor = Processors.create(defaultCfg);
 
-        Holder fact1 = new Indexable(ModelCreator.createFact(kbId,
-                "dbr:President_of_the_United_States", "rdfs:seeAlso", "dbr:Barack_Obama", null), kbId);
+        Holder fact1 = new Indexable(new Fact(
+                kbId,
+                new InstanceEntityImpl("dbr:President_of_the_United_States"),
+                new PropertyEntityImpl("rdfs:seeAlso"),
+                new InstanceEntityImpl("dbr:Barack_Obama")
+                ), kbId);
 
         processor.run(fact1);
         Assert.assertTrue(fact1.isSinkable());
@@ -66,10 +72,12 @@ public final class RegExFilterProcessorTest {
         Config cfg = buildConfig(null, null, null);
         Processor processor = Processors.create(cfg);
 
-        Holder fact1 = new Indexable(ModelCreator.createFact(kbId,
-                "http://dbpedia.org/resource/President_of_the_United_States",
-                "http://dbpedia.org/property/incumbent",
-                "http://dbpedia.org/resource/Barack_Obama", null), kbId);
+        Holder fact1 = new Indexable(new Fact(
+                kbId,
+                new InstanceEntityImpl("http://dbpedia.org/resource/President_of_the_United_States"),
+                new PropertyEntityImpl("http://dbpedia.org/property/incumbent"),
+                new InstanceEntityImpl("http://dbpedia.org/resource/Barack_Obama")
+                ), kbId);
 
         Assert.assertFalse(fact1.isSinkable());
 
@@ -79,10 +87,12 @@ public final class RegExFilterProcessorTest {
 
     @Test
     public void filterAllTest() {
-        Holder fact1 = new Indexable(ModelCreator.createFact(kbId,
-                "http://dbpedia.org/resource/President_of_the_United_States",
-                "http://dbpedia.org/property/incumbent",
-                "http://dbpedia.org/resource/Barack_Obama", null), kbId);
+        Holder fact1 = new Indexable(new Fact(
+                kbId,
+                new InstanceEntityImpl("http://dbpedia.org/resource/President_of_the_United_States"),
+                new PropertyEntityImpl("http://dbpedia.org/property/incumbent"),
+                new InstanceEntityImpl("http://dbpedia.org/resource/Barack_Obama")
+                ), kbId);
 
         Assert.assertFalse(fact1.isSinkable());
 
@@ -108,10 +118,12 @@ public final class RegExFilterProcessorTest {
 
     @Test
     public void filterTest() {
-        Holder fact1 = new Indexable(ModelCreator.createFact(kbId,
-                "http://dbpedia.org/resource/President_of_the_United_States",
-                "http://dbpedia.org/property/incumbent",
-                "http://dbpedia.org/resource/Barack_Obama", null), kbId);
+        Holder fact1 = new Indexable(new Fact(
+                kbId,
+                new InstanceEntityImpl("http://dbpedia.org/resource/President_of_the_United_States"),
+                new PropertyEntityImpl("http://dbpedia.org/property/incumbent"),
+                new InstanceEntityImpl("http://dbpedia.org/resource/Barack_Obama")
+                ), kbId);
 
         Assert.assertFalse(fact1.isSinkable());
 

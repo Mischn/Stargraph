@@ -71,7 +71,7 @@ public class PassageExtraction implements Rankable, Hashable {
     }
 
     @Override
-    public String getValue() {
+    public String getRankableValue() {
         return relation;
     }
 

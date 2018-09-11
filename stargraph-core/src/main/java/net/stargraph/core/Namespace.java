@@ -12,10 +12,10 @@ package net.stargraph.core;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,9 +30,11 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.typesafe.config.Config;
 import net.stargraph.StarGraphException;
+import net.stargraph.core.model.InstanceEntityImpl;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.model.InstanceEntity;
-import net.stargraph.model.PropertyPath;
 import net.stargraph.model.PropertyEntity;
+import net.stargraph.model.PropertyPath;
 import net.stargraph.model.ValueEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,11 +127,21 @@ public final class Namespace extends TreeMap<String, String> {
         if (entry instanceof ValueEntity) {
             return entry;
         } else if (entry instanceof InstanceEntity) {
-            InstanceEntity e = (InstanceEntity) entry;
-            return (S) new InstanceEntity(expandURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
+            if (entry instanceof InstanceEntityImpl) {
+                InstanceEntityImpl e = (InstanceEntityImpl) entry;
+                return (S) e.clone(expandURI(e.getId()));
+            } else {
+                InstanceEntity e = (InstanceEntity) entry;
+                return (S) new InstanceEntityImpl(expandURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
+            }
         } else if (entry instanceof PropertyEntity) {
-            PropertyEntity e = (PropertyEntity) entry;
-            return (S) new PropertyEntity(expandURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+            if (entry instanceof PropertyEntityImpl) {
+                PropertyEntityImpl e = (PropertyEntityImpl) entry;
+                return (S) e.clone(expandURI(e.getId()));
+            } else {
+                PropertyEntity e = (PropertyEntity) entry;
+                return (S) new PropertyEntityImpl(expandURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+            }
         } else if (entry instanceof PropertyPath) {
             PropertyPath p = (PropertyPath) entry;
             return (S) new PropertyPath(p.getProperties().stream().map(x -> expand(x)).collect(Collectors.toList()));
@@ -147,11 +159,21 @@ public final class Namespace extends TreeMap<String, String> {
         if (entry instanceof ValueEntity) {
             return entry;
         } else if (entry instanceof InstanceEntity) {
-            InstanceEntity e = (InstanceEntity) entry;
-            return (S) new InstanceEntity(shrinkURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
+            if (entry instanceof InstanceEntityImpl) {
+                InstanceEntityImpl e = (InstanceEntityImpl) entry;
+                return (S) e.clone(shrinkURI(e.getId())); // to avoid unnecessary lookups
+            } else {
+                InstanceEntity e = (InstanceEntity) entry;
+                return (S) new InstanceEntityImpl(shrinkURI(e.getId()), e.getValue(), e.isClass(), e.getOtherValues());
+            }
         } else if (entry instanceof PropertyEntity) {
-            PropertyEntity e = (PropertyEntity) entry;
-            return (S) new PropertyEntity(shrinkURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+            if (entry instanceof PropertyEntityImpl) {
+                PropertyEntityImpl e = (PropertyEntityImpl) entry;
+                return (S) e.clone(shrinkURI(e.getId())); // to avoid unnecessary lookups
+            } else {
+                PropertyEntity e = (PropertyEntity) entry;
+                return (S) new PropertyEntityImpl(shrinkURI(e.getId()), e.getValue(), e.getHypernyms(), e.getHyponyms(), e.getSynonyms());
+            }
         } else if (entry instanceof PropertyPath) {
             PropertyPath p = (PropertyPath) entry;
             return (S) new PropertyPath(p.getProperties().stream().map(x -> shrink(x)).collect(Collectors.toList()));

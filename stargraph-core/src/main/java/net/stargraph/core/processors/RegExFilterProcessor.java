@@ -32,7 +32,7 @@ import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Fact;
 import net.stargraph.model.InstanceEntity;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.model.PropertyEntity;
 
 import java.io.Serializable;
@@ -83,7 +83,7 @@ public class RegExFilterProcessor extends BaseProcessor {
         }
 
         if (objExclusions != null && !excluded) {
-            LabeledEntity obj = fact.getObject();
+            NodeEntity obj = fact.getObject();
             excluded = isExcluded(objExclusions, obj.getId());
         }
 

@@ -26,28 +26,13 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
-public final class ValueEntity extends LabeledEntity {
-    private String dataType;
-    private String language;
+public abstract class ValueEntity extends NodeEntity {
 
-    public ValueEntity(String id, String value, String dataType, String langTag) {
-        super(id, value);
-        this.dataType = dataType;
-        this.language = langTag;
+    public ValueEntity(String id) {
+        super(id);
     }
 
-    public ValueEntity(String value, String dataType, String langTag) {
-        super(dataType == null ?
-                (langTag == null ? value : "\"" + value + "\"@" + langTag) : String.format("\"%s\"^^<%s>", value, dataType), value);
-        this.dataType = dataType;
-        this.language = langTag;
-    }
+    public abstract String getDataType();
 
-    public String getDataType() {
-        return dataType;
-    }
-
-    public String getLanguage() {
-        return language;
-    }
+    public abstract String getLanguage();
 }

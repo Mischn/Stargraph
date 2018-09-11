@@ -34,7 +34,7 @@ import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.model.Passage;
 import org.lambda3.text.simplification.discourse.utils.sentences.SentencesUtils;
 
@@ -70,10 +70,10 @@ public final class PassageProcessor extends BaseProcessor {
                 List<NamedEntity> namedEntities = ner.searchAndLink(sentence);
 
                 // only add linked entities
-                List<LabeledEntity> entities = new ArrayList<>();
+                List<NodeEntity> entities = new ArrayList<>();
                 for (NamedEntity namedEntity : namedEntities) {
                     if (namedEntity.isLinked()) {
-                        entities.addAll(namedEntity.getEntities().stream().map(s -> (LabeledEntity)s.getEntry()).collect(Collectors.toList()));
+                        entities.addAll(namedEntity.getEntities().stream().map(s -> (NodeEntity)s.getEntry()).collect(Collectors.toList()));
                     }
                 }
 

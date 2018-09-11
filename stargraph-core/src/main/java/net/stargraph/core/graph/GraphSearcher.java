@@ -28,7 +28,7 @@ package net.stargraph.core.graph;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearcher;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,7 @@ public abstract class GraphSearcher extends BaseSearcher {
         this(stargraph, dbId, stargraph.getKBCore(dbId).getGraphModel());
     }
 
-    public abstract Map<String, List<LabeledEntity>> select(String sparqlQuery);
+    public abstract Map<String, List<NodeEntity>> select(String sparqlQuery);
 
     public abstract boolean ask(String sparqlQuery);
 

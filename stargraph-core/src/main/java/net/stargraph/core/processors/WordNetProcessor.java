@@ -29,6 +29,7 @@ package net.stargraph.core.processors;
 import com.typesafe.config.Config;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.WordNet;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -61,7 +62,7 @@ public final class WordNetProcessor extends BaseProcessor {
         Collection<WNTuple> hypernyms = wordNet.getHypernyms(propValue);
         Collection<WNTuple> hyponyms = wordNet.getHyponyms(propValue);
         Collection<WNTuple> synonyms = wordNet.getSynonyms(propValue);
-        PropertyEntity richProp = new PropertyEntity(propertyEntity.getId(), propValue, hypernyms, hyponyms, synonyms);
+        PropertyEntity richProp = new PropertyEntityImpl(propertyEntity.getId(), propValue, hypernyms, hyponyms, synonyms);
         holder.set(richProp);
     }
 

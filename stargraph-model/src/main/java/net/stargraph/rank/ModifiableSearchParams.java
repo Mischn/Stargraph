@@ -34,7 +34,6 @@ public final class ModifiableSearchParams {
     private String modelId;
     private int searchSpaceLimit; // this will be applied before a potential ranking (may not retrieve the best ranked results)
     private int resultLimit; // this will be applied at the very end
-    private boolean lookup;
 
     private ModifiableSearchParams(String dbId) {
         // defaults
@@ -42,12 +41,6 @@ public final class ModifiableSearchParams {
         this.modelId = null;
         this.resultLimit = -1;
         this.searchSpaceLimit = -1;
-        this.lookup = true;
-    }
-
-    public final ModifiableSearchParams lookup(boolean lookup) {
-        this.lookup = lookup;
-        return this;
     }
 
     public final ModifiableSearchParams searchSpaceLimit(int maxEntries) {
@@ -86,10 +79,6 @@ public final class ModifiableSearchParams {
         return KBId.of(dbId, modelId);
     }
 
-    public boolean isLookup() {
-        return lookup;
-    }
-
     public static ModifiableSearchParams create(String dbId) {
         return new ModifiableSearchParams(dbId);
     }
@@ -100,7 +89,6 @@ public final class ModifiableSearchParams {
         res.modelId = modelId;
         res.searchSpaceLimit = searchSpaceLimit;
         res.resultLimit = resultLimit;
-        res.lookup = lookup;
         return res;
     }
 }

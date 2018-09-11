@@ -35,11 +35,11 @@ import java.util.Objects;
  */
 public final class Fact implements Hashable {
     private KBId kbId;
-    private ContextId subject;
+    private SubjectId subject;
     private PropertyEntity predicate;
-    private LabeledEntity object;
+    private NodeEntity object;
 
-    public Fact(KBId kbId, ContextId subject, PropertyEntity predicate, LabeledEntity object) {
+    public Fact(KBId kbId, SubjectId subject, PropertyEntity predicate, NodeEntity object) {
         if (kbId == null || subject == null || predicate == null || object == null) {
             throw new IllegalArgumentException();
         }
@@ -53,7 +53,7 @@ public final class Fact implements Hashable {
         return kbId;
     }
 
-    public ContextId getSubject() {
+    public SubjectId getSubject() {
         return subject;
     }
 
@@ -61,7 +61,7 @@ public final class Fact implements Hashable {
         return predicate;
     }
 
-    public LabeledEntity getObject() {
+    public NodeEntity getObject() {
         return object;
     }
 

@@ -29,6 +29,9 @@ package net.stargraph.core.serializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import net.stargraph.core.model.InstanceEntityImpl;
+import net.stargraph.core.model.ValueEntityImpl;
+import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.*;
 import net.stargraph.model.date.TimeRange;
 
@@ -37,36 +40,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 class DocumentDeserializer extends AbstractDeserializer<Document> {
+    private EntitySearcher entitySearcher;
 
-    DocumentDeserializer(KBId kbId) {
+    DocumentDeserializer(EntitySearcher entitySearcher, KBId kbId) {
         super(kbId, PropertyEntity.class);
+        this.entitySearcher = entitySearcher;
     }
 
-    private static LabeledEntity deserializeLabeledEntity(JsonNode node) {
+    private NodeEntity deserializeNodeEntity(JsonNode node) {
         String id = node.get("id").asText();
-        String value = node.get("value").asText();
 
-        if (node.has("language")) {
-            return new ValueEntity(id, value, node.get("dataType").asText(null), node.get("language").asText(null));
+        if (node.has("dataType") || node.has("language")) {
+            return new ValueEntityImpl(id, node.get("value").asText(), node.get("dataType").asText(null), node.get("language").asText(null));
         } else {
-            return new InstanceEntity(id, value);
+            return new InstanceEntityImpl(entitySearcher, getKbId().getId(), id);
         }
     }
 
-    private static Passage deserializePassage(JsonNode node) {
+    private Passage deserializePassage(JsonNode node) {
         String text = node.get("text").asText();
 
-        List<LabeledEntity> entities = new ArrayList<>();
+        List<NodeEntity> entities = new ArrayList<>();
         if (node.has("entities")) {
             for (final JsonNode ent : node.get("entities")) {
-                entities.add(deserializeLabeledEntity(ent));
+                entities.add(deserializeNodeEntity(ent));
             }
         }
 
         return new Passage(text, entities);
     }
 
-    private static PassageExtraction deserializePassageExtraction(JsonNode node) {
+    private PassageExtraction deserializePassageExtraction(JsonNode node) {
         String id = node.get("id").asText();
         String relation = node.get("relation").asText();
 
@@ -87,7 +91,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         return new PassageExtraction(id, relation, terms, temporals);
     }
 
-    private static Extraction deserializeExtraction(JsonNode node) {
+    private Extraction deserializeExtraction(JsonNode node) {
         String id = node.get("id").asText();
         String relation = node.get("relation").asText();
 
@@ -100,7 +104,7 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         return new Extraction(id, relation, args);
     }
 
-    private static TimeRange deserializeTemporal(JsonNode node) {
+    private TimeRange deserializeTemporal(JsonNode node) {
             long from = node.get("from").asLong();
             long to = node.get("to").asLong();
             return TimeRange.fromTo(from, to);
@@ -117,10 +121,10 @@ class DocumentDeserializer extends AbstractDeserializer<Document> {
         String text = node.get("text").asText();
 
         // named entities
-        List<LabeledEntity> entities = new ArrayList<>();
+        List<NodeEntity> entities = new ArrayList<>();
         if (node.has("entities")) {
             for (final JsonNode nent : node.get("entities")) {
-                entities.add(deserializeLabeledEntity(nent));
+                entities.add(deserializeNodeEntity(nent));
             }
         }
 

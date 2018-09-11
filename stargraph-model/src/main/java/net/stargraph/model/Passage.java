@@ -33,9 +33,9 @@ import java.util.List;
  */
 public final class Passage {
     private String text;
-    private List<LabeledEntity> entities;
+    private List<NodeEntity> entities;
 
-    public Passage(String text, List<LabeledEntity> entities) {
+    public Passage(String text, List<NodeEntity> entities) {
         this.text = text;
         this.entities = entities;
     }
@@ -44,7 +44,7 @@ public final class Passage {
         return text;
     }
 
-    public List<LabeledEntity> getEntities() {
+    public List<NodeEntity> getEntities() {
         return entities;
     }
 

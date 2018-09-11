@@ -86,7 +86,7 @@ public final class Rankers {
     private static Rankable asRankable(String term) {
         return new Rankable() {
             @Override
-            public String getValue() {
+            public String getRankableValue() {
                 return term;
             }
 

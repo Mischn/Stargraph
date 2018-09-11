@@ -28,26 +28,30 @@ package net.stargraph.core.data;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.data.Indexable;
 import net.stargraph.model.KBId;
 import net.stargraph.model.PropertyEntity;
 import org.apache.jena.rdf.model.Statement;
 
-import static net.stargraph.core.ModelCreator.createProperty;
+import java.util.ArrayList;
 
 final class PropertyGraphIterator extends GraphIterator<Indexable> {
+    private ModelCreator modelCreator;
 
     public PropertyGraphIterator(Stargraph stargraph, KBId kbId, BaseGraphModel model) {
         super(stargraph, kbId, model);
+        this.modelCreator = stargraph.getModelCreator();
     }
 
     public PropertyGraphIterator(Stargraph stargraph, KBId kbId) {
         super(stargraph, kbId);
+        this.modelCreator = stargraph.getModelCreator();
     }
 
     @Override
     protected Indexable buildNext(Statement statement) {
-        PropertyEntity propertyEntity = createProperty(statement.getPredicate().getURI(), namespace);
+        PropertyEntity propertyEntity = modelCreator.createProperProperty(statement.getPredicate().getURI(), namespace, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         return new Indexable(propertyEntity, kbId);
     }
 }

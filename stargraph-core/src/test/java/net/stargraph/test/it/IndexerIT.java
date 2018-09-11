@@ -32,6 +32,7 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.KBCore;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.index.Indexer;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.model.*;
@@ -54,6 +55,7 @@ public final class IndexerIT {
 
     private KBCore core;
     private EntitySearcher entitySearcher;
+    private ModelCreator modelCreator;
     private String dbId = "obama";
     private KBId factsId = KBId.of("obama", "facts");
     private KBId propsId = KBId.of("obama", "relations");
@@ -71,6 +73,7 @@ public final class IndexerIT {
         stargraph.initialize();
         core = stargraph.getKBCore("obama");
         entitySearcher = stargraph.getEntitySearcher();
+        modelCreator = stargraph.getModelCreator();
         //TODO: replace with KBLoader#loadAll()
         loadProperties();
         loadEntities();
@@ -83,7 +86,7 @@ public final class IndexerIT {
         ModifiableSearchString searchString = ModifiableSearchString.create().searchTermsFromStr("president");
         ModifiableRankParams rankParams = ParamsBuilder.levenshtein();
         Scores scores = entitySearcher.classSearch(searchParams, searchString, rankParams);
-        InstanceEntity expected = new InstanceEntity("dbc:Presidents_of_the_United_States", "Presidents of the United States");
+        InstanceEntity expected = modelCreator.createInstance("dbc:Presidents_of_the_United_States", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());
     }
 
@@ -95,7 +98,7 @@ public final class IndexerIT {
         Scores scores = entitySearcher.instanceSearch(searchParams, searchString, rankParams);
 
         Assert.assertEquals(1, scores.size());
-        InstanceEntity expected = new InstanceEntity("dbr:Barack_Obama", "Barack Obama");
+        InstanceEntity expected = modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());
     }
 
@@ -106,7 +109,7 @@ public final class IndexerIT {
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
         Scores scores = entitySearcher.propertySearch(searchParams, searchString, rankParams);
 
-        PropertyEntity expected = new PropertyEntity("dbp:office", "office");
+        PropertyEntity expected = modelCreator.createProperty("dbp:office", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());
     }
 
@@ -116,17 +119,17 @@ public final class IndexerIT {
         String rankString = "school";
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
 
-        final InstanceEntity obama = new InstanceEntity("dbr:Barack_Obama", "Barack Obama");
-        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false);
+        final InstanceEntity obama = modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace());
+        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false);
 
-        PropertyEntity expected = new PropertyEntity("dbp:education", "education");
+        PropertyEntity expected = modelCreator.createProperty("dbp:education", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());
     }
 
     @Test
     public void getEntitiesTest() {
-        LabeledEntity obama = entitySearcher.getInstanceEntity("obama", "dbr:Barack_Obama");
-        Assert.assertEquals(new InstanceEntity("dbr:Barack_Obama", "Barack Obama"), obama);
+        NodeEntity obama = entitySearcher.getInstanceEntity("obama", "dbr:Barack_Obama");
+        Assert.assertEquals(modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace()), obama);
     }
 
     @Test

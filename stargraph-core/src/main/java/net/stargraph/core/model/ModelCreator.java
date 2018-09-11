@@ -1,4 +1,4 @@
-package net.stargraph.core;
+package net.stargraph.core.model;
 
 /*-
  * ==========================License-Start=============================
@@ -27,8 +27,12 @@ package net.stargraph.core;
  */
 
 import net.stargraph.SplitIRI;
+import net.stargraph.core.Namespace;
+import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.*;
+import net.stargraph.model.wordnet.WNTuple;
 
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,6 +43,12 @@ import java.util.regex.Pattern;
 public final class ModelCreator {
     private static final Pattern pathFragmentPattern = Pattern.compile("^(\\w+:)(\\w+/)+(\\w+)$");
     private static final String RE_CAMELCASE_OR_UNDERSCORE = "(?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z])|_";
+
+    private EntitySearcher entitySearcher;
+
+    public ModelCreator(EntitySearcher entitySearcher) {
+        this.entitySearcher = entitySearcher;
+    }
 
     private static String getNamespace(String uriStr) {
         if (Namespace.isFullId(uriStr)) {
@@ -143,25 +153,43 @@ public final class ModelCreator {
 
 
 
-    public static InstanceEntity createInstance(String uri, Namespace namespace) {
+    public InstanceEntity createProperInstance(String uri, Namespace namespace, boolean isClass, List<String> otherValues) {
         String shrinkedUri = applyNamespace(uri, namespace);
-        return new InstanceEntity(shrinkedUri, extractLabel(shrinkedUri, true));
+        return new InstanceEntityImpl(shrinkedUri, extractLabel(shrinkedUri, true), isClass, otherValues);
     }
 
-    public static PropertyEntity createProperty(String uri, Namespace namespace) {
+    public InstanceEntity createInstance(String uri, String dbId, Namespace namespace) {
         String shrinkedUri = applyNamespace(uri, namespace);
-        return new PropertyEntity(shrinkedUri, extractLabel(shrinkedUri, true));
+        return new InstanceEntityImpl(entitySearcher, dbId, shrinkedUri);
     }
 
-    public static ValueEntity createValue(String value, String dataType, String langTag) {
-        return new ValueEntity(value, dataType, langTag);
+    public PropertyEntity createProperProperty(String uri, Namespace namespace, List<WNTuple> hypernyms, List<WNTuple> hyponyms, List<WNTuple> synonyms) {
+        String shrinkedUri = applyNamespace(uri, namespace);
+        return new PropertyEntityImpl(shrinkedUri, extractLabel(shrinkedUri, true), hypernyms, hyponyms, synonyms);
     }
 
-    public static Fact createFact(KBId kbId, String s, String p, String o, Namespace namespace) {
-        return new Fact(kbId, ModelCreator.createInstance(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createInstance(o, namespace));
+    public PropertyEntity createProperty(String uri, String dbId, Namespace namespace) {
+        String shrinkedUri = applyNamespace(uri, namespace);
+        return new PropertyEntityImpl(entitySearcher, dbId, shrinkedUri);
     }
 
-    public static Fact createFact(KBId kbId, String s, String p, String value, String dataType, String langTag, Namespace namespace) {
-        return new Fact(kbId, ModelCreator.createInstance(s, namespace), ModelCreator.createProperty(p, namespace), ModelCreator.createValue(value, dataType, langTag));
+    public ValueEntity createProperValue(String value, String dataType, String langTag) {
+        dataType = (dataType != null)? dataType : ValueEntityImpl.DEFAULT_DATA_TYPE;
+        String id = (langTag != null)? "\"%s\"@%s^^<%s>".format(value, langTag, dataType) : "\"%s\"^^<%s>".format(value, dataType);
+        return new ValueEntityImpl(id, value, dataType, langTag);
+    }
+
+    public Fact createFact(KBId kbId, String s, String p, String o, Namespace namespace) {
+        return new Fact(kbId,
+                createInstance(s, kbId.getId(), namespace),
+                createProperty(p, kbId.getId(), namespace),
+                createInstance(o, kbId.getId(), namespace));
+    }
+
+    public Fact createFact(KBId kbId, String s, String p, String value, String dataType, String langTag, Namespace namespace) {
+        return new Fact(kbId,
+                createInstance(s, kbId.getId(), namespace),
+                createProperty(p, kbId.getId(), namespace),
+                createProperValue(value, dataType, langTag));
     }
 }

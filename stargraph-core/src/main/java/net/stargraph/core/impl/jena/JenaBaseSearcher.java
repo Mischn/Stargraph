@@ -26,14 +26,13 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
 import net.stargraph.core.graph.GraphSearcher;
-import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.model.InstanceEntity;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.model.PropertyEntity;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.impl.LiteralLabel;
@@ -63,14 +62,14 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
     private Marker marker = MarkerFactory.getMarker("jena");
 
     private final Namespace namespace;
-    private final EntitySearcher entitySearcher;
+    private final ModelCreator modelCreator;
 
     private final HashMap<String, InstanceEntity> entityMap; // for avoiding redundant lookups
     private final HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
 
     public JenaBaseSearcher(Stargraph stargraph, String dbId, BaseGraphModel model) {
         super(stargraph, dbId, model);
-        this.entitySearcher = stargraph.getEntitySearcher();
+        this.modelCreator = stargraph.getModelCreator();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
         this.entityMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
@@ -78,7 +77,7 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
 
     public JenaBaseSearcher(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
-        this.entitySearcher = stargraph.getEntitySearcher();
+        this.modelCreator = stargraph.getModelCreator();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
         this.entityMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
@@ -101,42 +100,34 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
         this.propertyMap.clear();
     }
 
-    public LabeledEntity asEntity(Node node, boolean lookup) {
+    public NodeEntity asEntity(Node node) {
         if (!node.isLiteral()) {
             String id = node.getURI();
-            InstanceEntity instanceEntity = null;
 
+            InstanceEntity instanceEntity;
             if (entityMap.containsKey(id)) {
                 instanceEntity = entityMap.get(id);
-            } else if (lookup) {
-                instanceEntity = entitySearcher.getInstanceEntity(dbId, id);
+            } else {
+                instanceEntity = modelCreator.createInstance(id, dbId, namespace);
                 entityMap.put(id, instanceEntity);
-            }
-
-            if (instanceEntity == null) {
-                instanceEntity = ModelCreator.createInstance(id, namespace);
             }
             return instanceEntity;
         } else {
             LiteralLabel lit = node.getLiteral();
-            return ModelCreator.createValue(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
+            return modelCreator.createProperValue(lit.getLexicalForm(), lit.getDatatype().getURI(), lit.language());
         }
     }
 
-    public PropertyEntity asProperty(Node node, boolean lookup) {
+    public PropertyEntity asProperty(Node node) {
         if (!node.isLiteral()) {
             String id = node.getURI();
-            PropertyEntity propertyEntity = null;
 
+            PropertyEntity propertyEntity;
             if (propertyMap.containsKey(id)) {
                 propertyEntity = propertyMap.get(id);
-            } else if (lookup) {
-                propertyEntity = entitySearcher.getPropertyEntity(dbId, id);
+            } else {
+                propertyEntity = modelCreator.createProperty(id, dbId, namespace);
                 propertyMap.put(id, propertyEntity);
-            }
-
-            if (propertyEntity == null) {
-                propertyEntity = ModelCreator.createProperty(id, namespace);
             }
             return propertyEntity;
         } else {

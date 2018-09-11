@@ -26,10 +26,11 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.response.AnswerSetResponse;
-import net.stargraph.model.InstanceEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -39,10 +40,16 @@ public class ClueQueryTest {
 
     private static String dbId = "passage-wiki-2017";
     private QueryEngine queryEngine;
+    private Stargraph stargraph;
+    private ModelCreator modelCreator;
+    private Namespace namespace;
 
     @BeforeClass
     public void beforeClass() {
-        queryEngine = new QueryEngine(dbId, new Stargraph());
+        this.stargraph = new Stargraph();
+        this.queryEngine = new QueryEngine(dbId, this.stargraph);
+        this.modelCreator = stargraph.getModelCreator();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
     }
 
     @Test(enabled = false)
@@ -50,7 +57,7 @@ public class ClueQueryTest {
 
         String clue = "This association of British insurance underwriters began in 1688.";
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query(clue);
-        Assert.assertTrue(response.getEntityAnswers().contains(new InstanceEntity("http://dbpedia.org/resource/Lloyd%27s_of_London", "Lloyd's of London")));
+        Assert.assertTrue(response.getEntityAnswers().contains(modelCreator.createInstance("http://dbpedia.org/resource/Lloyd%27s_of_London", dbId, namespace)));
 
     }
 

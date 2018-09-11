@@ -26,11 +26,12 @@ package net.stargraph.test.it;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
-import net.stargraph.model.InstanceEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -46,16 +47,22 @@ import java.util.stream.Collectors;
 public class QueryEngineIT {
     private static String dbId = "obama";
     private QueryEngine queryEngine;
+    private Stargraph stargraph;
+    private ModelCreator modelCreator;
+    private Namespace namespace;
 
     @BeforeClass
     public void beforeClass() {
-        queryEngine = new QueryEngine(dbId, new Stargraph());
+        this.stargraph = new Stargraph();
+        this.queryEngine = new QueryEngine(dbId, this.stargraph);
+        this.modelCreator = stargraph.getModelCreator();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
     }
 
     @Test
     public void whoIsTheWifeOfBarackObamaTest() {
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query("Who is the wife of Barack Obama?");
-        Assert.assertTrue(response.getEntityAnswers().contains(new InstanceEntity("http://dbpedia.org/resource/Michelle_Obama", "Michelle Obama")));
+        Assert.assertTrue(response.getEntityAnswers().contains(modelCreator.createInstance("http://dbpedia.org/resource/Michelle_Obama", dbId, namespace)));
     }
 
     @Test

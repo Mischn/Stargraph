@@ -26,24 +26,50 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
-public final class ContextEntity implements ContextId {
-    private String id;
+import net.stargraph.data.processor.Hashable;
+import net.stargraph.rank.Rankable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
-    public ContextEntity(String id) {
-        if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("`id` is required");
-        }
-        this.id = id;
+import java.util.Objects;
+
+public abstract class Entity implements Hashable, Rankable {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected Marker marker = MarkerFactory.getMarker("entity");
+
+    protected final String id;
+
+    public Entity(String id) {
+        this.id = Objects.requireNonNull(id);
     }
 
     public String getId() {
         return id;
     }
 
+    public abstract String getValue();
+
+    public abstract String getRankableValue();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Entity entity = (Entity) o;
+
+        return getId().equals(entity.getId());
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(getClass(), getId()); }
+
     @Override
     public String toString() {
-        return "Context{" +
-                "id='" + id + '\'' +
+        return getClass().getSimpleName() + "{" +
+                "id='" + getId() + '\'' +
                 '}';
     }
 }

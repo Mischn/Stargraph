@@ -29,14 +29,20 @@ package net.stargraph.core.serializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import net.stargraph.core.model.InstanceEntityImpl;
+import net.stargraph.core.model.PropertyEntityImpl;
+import net.stargraph.core.model.ValueEntityImpl;
+import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.*;
 
 import java.io.IOException;
 
 class FactDeSerializer extends AbstractDeserializer<Fact> {
+    private EntitySearcher entitySearcher;
 
-    FactDeSerializer(KBId kbId) {
+    FactDeSerializer(EntitySearcher entitySearcher, KBId kbId) {
         super(kbId, Fact.class);
+        this.entitySearcher = entitySearcher;
     }
 
     @Override
@@ -44,22 +50,18 @@ class FactDeSerializer extends AbstractDeserializer<Fact> {
         JsonNode node = parser.getCodec().readTree(parser);
 
         JsonNode s = node.get("s");
-        InstanceEntity subject = new InstanceEntity(s.get("id").asText(), s.get("value").asText());
+        InstanceEntity subject = new InstanceEntityImpl(entitySearcher, getKbId().getId(), s.get("id").asText());
 
         JsonNode p = node.get("p");
-        String propId = p.get("id").asText();
-        String propValue = p.has("value") ? p.get("value").asText() : propId;
-        PropertyEntity property = new PropertyEntity(propId, propValue);
+        PropertyEntity property = new PropertyEntityImpl(entitySearcher, getKbId().getId(), p.get("id").asText());
 
         JsonNode o = node.get("o");
-        LabeledEntity object;
-        String objId = o.get("id").asText();
-        String objValue = o.get("value").asText();
+        NodeEntity object;
 
-        if (o.has("language")) {
-            object = new ValueEntity(objId, objValue, o.get("dataType").asText(null), o.get("language").asText(null));
+        if (o.has("dataType") || o.has("language")) {
+            object = new ValueEntityImpl(o.get("id").asText(), o.get("value").asText(), o.get("dataType").asText(null), o.get("language").asText(null));
         } else {
-            object = new InstanceEntity(objId, objValue);
+            object = new InstanceEntityImpl(entitySearcher, getKbId().getId(), o.get("id").asText());
         }
 
         return new Fact(getKbId(), subject, property, object);

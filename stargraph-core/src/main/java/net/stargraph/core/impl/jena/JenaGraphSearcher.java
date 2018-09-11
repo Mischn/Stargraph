@@ -56,8 +56,8 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
     }
 
     @Override
-    public Map<String, List<LabeledEntity>> select(String sparqlQuery) {
-        Map<String, List<LabeledEntity>> result = new LinkedHashMap<>();
+    public Map<String, List<NodeEntity>> select(String sparqlQuery) {
+        Map<String, List<NodeEntity>> result = new LinkedHashMap<>();
 
         sparqlQuery(sparqlQuery, new SparqlIteration() {
             @Override
@@ -68,7 +68,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                     Node node = entry.getValue();
 
                     //TODO what if property?
-                    LabeledEntity entity = asEntity(node, true);
+                    NodeEntity entity = asEntity(node);
                     result.computeIfAbsent(var, (v) -> new ArrayList<>()).add(entity);
                 }
             }
@@ -90,7 +90,6 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
     public Scores search(SearchQueryHolder holder) {
         JenaQueryHolder jenaQueryHolder = (JenaQueryHolder)holder;
         String modelId = jenaQueryHolder.getSearchParams().getKbId().getModel();
-        boolean lookup = jenaQueryHolder.getSearchParams().isLookup();
         String sparqlQuery = jenaQueryHolder.getQuery();
 
         Scores scores = new Scores();
@@ -102,11 +101,11 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                 if (modelId.equals(BuiltInModel.FACT.modelId)) {
                     // assume that '?s', '?p<n>', ?x<n>', '?o' variables are available in the query
                     if (varMap.containsKey("s") && varMap.containsKey("p1") && varMap.containsKey("o")) {
-                        Route route = new Route(asEntity(varMap.get("s"), lookup));
+                        Route route = new Route(asEntity(varMap.get("s")));
                         int c = 1;
                         while (varMap.containsKey("p" + c)) {
-                            PropertyEntity predicate = asProperty(varMap.get("p" + c), lookup);
-                            LabeledEntity waypoint = (varMap.containsKey("x" + c))? asEntity(varMap.get("x" + c), lookup) : asEntity(varMap.get("o"), lookup);
+                            PropertyEntity predicate = asProperty(varMap.get("p" + c));
+                            NodeEntity waypoint = (varMap.containsKey("x" + c))? asEntity(varMap.get("x" + c)) : asEntity(varMap.get("o"));
                             route = route.extend(predicate, waypoint);
                             c += 1;
                         }
@@ -114,9 +113,9 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                     } else
                     // assume that '?s', '?p', '?o' variables are available in the query
                     if (varMap.containsKey("s") && varMap.containsKey("p") && varMap.containsKey("o")) {
-                        InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"), lookup);
-                        PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
-                        LabeledEntity object = asEntity(varMap.get("o"), lookup);
+                        InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"));
+                        PropertyEntity predicate = asProperty(varMap.get("p"));
+                        NodeEntity object = asEntity(varMap.get("o"));
 
                         Fact fact = new Fact(holder.getSearchParams().getKbId(), subject, predicate, object);
                         scores.add(new Score(fact, 0.0));
@@ -130,7 +129,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         throw new StarGraphException("?e variable need to be available in the query");
                     }
 
-                    InstanceEntity entity = (InstanceEntity) asEntity(varMap.get("e"), lookup);
+                    InstanceEntity entity = (InstanceEntity) asEntity(varMap.get("e"));
                     scores.add(new Score(entity, 0.0));
                 } else if (modelId.equals(BuiltInModel.PROPERTY.modelId)) {
                     // assume that '?p' variable is available in the query
@@ -138,7 +137,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         throw new StarGraphException("?p variable need to be available in the query");
                     }
 
-                    PropertyEntity predicate = asProperty(varMap.get("p"), lookup);
+                    PropertyEntity predicate = asProperty(varMap.get("p"));
                     scores.add(new Score(predicate, 0.0));
                 } else {
                     throw new NotSupportedException("Model '" + modelId + "' is not supported.");

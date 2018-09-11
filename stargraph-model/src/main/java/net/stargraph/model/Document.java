@@ -42,7 +42,7 @@ public final class Document implements Hashable {
     private String title;
     private String summary; // optional
     private String text;
-    private List<LabeledEntity> entities;
+    private List<NodeEntity> entities;
     private List<String> terms;
     private List<Passage> passages;
     private List<PassageExtraction> passageExtractions;
@@ -56,7 +56,7 @@ public final class Document implements Hashable {
         this(id, type, entity, title, summary, text, null, null, null, null, null);
     }
 
-    public Document(String id, String type, String entity, String title, String summary, String text, List<LabeledEntity> entities, List<String> terms, List<Passage> passages, List<PassageExtraction> passageExtractions, List<Extraction> extractions) {
+    public Document(String id, String type, String entity, String title, String summary, String text, List<NodeEntity> entities, List<String> terms, List<Passage> passages, List<PassageExtraction> passageExtractions, List<Extraction> extractions) {
         this.id = Objects.requireNonNull(id);
         this.type = type;
         this.entity = entity;
@@ -94,7 +94,7 @@ public final class Document implements Hashable {
         return text;
     }
 
-    public List<LabeledEntity> getEntities() {
+    public List<NodeEntity> getEntities() {
         return entities;
     }
 

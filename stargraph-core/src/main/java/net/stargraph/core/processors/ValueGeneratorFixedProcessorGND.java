@@ -34,7 +34,7 @@ import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.impl.jena.JenaBaseSearcher;
 import net.stargraph.core.impl.jena.JenaGraphSearcher;
-import net.stargraph.core.impl.jena.JenaSearchQueryGenerator;
+import net.stargraph.core.model.InstanceEntityImpl;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -137,7 +137,7 @@ public final class ValueGeneratorFixedProcessorGND extends BaseProcessor {
                 System.out.println("############################");
             }
 
-            holder.set(new InstanceEntity(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
+            holder.set(new InstanceEntityImpl(entity.getId(), entity.getValue(), entity.isClass(), otherValues));
         }
     }
 

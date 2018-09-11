@@ -1,8 +1,8 @@
-package net.stargraph.model;
+package net.stargraph.core.serializer;
 
 /*-
  * ==========================License-Start=============================
- * stargraph-model
+ * stargraph-core
  * --------------------------------------------------------------------
  * Copyright (C) 2017 Lambda^3
  * --------------------------------------------------------------------
@@ -26,10 +26,31 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
-import net.stargraph.data.processor.Hashable;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import net.stargraph.core.model.ValueEntityImpl;
+import net.stargraph.model.KBId;
+import net.stargraph.model.ValueEntity;
 
-/**
- * Indicates that the inheritances can be a Context.
- */
-public interface ContextId extends Hashable {
+import java.io.IOException;
+
+class ValueDeserializer extends AbstractDeserializer<ValueEntity> {
+
+    ValueDeserializer(KBId kbId) {
+        super(kbId, ValueEntity.class);
+    }
+
+    @Override
+    public ValueEntity deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        JsonNode node = p.getCodec().readTree(p);
+        String id = node.get("id").asText();
+        String value = node.get("value").asText();
+        String dataType = node.get("dataType").asText(null);
+        String language = node.get("language").asText(null);
+
+        return new ValueEntityImpl(id, value, dataType, language);
+    }
+
+
 }

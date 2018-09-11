@@ -27,7 +27,7 @@ package net.stargraph.core.query.response;
  */
 
 import net.stargraph.core.query.QueryResponse;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.query.InteractionMode;
 
 import java.util.List;
@@ -35,14 +35,14 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class SPARQLSelectResponse extends QueryResponse {
-    private Map<String, List<LabeledEntity>> bindings;
+    private Map<String, List<NodeEntity>> bindings;
 
-    public SPARQLSelectResponse(InteractionMode interactionMode, String userQuery, Map<String, List<LabeledEntity>> bindings) {
+    public SPARQLSelectResponse(InteractionMode interactionMode, String userQuery, Map<String, List<NodeEntity>> bindings) {
         super(interactionMode, userQuery);
         this.bindings = Objects.requireNonNull(bindings);
     }
 
-    public Map<String, List<LabeledEntity>> getBindings() {
+    public Map<String, List<NodeEntity>> getBindings() {
         return bindings;
     }
 

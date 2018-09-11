@@ -26,56 +26,9 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
-import net.stargraph.data.processor.Hashable;
-import net.stargraph.rank.Rankable;
+public abstract class NodeEntity extends Entity {
 
-public abstract class LabeledEntity implements Hashable, Rankable {
-    private String id;
-    private String value;
-
-    public LabeledEntity(String id, String value) {
-        if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("`id` is required");
-        }
-
-        if (value == null) {
-            throw new IllegalArgumentException("`value` is required");
-        }
-
-        this.id = id;
-        this.value = value;
-    }
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        LabeledEntity entity = (LabeledEntity) o;
-
-        return getId().equals(entity.getId());
-
-    }
-
-    @Override
-    public int hashCode() {
-        return getId().hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "Entity{" +
-                "id='" + id + '\'' +
-                '}';
+    public NodeEntity(String id) {
+        super(id);
     }
 }

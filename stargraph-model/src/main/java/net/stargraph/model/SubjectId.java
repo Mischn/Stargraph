@@ -1,4 +1,4 @@
-package net.stargraph.rank;
+package net.stargraph.model;
 
 /*-
  * ==========================License-Start=============================
@@ -26,11 +26,10 @@ package net.stargraph.rank;
  * ==========================License-End===============================
  */
 
-import java.io.Serializable;
+import net.stargraph.data.processor.Hashable;
 
-public interface Rankable extends Serializable {
-
-    String getRankableValue();
-
-    String getId();
+/**
+ *
+ */
+public interface SubjectId extends Hashable {
 }

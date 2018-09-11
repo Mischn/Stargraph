@@ -26,10 +26,11 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
+import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.response.AnswerSetResponse;
-import net.stargraph.model.InstanceEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -39,17 +40,23 @@ public class EntitySimilarityQueryTest {
 
     private static String dbId = "dbpedia-2016";
     private QueryEngine queryEngine;
+    private Stargraph stargraph;
+    private ModelCreator modelCreator;
+    private Namespace namespace;
 
     @BeforeClass
     public void beforeClass() {
-        queryEngine = new QueryEngine(dbId, new Stargraph());
+        this.stargraph = new Stargraph();
+        this.queryEngine = new QueryEngine(dbId, this.stargraph);
+        this.modelCreator = stargraph.getModelCreator();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
     }
 
     @Test(enabled = false)
     public void simpleEntityQuery() {
 
         AnswerSetResponse response = (AnswerSetResponse) queryEngine.query("Entities similar to Barack Obama");
-        Assert.assertTrue(response.getEntityAnswers().contains(new InstanceEntity("http://dbpedia.org/resource/Joe_Biden", "Joe Biden")));
+        Assert.assertTrue(response.getEntityAnswers().contains(modelCreator.createInstance("http://dbpedia.org/resource/Joe_Biden", dbId, namespace)));
 
     }
 

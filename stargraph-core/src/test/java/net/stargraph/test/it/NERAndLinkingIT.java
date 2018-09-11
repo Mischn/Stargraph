@@ -27,10 +27,10 @@ package net.stargraph.test.it;
  */
 
 import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.ModelCreator;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.ner.NamedEntity;
+import net.stargraph.core.model.InstanceEntityImpl;
 import net.stargraph.core.ner.NER;
+import net.stargraph.core.ner.NamedEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -51,7 +51,7 @@ public final class NERAndLinkingIT {
     @Test
     public void linkObamaTest() {
         List<NamedEntity> entities = ner.searchAndLink("Barack Obama");
-        Assert.assertEquals(entities.get(0).getEntities().get(0), ModelCreator.createInstance("dbr:Barack_Obama", null));
+        Assert.assertEquals(entities.get(0).getEntities().get(0), new InstanceEntityImpl("dbr:Barack_Obama"));
     }
 
     @Test

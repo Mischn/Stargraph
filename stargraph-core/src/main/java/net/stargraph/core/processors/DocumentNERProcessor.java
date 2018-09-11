@@ -34,7 +34,7 @@ import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
 import net.stargraph.model.Document;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -66,10 +66,10 @@ public final class DocumentNERProcessor extends BaseProcessor {
             List<NamedEntity> namedEntities = ner.searchAndLink(document.getText());
 
             // only add linked entities
-            List<LabeledEntity> entities = new ArrayList<>();
+            List<NodeEntity> entities = new ArrayList<>();
             for (NamedEntity namedEntity : namedEntities) {
                 if (namedEntity.isLinked()) {
-                    entities.addAll(namedEntity.getEntities().stream().map(s -> (LabeledEntity)s.getEntry()).collect(Collectors.toList()));
+                    entities.addAll(namedEntity.getEntities().stream().map(s -> (NodeEntity)s.getEntry()).collect(Collectors.toList()));
                 }
             }
 

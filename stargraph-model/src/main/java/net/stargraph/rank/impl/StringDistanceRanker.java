@@ -42,7 +42,7 @@ public abstract class StringDistanceRanker extends BaseRanker {
         Scores rescored = new Scores(inputScores.size());
 
         inputScores.forEach(score -> {
-            double dist = computeNormStringDistance(score.getRankableView().getValue(), target.getValue());
+            double dist = computeNormStringDistance(score.getRankableView().getRankableValue(), target.getRankableValue());
             rescored.add(new Score(score.getEntry(), dist));
         });
 

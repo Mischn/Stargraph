@@ -46,7 +46,7 @@ public final class RankerTest {
 
         Scores rescored = ranker.score(scores, createRankable("lambda^3"));
 
-        Assert.assertEquals(rescored.get(0).getRankableView().getValue(), "lambda^3");
+        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValue(), "lambda^3");
         Assert.assertEquals(rescored.get(0).getValue(), 1.0);
     }
 }

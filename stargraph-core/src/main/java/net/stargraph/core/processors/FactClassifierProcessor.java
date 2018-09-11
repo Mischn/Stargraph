@@ -27,6 +27,7 @@ package net.stargraph.core.processors;
  */
 
 import com.typesafe.config.Config;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
@@ -52,10 +53,10 @@ public final class FactClassifierProcessor extends BaseProcessor {
     public void doRun(Holder<Serializable> holder) throws ProcessorException {
         Fact fact = (Fact) holder.get();
         PropertyEntity predicate = fact.getPredicate();
-        LabeledEntity object = fact.getObject();
+        NodeEntity object = fact.getObject();
 
         if (relations.contains(predicate.getId())) {
-            predicate = new PropertyEntity(CLASS_RELATION_STR, CLASS_RELATION_STR);
+            predicate = new PropertyEntityImpl(CLASS_RELATION_STR, CLASS_RELATION_STR, predicate.getHypernyms(), predicate.getHyponyms(), predicate.getSynonyms());
             if (object instanceof ValueEntity) {
                 throw new IllegalStateException("Expected non-literal for a relation");
             }

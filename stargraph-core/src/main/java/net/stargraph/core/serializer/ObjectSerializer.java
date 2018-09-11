@@ -28,6 +28,8 @@ package net.stargraph.core.serializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.*;
 import net.stargraph.model.date.TimeRange;
 
@@ -36,17 +38,21 @@ import net.stargraph.model.date.TimeRange;
  */
 public final class ObjectSerializer {
 
-    public static ObjectMapper createMapper(KBId kbId) {
+    public static ObjectMapper createMapper(Stargraph stargraph, KBId kbId) {
+        EntitySearcher entitySearcher = stargraph.getEntitySearcher();
+
         ObjectMapper mapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
         module.addSerializer(Fact.class, new FactSerializer(kbId));
-        module.addDeserializer(Fact.class, new FactDeSerializer(kbId));
+        module.addDeserializer(Fact.class, new FactDeSerializer(entitySearcher, kbId));
         module.addSerializer(PropertyEntity.class, new PropertySerializer(kbId));
         module.addDeserializer(PropertyEntity.class, new PropertyDeserializer(kbId));
+        module.addSerializer(ValueEntity.class, new ValueSerializer(kbId));
+        module.addDeserializer(ValueEntity.class, new ValueDeserializer(kbId));
         module.addSerializer(InstanceEntity.class, new InstanceSerializer(kbId));
         module.addDeserializer(InstanceEntity.class, new InstanceDeserializer(kbId));
         module.addSerializer(Document.class, new DocumentSerializer(kbId));
-        module.addDeserializer(Document.class, new DocumentDeserializer(kbId));
+        module.addDeserializer(Document.class, new DocumentDeserializer(entitySearcher, kbId));
         module.addSerializer(TimeRange.class, new TimeRangeSerializer(kbId));
         mapper.registerModule(module);
         return mapper;

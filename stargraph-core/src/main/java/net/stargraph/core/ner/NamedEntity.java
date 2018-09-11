@@ -26,7 +26,7 @@ package net.stargraph.core.ner;
  * ==========================License-End===============================
  */
 
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -96,7 +96,7 @@ public final class NamedEntity {
         this.end = newEndPos;
     }
 
-    public void addLink(LabeledEntity entity, String entityDbId, double score) {
+    public void addLink(NodeEntity entity, String entityDbId, double score) {
         this.entities.add(new LinkedEntityScore(entity, entityDbId, score));
     }
 

@@ -29,6 +29,7 @@ package net.stargraph.core.serializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.model.KBId;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.wordnet.PosType;
@@ -71,7 +72,7 @@ class PropertyDeserializer extends AbstractDeserializer<PropertyEntity> {
             }
         }
 
-        return new PropertyEntity(id, value, hypernyms, hyponyms, synonyms);
+        return new PropertyEntityImpl(id, value, hypernyms, hyponyms, synonyms);
     }
 
 

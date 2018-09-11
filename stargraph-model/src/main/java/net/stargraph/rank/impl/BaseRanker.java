@@ -41,9 +41,9 @@ abstract class BaseRanker implements Ranker {
 
     @Override
     public final Scores score(Scores inputScores, Rankable target) {
-        logger.trace(marker, "Target: '{}', input: {}", target.getValue(), inputScores);
+        logger.trace(marker, "Target: '{}', input: {}", target.getRankableValue(), inputScores);
         Scores rescore = doScore(inputScores, target);
-        logger.trace(marker, "Target: '{}', output: {}", target.getValue(), rescore);
+        logger.trace(marker, "Target: '{}', output: {}", target.getRankableValue(), rescore);
         return rescore;
     }
 

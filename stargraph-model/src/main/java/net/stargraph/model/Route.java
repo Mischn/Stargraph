@@ -35,18 +35,18 @@ import java.util.Objects;
 
 public class Route implements Hashable {
     private PropertyPath propertyPath;
-    private List<LabeledEntity> waypoints;
+    private List<NodeEntity> waypoints;
 
-    private Route(PropertyPath propertyPath, List<LabeledEntity> waypoints) {
+    private Route(PropertyPath propertyPath, List<NodeEntity> waypoints) {
         this.propertyPath = propertyPath;
         this.waypoints = waypoints;
     }
 
-    public Route(LabeledEntity waypoint) {
+    public Route(NodeEntity waypoint) {
         this(null, Arrays.asList(waypoint));
     }
 
-    public Route extend(PropertyEntity property, LabeledEntity waypoint) {
+    public Route extend(PropertyEntity property, NodeEntity waypoint) {
         PropertyPath newPropertyPath;
         if (this.propertyPath == null) {
             newPropertyPath = new PropertyPath(property);
@@ -56,7 +56,7 @@ public class Route implements Hashable {
             newPropertyPath = new PropertyPath(properties);
         }
 
-        List<LabeledEntity> newWaypoints = new ArrayList<>(waypoints);
+        List<NodeEntity> newWaypoints = new ArrayList<>(waypoints);
         newWaypoints.add(waypoint);
 
         return new Route(newPropertyPath, newWaypoints);
@@ -66,11 +66,11 @@ public class Route implements Hashable {
         return propertyPath;
     }
 
-    public List<LabeledEntity> getWaypoints() {
+    public List<NodeEntity> getWaypoints() {
         return waypoints;
     }
 
-    public LabeledEntity getLastWaypoint() {
+    public NodeEntity getLastWaypoint() {
         return waypoints.get(waypoints.size() - 1);
     }
 

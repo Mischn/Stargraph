@@ -39,6 +39,7 @@ import net.stargraph.core.graph.DefaultGraphModelProviderFactory;
 import net.stargraph.core.graph.GraphModelProviderFactory;
 import net.stargraph.core.impl.corenlp.NERSearcher;
 import net.stargraph.core.index.Indexer;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.processors.Processors;
 import net.stargraph.core.search.EntitySearcher;
@@ -76,6 +77,7 @@ public final class Stargraph {
     private Map<String, KBCore> kbCoreMap;
     private Set<String> kbInitSet;
     private EntitySearcher entitySearcher;
+    private ModelCreator modelCreator;
     private boolean initialized;
 
     /**
@@ -100,6 +102,7 @@ public final class Stargraph {
         this.kbCoreMap = new ConcurrentHashMap<>(8);
 
         this.entitySearcher = new EntitySearcher(this);
+        this.modelCreator = new ModelCreator(this.entitySearcher);
 
         // Configurable defaults
         setDataRootDir(mainConfig.getString("data.root-dir")); // absolute path is expected
@@ -327,6 +330,10 @@ public final class Stargraph {
 
     public EntitySearcher getEntitySearcher() {
         return entitySearcher;
+    }
+
+    public ModelCreator getModelCreator() {
+        return modelCreator;
     }
 
     public NER createNER(Language language, List<String> nerKbNames) {

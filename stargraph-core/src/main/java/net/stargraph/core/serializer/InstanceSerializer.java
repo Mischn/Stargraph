@@ -46,7 +46,7 @@ class InstanceSerializer extends AbstractSerializer<InstanceEntity> {
         g.writeStringField("value", value.getValue());
         g.writeBooleanField("complex", value.isComplex());
         g.writeBooleanField("isClass", value.isClass());
-        if (!value.getOtherValues().isEmpty()) {
+        if (value.getOtherValues() != null && !value.getOtherValues().isEmpty()) {
             g.writeObjectField("otherValues", value.getOtherValues());
         }
         g.writeEndObject();

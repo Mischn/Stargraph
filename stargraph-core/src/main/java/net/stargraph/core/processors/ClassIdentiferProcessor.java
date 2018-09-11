@@ -28,6 +28,7 @@ package net.stargraph.core.processors;
 
 import com.typesafe.config.Config;
 import net.stargraph.core.Stargraph;
+import net.stargraph.core.model.InstanceEntityImpl;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
@@ -59,7 +60,7 @@ public final class ClassIdentiferProcessor extends BaseProcessor {
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId());
             boolean isClass = entitySearcher.isClass(entity, searchParams);
-            holder.set(new InstanceEntity(entity.getId(), entity.getValue(), isClass, entity.getOtherValues()));
+            holder.set(new InstanceEntityImpl(entity.getId(), entity.getValue(), isClass, entity.getOtherValues()));
         }
     }
 

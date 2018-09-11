@@ -28,43 +28,44 @@ package net.stargraph.core.data;
 
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.data.Indexable;
-import net.stargraph.model.*;
+import net.stargraph.model.Fact;
+import net.stargraph.model.KBId;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Statement;
 
-import static net.stargraph.core.ModelCreator.createProperty;
-import static net.stargraph.core.ModelCreator.createInstance;
-import static net.stargraph.core.ModelCreator.createValue;
-
 final class FactGraphIterator extends GraphIterator<Indexable> {
+    private ModelCreator modelCreator;
 
     public FactGraphIterator(Stargraph stargraph, KBId kbId, BaseGraphModel model) {
         super(stargraph, kbId, model);
+        this.modelCreator = stargraph.getModelCreator();
     }
 
     public FactGraphIterator(Stargraph stargraph, KBId kbId) {
         super(stargraph, kbId);
+        this.modelCreator = stargraph.getModelCreator();
     }
 
     @Override
     protected Indexable buildNext(Statement statement) {
-        InstanceEntity instanceEntity = createInstance(statement.getSubject().getURI(), namespace);
-        PropertyEntity propertyEntity = createProperty(statement.getPredicate().getURI(), namespace);
+        String subjURI = statement.getSubject().getURI();
+        String predURI = statement.getPredicate().getURI();
 
-        LabeledEntity labeledEntity;
-
+        Fact fact;
         if (!statement.getObject().isLiteral()) {
-            labeledEntity = createInstance(statement.getObject().asResource().getURI(), namespace);
+            String objURI = statement.getObject().asResource().getURI();
+            fact = modelCreator.createFact(kbId, subjURI, predURI, objURI, namespace);
         } else {
             Literal literal = statement.getObject().asLiteral();
             String dataType = literal.getDatatypeURI();
             String langTag = literal.getLanguage();
             String value = literal.getLexicalForm();
-            labeledEntity = createValue(value, dataType, langTag);
+            fact = modelCreator.createFact(kbId, subjURI, predURI, value, dataType, langTag, namespace);
         }
 
 
-        return new Indexable(new Fact(kbId, instanceEntity, propertyEntity, labeledEntity), kbId);
+        return new Indexable(fact, kbId);
     }
 }

@@ -30,6 +30,7 @@ import com.google.common.collect.Iterators;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.model.ModelCreator;
 import net.stargraph.data.Indexable;
 import net.stargraph.model.KBId;
 import org.apache.jena.graph.Graph;
@@ -42,22 +43,23 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-
-import static net.stargraph.core.ModelCreator.createInstance;
 
 public final class EntityGraphIterator implements Iterator<Indexable> {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Marker marker = MarkerFactory.getMarker("core");
     private KBId kbId;
+    private ModelCreator modelCreator;
     private Namespace namespace;
     private Iterator<Node> innerIt;
     private Node currentNode;
 
     public EntityGraphIterator(Stargraph stargraph, KBId kbId, BaseGraphModel model) {
         this.kbId = Objects.requireNonNull(kbId);
+        this.modelCreator = stargraph.getModelCreator();
         this.namespace = stargraph.getKBCore(kbId.getId()).getNamespace();
         createIterator(model);
     }
@@ -99,7 +101,7 @@ public final class EntityGraphIterator implements Iterator<Indexable> {
             if (currentNode == null) {
                 throw new NoSuchElementException();
             }
-            return new Indexable(createInstance(currentNode.getURI(), namespace), kbId);
+            return new Indexable(modelCreator.createProperInstance(currentNode.getURI(), namespace, false, new ArrayList<>()), kbId);
         } finally {
             currentNode = null;
         }

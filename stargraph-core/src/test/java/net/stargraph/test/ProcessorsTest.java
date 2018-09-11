@@ -28,7 +28,8 @@ package net.stargraph.test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.ModelCreator;
+import net.stargraph.core.model.InstanceEntityImpl;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.core.processors.CoreferenceResolutionProcessor;
 import net.stargraph.core.processors.FactClassifierProcessor;
 import net.stargraph.core.processors.Processors;
@@ -59,10 +60,12 @@ public final class ProcessorsTest {
     public void simpleProcessorChainTest() {
         final KBId kbId = KBId.of("obama", "facts");
 
-        Holder holder = new Indexable(ModelCreator.createFact(kbId,
-                "http://dbpedia.org/resource/FC_Oberlausitz_Neugersdorf",
-                "http://purl.org/dc/terms/subject",
-                "http://dbpedia.org/resource/Category:Football_clubs_in_Germany", null), kbId);
+        Holder holder = new Indexable(new Fact(
+                kbId,
+                new InstanceEntityImpl("http://dbpedia.org/resource/FC_Oberlausitz_Neugersdorf"),
+                new PropertyEntityImpl("http://purl.org/dc/terms/subject"),
+                new InstanceEntityImpl("http://dbpedia.org/resource/Category:Football_clubs_in_Germany")
+                ), kbId);
 
         Processor entityClassifierProcessor = Processors.create(config.withOnlyPath("fact-classifier"));
         Processor nsProcessor = Processors.create(config.withOnlyPath("sink-duplicate"));
@@ -83,7 +86,7 @@ public final class ProcessorsTest {
     @Test
     public void duplicateProcessorTest() {
         KBId kbId = KBId.of("obama", "facts");
-        PropertyEntity prop = ModelCreator.createProperty("http://dbpedia.org/property/president", null);
+        PropertyEntity prop = new PropertyEntityImpl("http://dbpedia.org/property/president");
         Processor processor = Processors.create(config.withOnlyPath("sink-duplicate"));
         Holder holder = new Indexable(prop, kbId);
         processor.run(holder);

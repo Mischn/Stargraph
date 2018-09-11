@@ -44,7 +44,7 @@ import net.stargraph.core.query.response.SPARQLSelectResponse;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.Document;
 import net.stargraph.model.InstanceEntity;
-import net.stargraph.model.LabeledEntity;
+import net.stargraph.model.NodeEntity;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.query.Language;
@@ -154,7 +154,7 @@ public class QueryEngine {
     }
 
     private QueryResponse sparqlQuery(String userQuery) {
-        Map<String, List<LabeledEntity>> vars = graphSearcher.select(userQuery);
+        Map<String, List<NodeEntity>> vars = graphSearcher.select(userQuery);
         if (!vars.isEmpty()) {
             return new SPARQLSelectResponse(SPARQL, userQuery, vars);
         }
@@ -186,7 +186,7 @@ public class QueryEngine {
         logger.info(marker, "SPARQLQueryString:");
         logger.info(marker, sparqlQueryStr);
 
-        Map<String, List<LabeledEntity>> vars = graphSearcher.select(sparqlQueryStr);
+        Map<String, List<NodeEntity>> vars = graphSearcher.select(sparqlQueryStr);
 
         if (!vars.isEmpty()) {
             AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, queryBuilder);

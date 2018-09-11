@@ -26,86 +26,19 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
-import net.stargraph.data.processor.Hashable;
 import net.stargraph.model.wordnet.WNTuple;
-import net.stargraph.rank.Rankable;
 
 import java.util.Collection;
-import java.util.Objects;
 
-public final class PropertyEntity implements Hashable, Rankable {
-    private String id;
-    private String value;
-    private Collection<WNTuple> hypernyms;
-    private Collection<WNTuple> hyponyms;
-    private Collection<WNTuple> synonyms;
+public abstract class PropertyEntity extends Entity {
 
-    public PropertyEntity(String id, String value) {
-        this(id, value, null, null, null);
+    public PropertyEntity(String id) {
+        super(id);
     }
 
-    public PropertyEntity(String id, String value,
-                          Collection<WNTuple> hypernyms,
-                          Collection<WNTuple> hyponyms,
-                          Collection<WNTuple> synonyms) {
+    public abstract Collection<WNTuple> getHypernyms();
 
-        if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("`id` is required");
-        }
+    public abstract Collection<WNTuple> getHyponyms();
 
-        if (value == null || value.isEmpty()) {
-            throw new IllegalArgumentException("`value` is required");
-        }
-
-        this.id = id;
-        this.value = value;
-        this.hypernyms = hypernyms;
-        this.hyponyms = hyponyms;
-        this.synonyms = synonyms;
-    }
-
-    public Collection<WNTuple> getHypernyms() {
-        return hypernyms;
-    }
-
-    public Collection<WNTuple> getHyponyms() {
-        return hyponyms;
-    }
-
-    public Collection<WNTuple> getSynonyms() {
-        return synonyms;
-    }
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PropertyEntity that = (PropertyEntity) o;
-
-        return getId() != null ? getId().equals(that.getId()) : that.getId() == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "PropertyEntity{" +
-                "id='" + id + '\'' +
-                '}';
-    }
+    public abstract Collection<WNTuple> getSynonyms();
 }

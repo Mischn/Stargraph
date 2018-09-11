@@ -28,7 +28,7 @@ package net.stargraph.test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import net.stargraph.core.ModelCreator;
+import net.stargraph.core.model.PropertyEntityImpl;
 import net.stargraph.core.processors.Processors;
 import net.stargraph.core.processors.StopPropertyFilterProcessor;
 import net.stargraph.data.Indexable;
@@ -50,7 +50,7 @@ public class StopPropertyFilterTest {
     public void simpleTest() {
         Config cfg = buildConfig(Collections.singletonList("^rdf:type$"));
 
-        Holder holder = new Indexable(ModelCreator.createProperty("rdf:type", null), kbId);
+        Holder holder = new Indexable(new PropertyEntityImpl("rdf:type"), kbId);
         Assert.assertFalse(holder.isSinkable());
 
         Processor processor = Processors.create(cfg);
@@ -63,7 +63,7 @@ public class StopPropertyFilterTest {
     public void noFilterTest() {
         Config cfg = buildConfig(Collections.emptyList());
 
-        Holder holder = new Indexable(ModelCreator.createProperty("rdf:type", null), kbId);
+        Holder holder = new Indexable(new PropertyEntityImpl("rdf:type"), kbId);
         Assert.assertFalse(holder.isSinkable());
 
         Processor processor = Processors.create(cfg);
@@ -76,7 +76,7 @@ public class StopPropertyFilterTest {
     public void noMatchTest() {
         Config cfg = buildConfig(Collections.emptyList());
 
-        Holder holder = new Indexable(ModelCreator.createProperty("rdf:x", null), kbId);
+        Holder holder = new Indexable(new PropertyEntityImpl("rdf:x"), kbId);
         Assert.assertFalse(holder.isSinkable());
 
         Processor processor = Processors.create(cfg);

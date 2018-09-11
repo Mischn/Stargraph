@@ -69,7 +69,7 @@ public abstract class BaseIndexer implements Indexer {
     public BaseIndexer(KBId kbId, Stargraph stargraph) {
         this.stargraph = Objects.requireNonNull(stargraph);
         this.kbId = Objects.requireNonNull(kbId);
-        this.mapper = ObjectSerializer.createMapper(kbId);
+        this.mapper = ObjectSerializer.createMapper(stargraph, kbId);
 
         this.executor = createExecutor();
         this.futures = new ArrayList<>();

@@ -1,4 +1,4 @@
-package net.stargraph.test;
+package net.stargraph.core.serializer;
 
 /*-
  * ==========================License-Start=============================
@@ -12,10 +12,10 @@ package net.stargraph.test;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,44 +26,26 @@ package net.stargraph.test;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.Namespace;
-import net.stargraph.core.Stargraph;
-import net.stargraph.core.model.ModelCreator;
-import net.stargraph.core.query.QueryEngine;
-import net.stargraph.core.query.response.AnswerSetResponse;
-import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import net.stargraph.model.KBId;
+import net.stargraph.model.ValueEntity;
 
+import java.io.IOException;
 
-public class SchemaAgnosticQueryTest {
+class ValueSerializer extends AbstractSerializer<ValueEntity> {
 
-    private static String dbId = "dbpedia-2016";
-    private QueryEngine queryEngine;
-    private Stargraph stargraph;
-    private ModelCreator modelCreator;
-    private Namespace namespace;
-
-    @BeforeClass
-    public void beforeClass() {
-        this.stargraph = new Stargraph();
-        this.queryEngine = new QueryEngine(dbId, this.stargraph);
-        this.modelCreator = stargraph.getModelCreator();
-        this.namespace = stargraph.getKBCore(dbId).getNamespace();
+    ValueSerializer(KBId kbId) {
+        super(kbId, ValueEntity.class);
     }
 
-    @Test(enabled = false)
-    public void simpleEntityQuery() {
-
-        String sparqlString =
-                "SELECT ?uri\n" +
-                        "WHERE {\n" +
-                        "        ?uri :playedBy :Cat_Stevens .\n" +
-                        "}";
-
-        AnswerSetResponse response = (AnswerSetResponse) queryEngine.query(sparqlString);
-        Assert.assertTrue(response.getEntityAnswers().contains(modelCreator.createInstance("http://dbpedia.org/resource/Mandolin", dbId, namespace)));
-
+    @Override
+    public void serialize(ValueEntity value, JsonGenerator g, SerializerProvider provider) throws IOException {
+        g.writeStartObject();
+        g.writeStringField("id", value.getId());
+        g.writeStringField("value", value.getValue());
+        g.writeStringField("dataType", value.getDataType());
+        g.writeStringField("language", value.getLanguage());
+        g.writeEndObject();
     }
-
 }

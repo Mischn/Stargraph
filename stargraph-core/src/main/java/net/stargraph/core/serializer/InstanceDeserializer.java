@@ -29,6 +29,7 @@ package net.stargraph.core.serializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import net.stargraph.core.model.InstanceEntityImpl;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.KBId;
 
@@ -55,6 +56,6 @@ class InstanceDeserializer extends AbstractDeserializer<InstanceEntity> {
                 otherValues.add(val.textValue());
             }
         }
-        return new InstanceEntity(id, value, isClass, otherValues);
+        return new InstanceEntityImpl(id, value, isClass, otherValues);
     }
 }

@@ -165,46 +165,49 @@ public class QueryEngine {
         QuestionAnalyzer analyzer = this.analyzers.getQuestionAnalyzer(language);
         QuestionAnalysis analysis = analyzer.analyse(userQuery);
 
-        logger.info(marker, "Resolve triples:");
-        resolver.reset();
+        QueryPlannerPattern queryPlannerPattern = analysis.getQueryPlannerPattern();
+        for (QueryPlan queryPlan : queryPlannerPattern.getQueryPlans()) {
+            logger.info(marker, "Resolve query plan:\n{}\n", queryPlan);
+            logger.info(marker, "Resolve triples:");
+            resolver.reset();
 
-        analysis.getTriplePatterns().forEach(triplePattern -> {
-            resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
-        });
+            queryPlan.forEach(triplePattern -> {
+                resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
+            });
 
-        SPARQLQueryBuilder queryBuilder = new SPARQLQueryBuilder(stargraph, dbId, analysis.getQueryType(),
-                analysis.getTriplePatterns(),
-                analysis.getBindings(),
-                resolver.getMappings());
-        queryBuilder.setNS(namespace);
+            SPARQLQueryBuilder queryBuilder = new SPARQLQueryBuilder(stargraph, dbId, analysis.getQueryType(),
+                    queryPlan,
+                    analysis.getBindings(),
+                    resolver.getMappings());
+            queryBuilder.setNS(namespace);
 
-        logger.info(marker, "SPARQLQueryBuilder:");
-        logger.info(marker, queryBuilder.toString());
+            logger.info(marker, "SPARQLQueryBuilder:");
+            logger.info(marker, queryBuilder.toString());
 
-        String sparqlQueryStr = queryBuilder.build();
+            String sparqlQueryStr = queryBuilder.build();
 
-        logger.info(marker, "SPARQLQueryString:");
-        logger.info(marker, sparqlQueryStr);
+            logger.info(marker, "SPARQLQueryString:");
+            logger.info(marker, sparqlQueryStr);
 
-        Map<String, List<NodeEntity>> vars = graphSearcher.select(sparqlQueryStr);
+            Map<String, List<NodeEntity>> vars = graphSearcher.select(sparqlQueryStr);
+            if (!vars.isEmpty()) {
+                AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, queryBuilder);
 
-        if (!vars.isEmpty()) {
-            AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, queryBuilder);
+                Set<Score> entityAnswers = vars.get("VAR_1").stream()
+                        .map(e -> new Score(namespace.expand(e), 1)).collect(Collectors.toSet());
 
-            Set<Score> entityAnswers = vars.get("VAR_1").stream()
-                    .map(e -> new Score(namespace.expand(e), 1)).collect(Collectors.toSet());
+                answerSet.setEntityAnswers(new ArrayList<>(entityAnswers)); // convention, answer must be bound to the first var
+                answerSet.setMappings(queryBuilder.getMappings());
+                answerSet.setSPARQLQuery(sparqlQueryStr);
 
-            answerSet.setEntityAnswers(new ArrayList<>(entityAnswers)); // convention, answer must be bound to the first var
-            answerSet.setMappings(queryBuilder.getMappings());
-            answerSet.setSPARQLQuery(sparqlQueryStr);
+                System.out.println("-----> " + answerSet.getMappings());
+                //
+                //if (triplePattern.getTypes().contains("VARIABLE TYPE CLASS")) {
+                //    entities = core.getEntitySearcher().searchByTypes(new HashSet<String>(Arrays.asList(triplePattern.objectLabel.split(" "))), true, 100);
+                //}
 
-            System.out.println("-----> " + answerSet.getMappings());
-            //
-            //if (triplePattern.getTypes().contains("VARIABLE TYPE CLASS")) {
-            //    entities = core.getEntitySearcher().searchByTypes(new HashSet<String>(Arrays.asList(triplePattern.objectLabel.split(" "))), true, 100);
-            //}
-
-            return answerSet;
+                return answerSet;
+            }
         }
 
         return new NoResponse(NLI, userQuery);

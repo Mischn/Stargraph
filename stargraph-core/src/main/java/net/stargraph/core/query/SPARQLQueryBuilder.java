@@ -31,7 +31,7 @@ import net.stargraph.core.Namespace;
 import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.nli.DataModelBinding;
-import net.stargraph.core.query.nli.QueryPlanPatterns;
+import net.stargraph.core.query.nli.QueryPlan;
 import net.stargraph.core.query.nli.TriplePattern;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
@@ -43,16 +43,16 @@ public final class SPARQLQueryBuilder {
     private final SparqlCreator sparqlCreator;
     private final List<String> classURIs;
     private final QueryType queryType;
-    private final QueryPlanPatterns triplePatterns;
+    private final QueryPlan queryPlan;
     private final List<DataModelBinding> bindings;
     private Map<DataModelBinding, List<Score>> mappings;
     private Namespace namespace;
 
-    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlanPatterns triplePatterns, List<DataModelBinding> bindings, Map<DataModelBinding, List<Score>> mappings) {
+    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlan queryPlan, List<DataModelBinding> bindings, Map<DataModelBinding, List<Score>> mappings) {
         this.sparqlCreator = new SparqlCreator();
         this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
-        this.triplePatterns = Objects.requireNonNull(triplePatterns);
+        this.queryPlan = Objects.requireNonNull(queryPlan);
         this.bindings = Objects.requireNonNull(bindings);
         this.mappings = Objects.requireNonNull(mappings);
     }
@@ -91,8 +91,8 @@ public final class SPARQLQueryBuilder {
         return queryType;
     }
 
-    public QueryPlanPatterns getTriplePatterns() {
-        return triplePatterns;
+    public QueryPlan getQueryPlan() {
+        return queryPlan;
     }
 
     public DataModelBinding getBinding(String placeHolder) {
@@ -133,7 +133,7 @@ public final class SPARQLQueryBuilder {
 
         StringJoiner tripleJoiner = new StringJoiner(" UNION\n", "{", "}");
 
-        triplePatterns.forEach(triplePattern -> {
+        queryPlan.forEach(triplePattern -> {
             String[] components = triplePattern.getPattern().split("\\s");
 
             List<String> sMappings = new ArrayList<>();
@@ -282,7 +282,7 @@ public final class SPARQLQueryBuilder {
     public String toString() {
         StringBuilder strb = new StringBuilder();
         strb.append("Triple-Patterns:");
-        for (TriplePattern triplePattern : triplePatterns) {
+        for (TriplePattern triplePattern : queryPlan) {
             strb.append("\n\t").append(triplePattern);
         }
         strb.append("\n\n").append("Bindings & Mappings:");

@@ -50,7 +50,7 @@ public final class QuestionAnalyzer {
     private Language language;
     private POSAnnotator posAnnotator;
     private List<BindingPattern<DataModelType>> dataModelBindingPatterns;
-    private List<QueryPlanPatterns> queryPlanPatterns;
+    private List<QueryPlannerPattern> queryPlannerPatterns;
     private List<QueryTypePatterns> queryTypePatterns;
 
     public QuestionAnalyzer(Stargraph stargraph, String dbId, Language language, POSAnnotator posAnnotator, Rules rules) {
@@ -60,7 +60,7 @@ public final class QuestionAnalyzer {
         this.language = Objects.requireNonNull(language);
         this.posAnnotator = Objects.requireNonNull(posAnnotator);
         this.dataModelBindingPatterns = rules.getDataModelBindingPatterns(language);
-        this.queryPlanPatterns = rules.getQueryPlanRules(language);
+        this.queryPlannerPatterns = rules.getQueryPlannerPatterns(language);
         this.queryTypePatterns = rules.getQueryTypeRules(language);
     }
 
@@ -72,7 +72,7 @@ public final class QuestionAnalyzer {
             analysis.setAnnotatedWords(posAnnotator.run(language, question));
             analysis.resolveDataModelBindings(dataModelBindingPatterns);
             analysis.clean();
-            analysis.determineQueryPlanPatterns(queryPlanPatterns);
+            analysis.determineQueryPlans(queryPlannerPatterns);
             logger.info(marker, "{}", getTimingReport(question, startTime));
             return analysis;
         }

@@ -57,7 +57,7 @@ public final class QuestionAnalysis {
     private BindAnnotator<DataModelType> bindAnnotator;
     private List<Word> annotatedWords;
     private List<Binding<DataModelType>> currBindings;
-    private QueryPlanPatterns queryPlanPatterns;
+    private QueryPlannerPattern queryPlannerPattern;
 
     QuestionAnalysis(Language language, String question, QueryType queryType) {
         this.language = language;
@@ -91,16 +91,17 @@ public final class QuestionAnalysis {
         this.currBindings = currBindings.stream().filter(b -> !b.isBound() || !b.getObject().equals(DataModelType.STOP)).collect(Collectors.toList());
     }
 
-    public void determineQueryPlanPatterns(List<QueryPlanPatterns> rules) {
+    public void determineQueryPlans(List<QueryPlannerPattern> rules) {
         String planId = currBindings.stream().map(b -> (b.isBound())? b.getPlaceHolder() : b.getBoundText()).collect(Collectors.joining(" "));
 
         logger.debug(marker, "Check for plan with planId: '" + planId + "'");
 
-        this.queryPlanPatterns = rules.stream()
+        this.queryPlannerPattern = rules.stream()
                 .filter(p -> p.match(planId))
-                .findFirst().orElseThrow(() -> new StarGraphException("No plan for '" + planId + "'"));
+                .findFirst()
+                .orElseThrow(() -> new StarGraphException("No plans for '" + planId + "'"));
 
-        logger.debug(marker, "Matched plan for '{}' is:\n{}", planId, queryPlanPatterns.stream().map(p -> p.toString()).collect(Collectors.joining("\n")));
+        logger.debug(marker, "Matched plans for '{}' are:\n{}", planId, queryPlannerPattern.getQueryPlans().stream().map(p -> p.toString()).collect(Collectors.joining("\n")));
     }
 
     public QueryType getQueryType() {
@@ -125,7 +126,7 @@ public final class QuestionAnalysis {
                 .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
     }
 
-    public QueryPlanPatterns getTriplePatterns() {
-        return queryPlanPatterns;
+    public QueryPlannerPattern getQueryPlannerPattern() {
+        return queryPlannerPattern;
     }
 }

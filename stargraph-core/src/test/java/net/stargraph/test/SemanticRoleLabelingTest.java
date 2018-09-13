@@ -51,7 +51,7 @@ public final class  SemanticRoleLabelingTest {
     public void q0() {
         QuestionAnalysis analyzed = analyzer.analyse("Who is the wife of Barack Obama?");
         Assert.assertEquals(analyzed.getQueryType(), QueryType.SELECT);
-        Assert.assertEquals(analyzed.getTriplePatterns().getPlanId(), "CLASS_1 INSTANCE_1");
+        Assert.assertEquals(analyzed.getQueryPlannerPattern().getPlanId(), "CLASS_1 INSTANCE_1");
         Assert.assertEquals(analyzed.getBinding("CLASS_1").getTerm(), "wife");
         Assert.assertEquals(analyzed.getBinding("INSTANCE_1").getTerm(), "Barack Obama");
     }
@@ -61,7 +61,7 @@ public final class  SemanticRoleLabelingTest {
         QuestionAnalysis analyzed = analyzer.analyse("Give me all movies directed by Francis Ford Coppola");
 
         Assert.assertEquals(analyzed.getQueryType(), QueryType.SELECT);
-        Assert.assertEquals(analyzed.getTriplePatterns().getPlanId(), "CLASS_1 PROPERTY_1 by INSTANCE_1");
+        Assert.assertEquals(analyzed.getQueryPlannerPattern().getPlanId(), "CLASS_1 PROPERTY_1 by INSTANCE_1");
         Assert.assertEquals(analyzed.getBinding("CLASS_1").getTerm(), "movies");
         Assert.assertEquals(analyzed.getBinding("INSTANCE_1").getTerm(), "Francis Ford Coppola");
         Assert.assertEquals(analyzed.getBinding("PROPERTY_1").getTerm(), "directed");

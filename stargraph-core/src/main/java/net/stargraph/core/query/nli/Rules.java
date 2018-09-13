@@ -47,13 +47,13 @@ public final class Rules {
     private Marker marker = MarkerFactory.getMarker("query");
 
     private Map<Language, List<BindingPattern<DataModelType>>> dataModelBindingPatterns;
-    private Map<Language, List<QueryPlanPatterns>> queryPlanPatterns;
+    private Map<Language, List<QueryPlannerPattern>> queryPlannerPatterns;
     private Map<Language, List<QueryTypePatterns>> queryTypePatterns;
 
     public Rules(Config config) {
         logger.info(marker, "Loading Rules.");
         this.dataModelBindingPatterns = loadDataModelBindingPatterns(Objects.requireNonNull(config));
-        this.queryPlanPatterns = loadQueryPlanPatterns(Objects.requireNonNull(config));
+        this.queryPlannerPatterns = loadQueryPlannerPatterns(Objects.requireNonNull(config));
         this.queryTypePatterns = loadQueryTypePatterns(config);
     }
 
@@ -64,9 +64,9 @@ public final class Rules {
         throw new UnsupportedLanguageException(language);
     }
 
-    public List<QueryPlanPatterns> getQueryPlanRules(Language language) {
-        if (queryPlanPatterns.containsKey(language)) {
-            return queryPlanPatterns.get(language);
+    public List<QueryPlannerPattern> getQueryPlannerPatterns(Language language) {
+        if (queryPlannerPatterns.containsKey(language)) {
+            return queryPlannerPatterns.get(language);
         }
         throw new UnsupportedLanguageException(language);
     }
@@ -111,24 +111,32 @@ public final class Rules {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<Language, List<QueryPlanPatterns>> loadQueryPlanPatterns(Config config) {
-        Map<Language, List<QueryPlanPatterns>> rulesByLang = new LinkedHashMap<>();
+    private Map<Language, List<QueryPlannerPattern>> loadQueryPlannerPatterns(Config config) {
+        Map<Language, List<QueryPlannerPattern>> rulesByLang = new LinkedHashMap<>();
         ConfigObject configObject = config.getObject("rules.planner-pattern");
 
         configObject.keySet().forEach(strLang -> {
             Language language = Language.valueOf(strLang.toUpperCase());
-            List<QueryPlanPatterns> plans = new ArrayList<>();
+            List<QueryPlannerPattern> queryPlannerPatterns = new ArrayList<>();
 
-            List<? extends ConfigObject> innerCfg = configObject.toConfig().getObjectList(strLang);
-            innerCfg.forEach(e -> {
-                Map<String, Object> plan = e.unwrapped();
-                String planId = plan.keySet().toArray(new String[1])[0];
-                List<String> triplePatterns = (List<String>)plan.values().toArray()[0];
-                plans.add(new QueryPlanPatterns(planId,
-                        triplePatterns.stream().map(TriplePattern::new).collect(Collectors.toList())));
+            configObject.toConfig().getObjectList(strLang).forEach(e -> {
+                String planId = e.keySet().toArray(new String[1])[0];
+                List<QueryPlan> queryPlans = new ArrayList<>();
+
+                e.toConfig().getList(planId).forEach(e2 -> {
+                    List<String> triples = (ArrayList) e2.unwrapped();
+                    List<TriplePattern> triplePatterns = triples.stream().map(TriplePattern::new).collect(Collectors.toList());
+
+                    QueryPlan queryPlan = new QueryPlan();
+                    queryPlan.addAll(triplePatterns);
+                    queryPlans.add(queryPlan);
+                });
+
+                QueryPlannerPattern queryPlannerPattern = new QueryPlannerPattern(planId, queryPlans);
+                queryPlannerPatterns.add(queryPlannerPattern);
             });
 
-            rulesByLang.put(language, plans);
+            rulesByLang.put(language, queryPlannerPatterns);
         });
 
         return rulesByLang;

@@ -222,7 +222,7 @@ public class Resolver {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
         String rankString = binding.getTerm();
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, 1, false);
+        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, 1);
     }
 
 

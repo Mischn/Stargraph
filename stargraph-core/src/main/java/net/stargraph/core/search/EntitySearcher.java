@@ -42,11 +42,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class EntitySearcher {
-    private interface PruningMethod {
-        List<Route> traverse(List<Route> routes);
-    }
-
-
     private static final int FUZZINESS = 1;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -442,14 +437,14 @@ public class EntitySearcher {
      * @param returnBestMatchEntities
      * @return
      */
-    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
-        return pivotedSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, allowCycles, propertyTypes, returnBestMatchEntities);
+        return pivotedSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, allowCycles, propertyTypes, limitToRepresentatives, returnBestMatchEntities);
     }
-    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes,null);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes,limitToRepresentatives);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -488,71 +483,71 @@ public class EntitySearcher {
 
 
 
-     public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnBestMatchEntities) {
-         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), returnBestMatchEntities);
+     public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range) {
+         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), true, false);
      }
 
 
-    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
-        KBCore core = stargraph.getKBCore(searchParams.getDbId());
-
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, false, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
-
-        // filter for resource entities
-        neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());
-
-        List<String> neighbourIds = neighbours.stream()
-                .map(n -> n.getLastWaypoint().getId())
-                .distinct()
-                .collect(Collectors.toList());
-
-        searchParams.model(BuiltInModel.FACT);
-        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
-        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(neighbourIds, null, searchParams);
-        Searcher searcher = core.getGraphSearcher();
-
-        // Fetch initial candidates from the search engine
-        Scores scores = searcher.search(holder);
-
-        // maps classes to class-members
-        Map<InstanceEntity, List<InstanceEntity>> classMembers = new HashMap<>();
-        scores.stream().forEach(s -> {
-            Fact fact = (Fact)s.getEntry();
-            if (fact.getSubject() instanceof InstanceEntity && fact.getObject() instanceof InstanceEntity) { ;
-                InstanceEntity member = (InstanceEntity) fact.getSubject();
-                InstanceEntity clazz = (InstanceEntity) fact.getObject();
-
-                List<InstanceEntity> members = classMembers.getOrDefault(clazz, new ArrayList<>());
-                if (!members.contains(member)) {
-                    members.add(member);
-                }
-                classMembers.put(clazz, members);
-            }
-        });
-        logger.info(marker, "Fetched {} classes", classMembers.size());
-
-        // We have to remap to classes
-        Scores classScores = new Scores(classMembers.keySet().stream().map(c -> new Score(c, 0.0)).collect(Collectors.toList()));
-
-        // Re-Rank
-        if (rankParams instanceof ModifiableIndraParams) {
-            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-        }
-        Scores rankedScores = Rankers.apply(classScores, rankParams, rankString);
-        Scores result = rankedScores;
-
-        if (returnClassMembers) {
-            if (rankedScores.size() <= 0) {
-                return new Scores();
-            }
-            Score bestScore = rankedScores.get(0);
-            InstanceEntity bestClass = (InstanceEntity) bestScore.getEntry();
-            logger.debug("Best match is {}, returning instances ..", bestClass);
-            result = new Scores(classMembers.get(bestClass).stream().map(m -> new Score(m, bestScore.getValue())).collect(Collectors.toList()));
-        }
-
-        return new Scores(result.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
-    }
+//    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
+//        KBCore core = stargraph.getKBCore(searchParams.getDbId());
+//
+//        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, false, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
+//
+//        // filter for resource entities
+//        neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());
+//
+//        List<String> neighbourIds = neighbours.stream()
+//                .map(n -> n.getLastWaypoint().getId())
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        searchParams.model(BuiltInModel.FACT);
+//        SearchQueryGenerator searchQueryGenerator = core.getGraphSearchQueryGenerator();
+//        SearchQueryHolder holder = searchQueryGenerator.findClassFacts(neighbourIds, null, searchParams);
+//        Searcher searcher = core.getGraphSearcher();
+//
+//        // Fetch initial candidates from the search engine
+//        Scores scores = searcher.search(holder);
+//
+//        // maps classes to class-members
+//        Map<InstanceEntity, List<InstanceEntity>> classMembers = new HashMap<>();
+//        scores.stream().forEach(s -> {
+//            Fact fact = (Fact)s.getEntry();
+//            if (fact.getSubject() instanceof InstanceEntity && fact.getObject() instanceof InstanceEntity) { ;
+//                InstanceEntity member = (InstanceEntity) fact.getSubject();
+//                InstanceEntity clazz = (InstanceEntity) fact.getObject();
+//
+//                List<InstanceEntity> members = classMembers.getOrDefault(clazz, new ArrayList<>());
+//                if (!members.contains(member)) {
+//                    members.add(member);
+//                }
+//                classMembers.put(clazz, members);
+//            }
+//        });
+//        logger.info(marker, "Fetched {} classes", classMembers.size());
+//
+//        // We have to remap to classes
+//        Scores classScores = new Scores(classMembers.keySet().stream().map(c -> new Score(c, 0.0)).collect(Collectors.toList()));
+//
+//        // Re-Rank
+//        if (rankParams instanceof ModifiableIndraParams) {
+//            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+//        }
+//        Scores rankedScores = Rankers.apply(classScores, rankParams, rankString);
+//        Scores result = rankedScores;
+//
+//        if (returnClassMembers) {
+//            if (rankedScores.size() <= 0) {
+//                return new Scores();
+//            }
+//            Score bestScore = rankedScores.get(0);
+//            InstanceEntity bestClass = (InstanceEntity) bestScore.getEntry();
+//            logger.debug("Best match is {}, returning instances ..", bestClass);
+//            result = new Scores(classMembers.get(bestClass).stream().map(m -> new Score(m, bestScore.getValue())).collect(Collectors.toList()));
+//        }
+//
+//        return new Scores(result.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
+//    }
 
     public Scores similarDocumentSearch(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
@@ -634,7 +629,7 @@ public class EntitySearcher {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
-    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod) {
+    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
         InstanceEntity myPivot = namespace.shrink(pivot);
 
@@ -653,7 +648,7 @@ public class EntitySearcher {
                 outgoingEdges,
                 allowCycles,
                 propertyTypes,
-                pruningMethod,
+                limitToRepresentatives,
                 directNeighbours,
                 neighbours
         );
@@ -662,7 +657,7 @@ public class EntitySearcher {
     }
 
     // direct neighbours only
-    private List<Route> directNeighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes) {
+    private List<Route> directNeighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean incomingEdges, boolean outgoingEdges, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
         searchParams.model(BuiltInModel.FACT);
@@ -673,7 +668,7 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        List result = new ArrayList();
+        List<Route> result = new ArrayList();
         for (Score score : scores) {
             Fact fact = (Fact)score.getEntry();
             if (outgoingEdges && fact.getSubject().equals(pivot)) {
@@ -683,22 +678,34 @@ public class EntitySearcher {
             }
         }
 
+        // limit to representatives
+        if (limitToRepresentatives) {
+            Map<String, Route> representatives = new HashMap();
+            for (Route directN : result) {
+                // a simple approach of combining the property and the target-classname //TODO we could also consider if it is incoming or outgoing
+                String hashKey = directN.getPropertyPath().getLastProperty().getValue() + directN.getLastWaypoint().getClass().getSimpleName();
+                representatives.put(hashKey, directN);
+            }
+            result = new ArrayList<>(representatives.values());
+        }
+
         return result;
     }
 
-    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, PruningMethod pruningMethod, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
         if (leftRange == 0 || !(route.getLastWaypoint() instanceof InstanceEntity)) {
             return;
         }
 
 //        System.out.println(route.getWaypoints());
 //        System.out.println(route.getPropertyPath());
+
         InstanceEntity currPivot = (InstanceEntity) route.getLastWaypoint();
         List<Route> directNs;
         if (directNeighbours.containsKey(currPivot)) {
             directNs = directNeighbours.get(currPivot);
         } else {
-            directNs = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges, propertyTypes);
+            directNs = directNeighbourSearch(currPivot, searchParams, incomingEdges, outgoingEdges, propertyTypes, limitToRepresentatives);
             directNeighbours.put(currPivot, directNs);
         }
 
@@ -715,21 +722,19 @@ public class EntitySearcher {
 
             Route newRoute = route.extend(newProperty, newWaypoint);
 
+//            System.out.println(newRoute.getWaypoints());
+//            System.out.println(newRoute.getPropertyPath());
+
+
             // add to result
             newRoutes.add(newRoute);
             routes.computeIfAbsent(range-(leftRange-1), (x) -> new ArrayList<>()).add(newRoute);
         }
 
         // recursion
-        if (pruningMethod == null) {
-            newRoutes.forEach(r -> {
-                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, pruningMethod, directNeighbours, routes);
-            });
-        } else {
-            pruningMethod.traverse(newRoutes).forEach(r -> {
-                neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, pruningMethod, directNeighbours, routes);
-            });
-        }
+        newRoutes.forEach(r -> {
+            neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, limitToRepresentatives, directNeighbours, routes);
+        });
     }
 
 }

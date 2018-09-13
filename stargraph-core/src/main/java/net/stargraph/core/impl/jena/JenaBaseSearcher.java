@@ -140,20 +140,25 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
         logger.debug(marker, "Executing: {}", sparqlQuery);
 
         long startTime = System.currentTimeMillis();
-        graphModel.doRead(new BaseGraphModel.ReadTransaction() {
-            @Override
-            public void readTransaction(Model model) {
-                try (QueryExecution qexec = QueryExecutionFactory.create(sparqlQuery, model)) {
-                    ResultSet results = qexec.execSelect();
+        try {
+            graphModel.doRead(new BaseGraphModel.ReadTransaction() {
+                @Override
+                public void readTransaction(Model model) {
+                    try (QueryExecution qexec = QueryExecutionFactory.create(sparqlQuery, model)) {
+                        ResultSet results = qexec.execSelect();
 
-                    while (results.hasNext()) {
-                        sparqlIteration.process(results.nextBinding());
+                        while (results.hasNext()) {
+                            sparqlIteration.process(results.nextBinding());
+                        }
                     }
                 }
-            }
-        });
-        clearMaps();
-        long millis = System.currentTimeMillis() - startTime;
-        logger.info(marker, "SPARQL query took {}s", millis / 1000.0);
+            });
+        } catch (Exception e) {
+            logger.error(marker, e.getMessage());
+        } finally {
+            clearMaps();
+            long millis = System.currentTimeMillis() - startTime;
+            logger.info(marker, "SPARQL query took {}s", millis / 1000.0);
+        }
     }
 }

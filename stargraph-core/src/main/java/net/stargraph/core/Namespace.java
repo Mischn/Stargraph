@@ -144,7 +144,7 @@ public final class Namespace extends TreeMap<String, String> {
             }
         } else if (entry instanceof PropertyPath) {
             PropertyPath p = (PropertyPath) entry;
-            return (S) new PropertyPath(p.getProperties().stream().map(x -> expand(x)).collect(Collectors.toList()));
+            return (S) new PropertyPath(p.getProperties().stream().map(x -> expand(x)).collect(Collectors.toList()), p.getDirections());
         } else {
             throw new IllegalArgumentException("Unknown type instance to expand namespace: " + entry.getClass());
         }
@@ -176,7 +176,7 @@ public final class Namespace extends TreeMap<String, String> {
             }
         } else if (entry instanceof PropertyPath) {
             PropertyPath p = (PropertyPath) entry;
-            return (S) new PropertyPath(p.getProperties().stream().map(x -> shrink(x)).collect(Collectors.toList()));
+            return (S) new PropertyPath(p.getProperties().stream().map(x -> shrink(x)).collect(Collectors.toList()), p.getDirections());
         } else {
             throw new IllegalArgumentException("Unknown type instance to shrink namespace: " + entry.getClass());
         }

@@ -55,12 +55,8 @@ public final class SPARQLQueryBuilder {
         this.queryPlan = Objects.requireNonNull(queryPlan);
         this.bindings = Objects.requireNonNull(bindings);
         this.mappings = Objects.requireNonNull(mappings);
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
     }
-
-    public void setNS(Namespace ns) {
-        this.namespace = Objects.requireNonNull(ns);
-    }
-
 
     // BINDINGS
 
@@ -131,7 +127,7 @@ public final class SPARQLQueryBuilder {
         sparqlCreator.resetNewVarCounter();
 
 
-        StringJoiner tripleJoiner = new StringJoiner(" UNION\n", "{", "}");
+        List<String> resolvedTriplePatterns = new ArrayList<>();
 
         queryPlan.forEach(triplePattern -> {
             String[] components = triplePattern.getPattern().split("\\s");
@@ -149,7 +145,7 @@ public final class SPARQLQueryBuilder {
                 DataModelBinding binding = getBinding(subjectPlaceholder);
                 List<Score> mappings = getMappings(binding);
                 if (mappings.isEmpty()) {
-                    sMappings = Arrays.asList(getURI(binding));
+                    sMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
                     for (Score mapping : mappings) {
                         sMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
@@ -167,7 +163,7 @@ public final class SPARQLQueryBuilder {
                 DataModelBinding binding = getBinding(objectPlaceholder);
                 List<Score> mappings = getMappings(binding);
                 if (mappings.isEmpty()) {
-                    oMappings = Arrays.asList(getURI(binding));
+                    oMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
                     for (Score mapping : mappings) {
                         oMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
@@ -191,7 +187,7 @@ public final class SPARQLQueryBuilder {
 
                     strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
                 }
-                tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+                resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
             } else if (isType(propertyPlaceholder)) {
                 List<String> strs = new ArrayList<>();
                 for (int i = 0; i < typeRange; i++) {
@@ -208,7 +204,7 @@ public final class SPARQLQueryBuilder {
 
                     strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
                 }
-                tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+                resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
             } else {
                 DataModelBinding binding = getBinding(propertyPlaceholder);
                 List<Score> mappings = getMappings(binding);
@@ -220,9 +216,9 @@ public final class SPARQLQueryBuilder {
                     Map<String, List<String>> varMappings = new HashMap<>();
                     varMappings.put("?s", sMappings);
                     varMappings.put("?o", oMappings);
-                    varMappings.put("?p", Arrays.asList(getURI(binding)));
+                    varMappings.put("?p", Arrays.asList(getUnmappedURI(binding)));
 
-                    tripleJoiner.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
+                    resolvedTriplePatterns.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
                 } else {
                     List<String> strs = new ArrayList<>();
                     for (Score mapping : mappings) {
@@ -231,15 +227,14 @@ public final class SPARQLQueryBuilder {
                         if (mapping.getEntry() instanceof PropertyPath) {
                             PropertyPath propertyPath = (PropertyPath) mapping.getEntry();
 
-                            SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", propertyPath.getProperties().size(), "?o", "?p", "?pp");
+                            List<String> propertyMappings = propertyPath.getProperties().stream().map(p -> String.format("<%s>", unmap(p.getId()))).collect(Collectors.toList());
+                            List<Boolean> inverseProperties = propertyPath.getDirections().stream().map(d -> d.equals(PropertyPath.Direction.INCOMING)).collect(Collectors.toList());
+
+                            SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", propertyMappings, inverseProperties, "?o", "?pp");
 
                             Map<String, List<String>> varMappings = new HashMap<>();
                             varMappings.put("?s", sMappings);
                             varMappings.put("?o", oMappings);
-                            for (int i = 0; i < pathPattern.getPropertyVars().size(); i++) {
-                                String v = pathPattern.getPropertyVars().get(i);
-                                varMappings.put(v, Arrays.asList(String.format("<%s>", unmap(propertyPath.getProperties().get(i).getId()))));
-                            }
 
                             strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
                         } else {
@@ -253,12 +248,12 @@ public final class SPARQLQueryBuilder {
                             strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
                         }
                     }
-                    tripleJoiner.add(sparqlCreator.unionJoin(strs, true));
+                    resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
                 }
             }
         });
 
-        return tripleJoiner.toString();
+        return sparqlCreator.unionJoin(resolvedTriplePatterns, true);
     }
 
     private boolean isVar(String s) {
@@ -269,7 +264,7 @@ public final class SPARQLQueryBuilder {
         return s.startsWith("TYPE");
     }
 
-    private String getURI(DataModelBinding binding) {
+    private String getUnmappedURI(DataModelBinding binding) {
         return String.format(":%s", binding.getTerm().replaceAll("\\s", "_"));
     }
 

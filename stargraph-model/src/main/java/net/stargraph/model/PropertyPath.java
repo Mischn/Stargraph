@@ -29,28 +29,53 @@ package net.stargraph.model;
 import net.stargraph.data.processor.Hashable;
 import net.stargraph.rank.Rankable;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PropertyPath implements Hashable, Rankable {
-    private List<PropertyEntity> properties;
-
-    public PropertyPath(PropertyEntity property) {
-        this(Arrays.asList(property));
+    public enum Direction {
+        OUTGOING,
+        INCOMING
     }
 
-    public PropertyPath(List<PropertyEntity> properties) {
+    private List<PropertyEntity> properties;
+    private List<Direction> directions;
+
+    public PropertyPath(List<PropertyEntity> properties, List<Direction> directions) {
+        if (properties.size() != directions.size()) {
+            throw new AssertionError("Properties and directions should have the same size");
+        }
         this.properties = properties;
+        this.directions = directions;
+    }
+
+    public PropertyPath(PropertyEntity property, Direction direction) {
+        this(Arrays.asList(property), Arrays.asList(direction));
+    }
+
+    public PropertyPath extend(PropertyEntity property, Direction direction) {
+        List<PropertyEntity> newProperties = new ArrayList<>(properties);
+        List<Direction> newDirections = new ArrayList<>(directions);
+        newProperties.add(property);
+        newDirections.add(direction);
+        return new PropertyPath(newProperties, newDirections);
     }
 
     public List<PropertyEntity> getProperties() {
         return properties;
     }
 
+    public List<Direction> getDirections() {
+        return directions;
+    }
+
     public PropertyEntity getLastProperty() {
         return properties.get(properties.size()-1);
+    }
+
+    public Direction getLastDirection() {
+        return directions.get(directions.size()-1);
     }
 
     @Override
@@ -61,8 +86,33 @@ public class PropertyPath implements Hashable, Rankable {
 
     @Override
     public String getId() {
-        return properties.stream().map(p -> p.getId()).collect(Collectors.joining(" "));
+        StringJoiner sj = new StringJoiner(" ");
+        for (int i = 0; i < properties.size(); i++) {
+            String part = String.format("%s%s", (directions.get(i).equals(Direction.OUTGOING))? ">>" : "<<", properties.get(i).getId());
+            sj.add(part);
+        }
+        return sj.toString();
     }
+
+
+    public static class PropertyParse {
+        public String propertyId;
+        public Direction direction;
+
+        public PropertyParse(String propertyId, Direction direction) {
+            this.propertyId = propertyId;
+            this.direction = direction;
+        }
+    }
+    public static List<PropertyParse> parseId(String id) {
+        String[] parts = id.split("\\s+");
+        return Stream.of(parts)
+                .map(s -> new PropertyParse(
+                        s.substring(2),
+                        (s.startsWith(">>"))? Direction.OUTGOING : Direction.INCOMING)
+                ).collect(Collectors.toList());
+    }
+
 
     @Override
     public boolean equals(Object o) {

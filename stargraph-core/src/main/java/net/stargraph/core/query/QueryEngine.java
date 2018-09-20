@@ -179,7 +179,6 @@ public class QueryEngine {
                     queryPlan,
                     analysis.getBindings(),
                     resolver.getMappings());
-            queryBuilder.setNS(namespace);
 
             logger.info(marker, "SPARQLQueryBuilder:");
             logger.info(marker, queryBuilder.toString());

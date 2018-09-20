@@ -106,7 +106,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         while (varMap.containsKey("p" + c)) {
                             PropertyEntity predicate = asProperty(varMap.get("p" + c));
                             NodeEntity waypoint = (varMap.containsKey("x" + c))? asEntity(varMap.get("x" + c)) : asEntity(varMap.get("o"));
-                            route = route.extend(predicate, waypoint);
+                            route = route.extend(predicate, PropertyPath.Direction.OUTGOING, waypoint);
                             c += 1;
                         }
                         scores.add(new Score(route, 0.0));

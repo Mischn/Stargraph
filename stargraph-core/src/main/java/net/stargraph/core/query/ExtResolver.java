@@ -9,7 +9,6 @@ import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,19 +31,23 @@ public class ExtResolver extends Resolver {
         this.customMappings.clear();
     }
 
-    // assumes the id to consist of ' '-joined property-ids
     private PropertyPath getPropertyPath(String id) {
-        String[] uris = id.split("\\s+");
-        List<PropertyEntity> properties = new ArrayList<>();
-        for (String uri : uris) {
-            PropertyEntity property = entitySearcher.getPropertyEntity(dbId, uri);
+        PropertyPath propertyPath = null;
+
+        for (PropertyPath.PropertyParse propertyParse : PropertyPath.parseId(id)) {
+            PropertyEntity property = entitySearcher.getPropertyEntity(dbId, propertyParse.propertyId);
             if (property == null) {
                 return null;
             }
-            properties.add(property);
+
+            if (propertyPath == null) {
+                propertyPath = new PropertyPath(property, propertyParse.direction);
+            } else {
+                propertyPath = propertyPath.extend(property, propertyParse.direction);
+            }
         }
 
-        return new PropertyPath(properties);
+        return propertyPath;
     }
 
     @Override

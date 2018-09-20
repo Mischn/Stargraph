@@ -46,14 +46,12 @@ public class Route implements Hashable {
         this(null, Arrays.asList(waypoint));
     }
 
-    public Route extend(PropertyEntity property, NodeEntity waypoint) {
+    public Route extend(PropertyEntity property, PropertyPath.Direction direction, NodeEntity waypoint) {
         PropertyPath newPropertyPath;
         if (this.propertyPath == null) {
-            newPropertyPath = new PropertyPath(property);
+            newPropertyPath = new PropertyPath(property, direction);
         } else {
-            List<PropertyEntity> properties = new ArrayList<>(propertyPath.getProperties());
-            properties.add(property);
-            newPropertyPath = new PropertyPath(properties);
+            newPropertyPath = propertyPath.extend(property, direction);
         }
 
         List<NodeEntity> newWaypoints = new ArrayList<>(waypoints);

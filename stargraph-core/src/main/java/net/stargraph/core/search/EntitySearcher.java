@@ -457,6 +457,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
+
         Scores rankedScores = Rankers.apply(propScores, rankParams, rankString);
         Scores result = rankedScores;
 
@@ -672,9 +673,9 @@ public class EntitySearcher {
         for (Score score : scores) {
             Fact fact = (Fact)score.getEntry();
             if (outgoingEdges && fact.getSubject().equals(pivot)) {
-                result.add(new Route(pivot).extend(fact.getPredicate(), fact.getObject()));
+                result.add(new Route(pivot).extend(fact.getPredicate(), PropertyPath.Direction.OUTGOING, fact.getObject()));
             } else if (incomingEdges && fact.getObject().equals(pivot) && fact.getSubject() instanceof NodeEntity) {
-                result.add(new Route(pivot).extend(fact.getPredicate(), (NodeEntity) fact.getSubject()));
+                result.add(new Route(pivot).extend(fact.getPredicate(), PropertyPath.Direction.INCOMING, (NodeEntity) fact.getSubject()));
             }
         }
 
@@ -682,8 +683,8 @@ public class EntitySearcher {
         if (limitToRepresentatives) {
             Map<String, Route> representatives = new HashMap();
             for (Route directN : result) {
-                // a simple approach of combining the property and the target-classname //TODO we could also consider if it is incoming or outgoing
-                String hashKey = directN.getPropertyPath().getLastProperty().getValue() + directN.getLastWaypoint().getClass().getSimpleName();
+                // a simple approach of combining the property, direction and the target-classname
+                String hashKey = directN.getPropertyPath().getLastProperty().getValue() + directN.getPropertyPath().getLastDirection() + directN.getLastWaypoint().getClass().getSimpleName();
                 representatives.put(hashKey, directN);
             }
             result = new ArrayList<>(representatives.values());
@@ -713,6 +714,7 @@ public class EntitySearcher {
         List<Route> newRoutes = new ArrayList<>();
         for (Route directN : directNs) {
             PropertyEntity newProperty = directN.getPropertyPath().getLastProperty();
+            PropertyPath.Direction newDirection = directN.getPropertyPath().getLastDirection();
             NodeEntity newWaypoint = directN.getLastWaypoint();
 
             // don't allow links back to any previously visited waypoints (=cycles)
@@ -720,7 +722,7 @@ public class EntitySearcher {
                 continue;
             }
 
-            Route newRoute = route.extend(newProperty, newWaypoint);
+            Route newRoute = route.extend(newProperty, newDirection, newWaypoint);
 
 //            System.out.println(newRoute.getWaypoints());
 //            System.out.println(newRoute.getPropertyPath());

@@ -6,6 +6,7 @@ import net.stargraph.rank.Score;
 import net.stargraph.rest.DocumentEntry;
 import net.stargraph.rest.EntityEntry;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,7 +35,8 @@ public class EntityEntryCreator {
                 dbId,
                 (entityScore.getEntry() instanceof ValueEntity)? EntityEntry.EntityType.LITERAL: EntityEntry.EntityType.RESOURCE,
                 (entityScore.getEntry() instanceof ValueEntity)? entityScore.getRankableView().getId() : namespace.expandURI(entityScore.getRankableView().getId()),
-                (entityScore.getEntry() instanceof Entity)? ((ValueEntity)entityScore.getEntry()).getValue() : entityScore.getRankableView().getRankableValue(),
+                (entityScore.getEntry() instanceof ValueEntity)? ((ValueEntity)entityScore.getEntry()).getValue() : entityScore.getRankableView().getRankableValue(),
+                (entityScore.getEntry() instanceof InstanceEntity)? new ArrayList<>(((InstanceEntity)entityScore.getEntry()).getOtherValues()) : new ArrayList<>(),
                 entityScore.getValue()
         );
     }

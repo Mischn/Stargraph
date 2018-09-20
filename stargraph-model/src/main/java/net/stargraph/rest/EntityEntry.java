@@ -26,6 +26,8 @@ package net.stargraph.rest;
  * ==========================License-End===============================
  */
 
+import java.util.List;
+
 public class EntityEntry {
     public enum EntityType {
         RESOURCE,
@@ -36,16 +38,15 @@ public class EntityEntry {
     private EntityType type;
     private String id;
     private String value;
+    private List<String> otherValues;
     private double score;
 
-    public EntityEntry(String dbId, EntityType type, String id, String value) {
-        this(dbId, type, id, value, 1);
-    }
-    public EntityEntry(String dbId, EntityType type, String id, String value, double score) {
+    public EntityEntry(String dbId, EntityType type, String id, String value, List<String> otherValues, double score) {
         this.dbId = dbId;
         this.type = type;
         this.id = id;
         this.value = value;
+        this.otherValues = otherValues;
         this.score = score;
     }
 
@@ -63,6 +64,10 @@ public class EntityEntry {
 
     public String getValue() {
         return value;
+    }
+
+    public List<String> getOtherValues() {
+        return otherValues;
     }
 
     public double getScore() {

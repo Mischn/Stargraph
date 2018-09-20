@@ -67,40 +67,44 @@ public class SparqlCreator {
 
 
     public List<ResolvedPattern> resolvePattern(String pattern, Map<String, List<String>> varBindings) {
-        List<String> variables = new ArrayList<>();
-        List<String> bindings = null;
+
+        // find used variables
+        List<String> usedVariables = new ArrayList<>();
         for (String v : varBindings.keySet()) {
             if (pattern.matches("^.*(?<!\\w)" + Pattern.quote(v) + "(?!\\w).*$") && varBindings.get(v).size() > 0) {
-                variables.add(v);
-                if (bindings == null) {
-                    bindings = varBindings.get(v);
-                } else {
-                    bindings = cartesianProduct(bindings, varBindings.get(v));
-                }
+                usedVariables.add(v);
             }
         }
 
+        if (usedVariables.size() <= 0) {
+            return Arrays.asList(new ResolvedPattern(pattern, new HashMap<>()));
+        }
+
+        // create all possible permutations of bindings for sequence of usedVariables:
+        List<List<String>> varPermutations = null;
+        for (String v : usedVariables) {
+            if (varPermutations == null) {
+                varPermutations = varBindings.get(v).stream().map(x -> Arrays.asList(x)).collect(Collectors.toList());
+            } else {
+                varPermutations = Utils.cartesianProduct(varPermutations, varBindings.get(v));
+            }
+        }
+
+        // replace pattern by these permutations
         List<ResolvedPattern> res = new ArrayList<>();
-        for (String binding : bindings) {
+        for (List<String> varPermutation : varPermutations) {
             Map<String, String> usedBindings = new HashMap<>();
-
-            String[] bs = binding.split(" ");
             String str = pattern;
-            for (int i = 0; i < variables.size(); i++) {
-                String var = variables.get(i);
-                String b = bs[i];
-
-                str = str.replaceAll("(?<!\\w)" + Pattern.quote(var) + "(?!\\w)", b);
-                usedBindings.put(var, b);
+            for (int i = 0; i < usedVariables.size(); i++) {
+                String var = usedVariables.get(i);
+                String repl = varPermutation.get(i);
+                str = str.replaceAll("(?<!\\w)" + Pattern.quote(var) + "(?!\\w)", repl);
+                usedBindings.put(var, repl);
             }
             res.add(new ResolvedPattern(str, usedBindings));
         }
 
         return res;
-    }
-
-    public List<String> resolvePatternToStr(String pattern, Map<String, List<String>> varBindings) {
-        return resolvePattern(pattern, varBindings).stream().map(rp -> rp.getStr()).collect(Collectors.toList());
     }
 
     public List<String> resolvePatternToStr(String pattern, Map<String, List<String>> varBindings, List<String> bindVars) {
@@ -114,6 +118,10 @@ public class SparqlCreator {
             res.add(rp.getStr() + " " + createBindStr(usedBindings, bindVars));
         }
         return res;
+    }
+
+    public List<String> resolvePatternToStr(String pattern, Map<String, List<String>> varBindings) {
+        return resolvePatternToStr(pattern, varBindings, Arrays.asList());
     }
 
 
@@ -181,6 +189,35 @@ public class SparqlCreator {
         return new PathPattern(pattern.toString(), propertyVars, waypointVars);
     }
 
+    public PathPattern createPathPattern(String startVar, List<String> propertyBindings, List<Boolean> inverseProperties, String endVar, String waypointVarPrefix) {
+        if (propertyBindings.size() != inverseProperties.size()) {
+            throw new AssertionError("propertyBindings and inverseProperties should have same size");
+        }
+
+        StringBuilder pattern = new StringBuilder();
+        List<String> waypointVars = new ArrayList<>();
+
+        pattern.append(startVar);
+
+        for (int i = 0; i < propertyBindings.size(); i++) {
+            String pStr = ((inverseProperties.get(i))? "^": "") + propertyBindings.get(i);
+
+            if (i > 0) {
+                String waypointVar = getNewVar(waypointVarPrefix);
+                waypointVars.add(waypointVar);
+                pattern.append(" " + waypointVar + " . " + waypointVar);
+            }
+
+            pattern.append(" " + pStr);
+        }
+        pattern.append(" " + endVar + " .");
+
+        return new PathPattern(pattern.toString(), new ArrayList<>(), waypointVars);
+    }
+
+
+
+
     public String createLangFilter(String var, List<Language> languages, boolean includeNotSpecified) {
         List<String> langTags = new ArrayList<>();
         languages.forEach(l -> langTags.add(l.code.toLowerCase()));
@@ -216,11 +253,5 @@ public class SparqlCreator {
             stmtJoiner.add(statement);
         }
         return stmtJoiner.toString();
-    }
-
-    private static List<String> cartesianProduct(List<String> x, List<String> y) {
-        List<String> xy = new ArrayList<>();
-        x.forEach(s1 -> y.forEach(s2 -> xy.add(s1.trim() + " " + s2.trim())));
-        return xy;
     }
 }

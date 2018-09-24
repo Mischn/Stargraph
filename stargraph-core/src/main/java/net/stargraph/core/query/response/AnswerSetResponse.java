@@ -26,11 +26,12 @@ package net.stargraph.core.query.response;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.query.filter.FilterResult;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
 import net.stargraph.core.query.SPARQLQueryBuilder;
+import net.stargraph.core.query.filter.FilterResult;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.core.query.nli.DataModelBindingContext;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.rank.Score;
@@ -54,7 +55,9 @@ public final class AnswerSetResponse extends QueryResponse {
     private List<PassageExtraction> queryFilters;
     private List<FilterResult> filterResults;
 
-    private Map<DataModelBinding, List<Score>> mappings;
+    private Map<String, DataModelBinding> bindings;
+    private Map<String, Map<DataModelBindingContext, List<Score>>> possibleMappings;
+    private Map<String, Map<DataModelBindingContext, List<Score>>> mappings;
 
     public AnswerSetResponse(InteractionMode mode, String userQuery) {
         super(mode, userQuery);
@@ -93,8 +96,16 @@ public final class AnswerSetResponse extends QueryResponse {
         this.filterResults = filterResults;
     }
 
-    public void setMappings(Map<DataModelBinding, List<Score>> mappings) {
-        this.mappings = Objects.requireNonNull(mappings);
+    public void setBindings(Map<String, DataModelBinding> bindings) {
+        this.bindings = bindings;
+    }
+
+    public void setPossibleMappings(Map<String, Map<DataModelBindingContext, List<Score>>> pivotChoices) {
+        this.possibleMappings = pivotChoices;
+    }
+
+    public void setMappings(Map<String, Map<DataModelBindingContext, List<Score>>> mappings) {
+        this.mappings = mappings;
     }
 
     public void setSPARQLQuery(String sparqlQuery) {
@@ -125,7 +136,15 @@ public final class AnswerSetResponse extends QueryResponse {
         return sparqlQueryType;
     }
 
-    public Map<DataModelBinding, List<Score>> getMappings() {
+    public Map<String, DataModelBinding> getBindings() {
+        return bindings;
+    }
+
+    public Map<String, Map<DataModelBindingContext, List<Score>>> getPossibleMappings() {
+        return possibleMappings;
+    }
+
+    public Map<String, Map<DataModelBindingContext, List<Score>>> getMappings() {
         return mappings;
     }
 

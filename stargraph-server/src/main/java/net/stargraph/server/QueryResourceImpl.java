@@ -31,6 +31,8 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.QueryEngine;
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.filter.FilterResult;
+import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.core.query.nli.DataModelBindingContext;
 import net.stargraph.core.query.response.AnswerSetResponse;
 import net.stargraph.core.query.response.NoResponse;
 import net.stargraph.core.query.response.SPARQLSelectResponse;
@@ -70,10 +72,22 @@ public final class QueryResourceImpl implements QueryResource {
                 Namespace namespace = core.getKBCore(dbId).getNamespace();
                 QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
                 if (betterMappings != null) {
-                    engine.setCustomMappings(betterMappings.getMappings());
+
+                    // convert to proper custom mappings
+                    Map<String, Map<DataModelBindingContext, List<String>>> customMappings = new HashMap<>();
+                    for (String placeholder : betterMappings.getMappings().keySet()) {
+                        for (String c : betterMappings.getMappings().get(placeholder).keySet()) {
+                            DataModelBindingContext context = DataModelBindingContext.valueOf(c);
+                            customMappings.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context, betterMappings.getMappings().get(placeholder).get(c));
+                        }
+                    }
+
+                    engine.setCustomMappings(customMappings);
                 }
+
                 QueryResponse queryResponse = engine.query(q);
                 engine.clearCustomMappings();
+
                 return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, dbId, namespace)).build();
             }
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -120,13 +134,16 @@ public final class QueryResourceImpl implements QueryResource {
                 response.setFilterResults(createFilterResults(answerSet.getFilterResults()));
             }
 
+            if (answerSet.getBindings() != null) {
+                response.setBindings(createBindings(answerSet.getBindings()));
+            }
+
+            if (answerSet.getPossibleMappings() != null) {
+                response.setPossibleMappings(createMappings(answerSet.getPossibleMappings(), dbId, namespace));
+            }
+
             if (answerSet.getMappings() != null) {
-                final Map<String, List<EntityEntry>> mappings = new HashMap<>();
-                answerSet.getMappings().forEach((modelBinding, scoreList) -> {
-                    List<EntityEntry> entries = EntityEntryCreator.createScoredEntityEntries(scoreList, dbId, namespace);
-                    mappings.computeIfAbsent(modelBinding.getTerm(), (term) -> new ArrayList<>()).addAll(entries);
-                });
-                response.setMappings(mappings);
+                response.setMappings(createMappings(answerSet.getMappings(), dbId, namespace));
             }
 
             return response;
@@ -149,6 +166,25 @@ public final class QueryResourceImpl implements QueryResource {
         throw new UnsupportedOperationException("Can't create REST response");
     }
 
+
+    private static Map<String, String> createBindings(Map<String, DataModelBinding> bindings) {
+        Map<String, String> res = new HashMap<>();
+        for (String placeholder : bindings.keySet()) {
+            res.put(placeholder, bindings.get(placeholder).getTerm());
+        }
+        return res;
+    }
+
+    private static Map<String, Map<String, List<EntityEntry>>> createMappings(Map<String, Map<DataModelBindingContext, List<Score>>> mappings, String dbId, Namespace namespace) {
+        Map<String, Map<String, List<EntityEntry>>> res = new HashMap<>();
+        for (String placeholder : mappings.keySet()) {
+            for (DataModelBindingContext context : mappings.get(placeholder).keySet()) {
+                List<EntityEntry> entries = EntityEntryCreator.createScoredEntityEntries(mappings.get(placeholder).get(context), dbId, namespace);
+                res.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context.name(), entries);
+            }
+        }
+        return res;
+    }
 
 
     private static List<FilterEntry> createQueryFilters(List<PassageExtraction> queryFilters) {

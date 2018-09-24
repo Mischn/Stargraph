@@ -52,8 +52,8 @@ public final class  SemanticRoleLabelingTest {
         QuestionAnalysis analyzed = analyzer.analyse("Who is the wife of Barack Obama?");
         Assert.assertEquals(analyzed.getQueryType(), QueryType.SELECT);
         Assert.assertEquals(analyzed.getQueryPlannerPattern().getPlanId(), "CLASS_1 INSTANCE_1");
-        Assert.assertEquals(analyzed.getBinding("CLASS_1").getTerm(), "wife");
-        Assert.assertEquals(analyzed.getBinding("INSTANCE_1").getTerm(), "Barack Obama");
+        Assert.assertEquals(analyzed.getBindings().get("CLASS_1").getTerm(), "wife");
+        Assert.assertEquals(analyzed.getBindings().get("INSTANCE_1").getTerm(), "Barack Obama");
     }
 
     @Test(enabled = false) //todo: re-enable
@@ -62,9 +62,9 @@ public final class  SemanticRoleLabelingTest {
 
         Assert.assertEquals(analyzed.getQueryType(), QueryType.SELECT);
         Assert.assertEquals(analyzed.getQueryPlannerPattern().getPlanId(), "CLASS_1 PROPERTY_1 by INSTANCE_1");
-        Assert.assertEquals(analyzed.getBinding("CLASS_1").getTerm(), "movies");
-        Assert.assertEquals(analyzed.getBinding("INSTANCE_1").getTerm(), "Francis Ford Coppola");
-        Assert.assertEquals(analyzed.getBinding("PROPERTY_1").getTerm(), "directed");
+        Assert.assertEquals(analyzed.getBindings().get("CLASS_1").getTerm(), "movies");
+        Assert.assertEquals(analyzed.getBindings().get("INSTANCE_1").getTerm(), "Francis Ford Coppola");
+        Assert.assertEquals(analyzed.getBindings().get("PROPERTY_1").getTerm(), "directed");
     }
 
 }

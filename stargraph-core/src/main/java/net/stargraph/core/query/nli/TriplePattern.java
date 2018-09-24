@@ -28,7 +28,7 @@ package net.stargraph.core.query.nli;
 
 import net.stargraph.StarGraphException;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public final class TriplePattern {
@@ -74,21 +74,24 @@ public final class TriplePattern {
         return pattern;
     }
 
-    public BoundTriple toBoundTriple(List<DataModelBinding> bindings) {
+    public BoundTriple toBoundTriple(Map<String, DataModelBinding> bindings) {
         String[] components = pattern.split("\\s");
         return new BoundTriple(map(components[0], bindings), map(components[1], bindings), map(components[2], bindings));
     }
 
-    private DataModelBinding map(String placeHolder, List<DataModelBinding> bindings) {
+    private DataModelBinding map(String placeHolder, Map<String, DataModelBinding> bindings) {
         if (placeHolder.startsWith("?VAR")) {
             return new DataModelBinding(DataModelType.VARIABLE, placeHolder, placeHolder);
         }
         if (placeHolder.startsWith("TYPE")) {
             return new DataModelBinding(DataModelType.TYPE, placeHolder, placeHolder);
         }
-        return bindings.stream()
-                .filter(b -> b.getPlaceHolder().equals(placeHolder))
-                .findAny().orElseThrow(() -> new StarGraphException("Unmapped placeholder '" + placeHolder + "'"));
+
+        if (bindings.containsKey(placeHolder)) {
+            return bindings.get(placeHolder);
+        } else {
+            throw new StarGraphException("Unmapped placeholder '" + placeHolder + "'");
+        }
     }
 
 

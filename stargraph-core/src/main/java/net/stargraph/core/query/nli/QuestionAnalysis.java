@@ -38,9 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -112,18 +110,13 @@ public final class QuestionAnalysis {
         return question;
     }
 
-    public List<DataModelBinding> getBindings() {
-        return currBindings.stream()
+    // maps placeholder to bound object
+    public Map<String, DataModelBinding> getBindings() {
+        Map<String, DataModelBinding> bindings = new HashMap<>();
+        currBindings.stream()
                 .filter(b -> b.isBound()) // return only bound bindings
-                .map(b -> new DataModelBinding(b.getObject(), b.getPlaceHolder(), b.getBoundText()))
-                .collect(Collectors.toList());
-    }
-
-    public DataModelBinding getBinding(String placeHolder) {
-        return getBindings().stream()
-                .filter(b -> b.getPlaceHolder().equals(placeHolder))
-                .findFirst()
-                .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
+                .forEach(b -> bindings.put(b.getPlaceHolder(), new DataModelBinding(b.getObject(), b.getPlaceHolder(), b.getBoundText())));
+        return bindings;
     }
 
     public QueryPlannerPattern getQueryPlannerPattern() {

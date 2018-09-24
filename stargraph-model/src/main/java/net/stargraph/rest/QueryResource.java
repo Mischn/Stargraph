@@ -50,17 +50,17 @@ public interface QueryResource {
 
 
     class MappingsBean {
-        private Map<String, List<String>> mappings;
+        private Map<String, Map<String, List<String>>> mappings;
 
         public MappingsBean() {}
 
         @SuppressWarnings("unused") // used by jackson serializer
-        public Map<String, List<String>> getMappings() {
+        public Map<String, Map<String, List<String>>> getMappings() {
             return mappings;
         }
 
         @SuppressWarnings("unused") // used by jackson serializer
-        public void setMappings(Map<String, List<String>> mappings) {
+        public void setMappings(Map<String, Map<String, List<String>>> mappings) {
             this.mappings = mappings;
         }
 

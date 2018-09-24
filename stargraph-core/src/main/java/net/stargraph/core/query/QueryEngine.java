@@ -55,6 +55,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static net.stargraph.query.InteractionMode.*;
@@ -72,7 +73,8 @@ public class QueryEngine {
     protected Namespace namespace;
     protected Language language;
     protected InteractionModeSelector modeSelector;
-    protected ExtResolver resolver; // currently, all interactions share this one resolver. Could be customized for each interaction mode
+    protected Resolver resolver; // currently, all interactions share this one resolver. Could be customized for each interaction mode
+    protected Map<String, Map<DataModelBindingContext, List<String>>> customMappings;
 
     public QueryEngine(String dbId, Stargraph stargraph) {
         this.stargraph = stargraph;
@@ -84,15 +86,16 @@ public class QueryEngine {
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
         this.modeSelector = new InteractionModeSelector(stargraph.createPOSAnnotatorFactory().create(), language);
-        this.resolver = new ExtResolver(entitySearcher, namespace, dbId);
+        this.resolver = new Resolver(entitySearcher, namespace, dbId);
+        this.customMappings = new ConcurrentHashMap<>();
     }
 
-    public void setCustomMappings(Map<String, List<String>> customMappings) {
-        this.resolver.setCustomMappings(customMappings);
+    public void setCustomMappings(Map<String, Map<DataModelBindingContext, List<String>>> customMappings) {
+        this.customMappings = customMappings;
     }
 
     public void clearCustomMappings() {
-        this.resolver.clearCustomMappings();
+        this.customMappings.clear();
     }
 
     public QueryResponse query(String query) {
@@ -167,9 +170,11 @@ public class QueryEngine {
 
         QueryPlannerPattern queryPlannerPattern = analysis.getQueryPlannerPattern();
         for (QueryPlan queryPlan : queryPlannerPattern.getQueryPlans()) {
-            logger.info(marker, "Resolve query plan:\n{}\n", queryPlan);
+            logger.info(marker, "##### Resolve query plan: #####\n{}\n", queryPlan);
             logger.info(marker, "Resolve triples:");
+
             resolver.reset();
+            resolver.setCustomMappings(customMappings);
 
             queryPlan.forEach(triplePattern -> {
                 resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
@@ -196,7 +201,11 @@ public class QueryEngine {
                         .map(e -> new Score(namespace.expand(e), 1)).collect(Collectors.toSet());
 
                 answerSet.setEntityAnswers(new ArrayList<>(entityAnswers)); // convention, answer must be bound to the first var
-                answerSet.setMappings(queryBuilder.getMappings());
+
+                answerSet.setBindings(analysis.getBindings());
+                answerSet.setPossibleMappings(resolver.getPossibleMappings());
+                answerSet.setMappings(resolver.getMappings());
+
                 answerSet.setSPARQLQuery(sparqlQueryStr);
 
                 System.out.println("-----> " + answerSet.getMappings());
@@ -220,12 +229,14 @@ public class QueryEngine {
 
         // create mappings for core entity
         DataModelBinding coreEntityBinding = new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity());
+        DataModelBindingContext context = DataModelBindingContext.NON_PREDICATE;
 
         resolver.reset();
-        resolver.resolveInstance(coreEntityBinding, 1);
+        resolver.setCustomMappings(customMappings);
+        resolver.resolveInstance(coreEntityBinding, context, 10, 1);
 
-        if (resolver.hasMappings(coreEntityBinding)) {
-            Score coreEntityScore = resolver.getMappings(coreEntityBinding).get(0);
+        if (resolver.hasMappings(coreEntityBinding.getPlaceHolder(), context)) {
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).get(0);
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
             Scores entityScores = entitySearcher.similarInstanceSearch((InstanceEntity) coreEntityScore.getEntry(), searchParams, docTypes);
@@ -235,6 +246,8 @@ public class QueryEngine {
                 answerSet.setEntityAnswers(entityScores);
                 answerSet.setCoreEntity(coreEntityScore);
                 answerSet.setDocTypes(docTypes);
+
+                answerSet.setPossibleMappings(resolver.getPossibleMappings());
                 answerSet.setMappings(resolver.getMappings());
 
                 return answerSet;
@@ -252,12 +265,14 @@ public class QueryEngine {
 
         // create mappings for core entity
         DataModelBinding coreEntityBinding = new DataModelBinding(DataModelType.INSTANCE, "INSTANCE_1", query.getCoreEntity());
+        DataModelBindingContext context = DataModelBindingContext.NON_PREDICATE;
 
         resolver.reset();
-        resolver.resolveInstance(coreEntityBinding, 1);
+        resolver.setCustomMappings(customMappings);
+        resolver.resolveInstance(coreEntityBinding, context, 10, 1);
 
-        if (resolver.hasMappings(coreEntityBinding)) {
-            Score coreEntityScore = resolver.getMappings(coreEntityBinding).get(0);
+        if (resolver.hasMappings(coreEntityBinding.getPlaceHolder(), context)) {
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).get(0);
 
             List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((InstanceEntity) coreEntityScore.getEntry()).getId(), definitionDocTypes);
             if (!documents.isEmpty()) {
@@ -269,6 +284,7 @@ public class QueryEngine {
                 answerSet.setCoreEntity(coreEntityScore);
                 answerSet.setDocTypes(definitionDocTypes);
 
+                answerSet.setPossibleMappings(resolver.getPossibleMappings());
                 answerSet.setMappings(resolver.getMappings());
 
                 return answerSet;

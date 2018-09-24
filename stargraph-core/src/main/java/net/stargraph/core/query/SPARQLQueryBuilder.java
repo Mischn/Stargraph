@@ -31,6 +31,7 @@ import net.stargraph.core.Namespace;
 import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.query.nli.DataModelBinding;
+import net.stargraph.core.query.nli.DataModelBindingContext;
 import net.stargraph.core.query.nli.QueryPlan;
 import net.stargraph.core.query.nli.TriplePattern;
 import net.stargraph.model.PropertyPath;
@@ -44,11 +45,11 @@ public final class SPARQLQueryBuilder {
     private final List<String> classURIs;
     private final QueryType queryType;
     private final QueryPlan queryPlan;
-    private final List<DataModelBinding> bindings;
-    private Map<DataModelBinding, List<Score>> mappings;
+    private final Map<String, DataModelBinding> bindings; // maps placeholder to a DataModelBinding
+    private Map<String, Map<DataModelBindingContext, List<Score>>> mappings; // maps placeholder & context to a list of scored entities
     private Namespace namespace;
 
-    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlan queryPlan, List<DataModelBinding> bindings, Map<DataModelBinding, List<Score>> mappings) {
+    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlan queryPlan, Map<String, DataModelBinding> bindings, Map<String, Map<DataModelBindingContext, List<Score>>> mappings) {
         this.sparqlCreator = new SparqlCreator();
         this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
@@ -60,24 +61,27 @@ public final class SPARQLQueryBuilder {
 
     // BINDINGS
 
-    public List<DataModelBinding> getBindings() {
+    public DataModelBinding getBinding(String placeHolder) {
+        if (!bindings.containsKey(placeHolder)) {
+            throw new StarGraphException("Unbounded '" + placeHolder + "'");
+        }
+        return bindings.get(placeHolder);
+    }
+
+    public Map<String, DataModelBinding> getBindings() {
         return bindings;
     }
 
     // MAPPINGS
 
-    public boolean hasMappings(DataModelBinding dataModelBinding) {
-        return mappings.containsKey(dataModelBinding) && mappings.get(dataModelBinding).size() > 0;
-    }
-
-    public List<Score> getMappings(DataModelBinding binding) {
-        if (hasMappings(binding)) {
-            return mappings.get(binding);
+    public List<Score> getMapping(DataModelBinding binding, DataModelBindingContext context) {
+        if (mappings.containsKey(binding.getPlaceHolder()) && mappings.get(binding.getPlaceHolder()).containsKey(context)) {
+            return mappings.get(binding.getPlaceHolder()).get(context);
         }
         return Collections.emptyList();
     }
 
-    public Map<DataModelBinding, List<Score>> getMappings() {
+    public Map<String, Map<DataModelBindingContext, List<Score>>> getMappings() {
         return mappings;
     }
 
@@ -85,17 +89,6 @@ public final class SPARQLQueryBuilder {
 
     public QueryType getQueryType() {
         return queryType;
-    }
-
-    public QueryPlan getQueryPlan() {
-        return queryPlan;
-    }
-
-    public DataModelBinding getBinding(String placeHolder) {
-        return bindings.stream()
-                .filter(b -> b.getPlaceHolder().equals(placeHolder))
-                .findFirst()
-                .orElseThrow(() -> new StarGraphException("Unbounded '" + placeHolder + "'"));
     }
 
 
@@ -143,7 +136,7 @@ public final class SPARQLQueryBuilder {
                 throw new AssertionError("Subject should not be a type");
             } else {
                 DataModelBinding binding = getBinding(subjectPlaceholder);
-                List<Score> mappings = getMappings(binding);
+                List<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
                     sMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
@@ -161,7 +154,7 @@ public final class SPARQLQueryBuilder {
                 throw new AssertionError("Object should not be a type");
             } else {
                 DataModelBinding binding = getBinding(objectPlaceholder);
-                List<Score> mappings = getMappings(binding);
+                List<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
                     oMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
@@ -207,7 +200,7 @@ public final class SPARQLQueryBuilder {
                 resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
             } else {
                 DataModelBinding binding = getBinding(propertyPlaceholder);
-                List<Score> mappings = getMappings(binding);
+                List<Score> mappings = getMapping(binding, DataModelBindingContext.PREDICATE);
                 if (mappings.isEmpty()) {
                     sparqlCreator.resetNewVarCounter();
 
@@ -281,10 +274,10 @@ public final class SPARQLQueryBuilder {
             strb.append("\n\t").append(triplePattern);
         }
         strb.append("\n\n").append("Bindings & Mappings:");
-        for (DataModelBinding binding : bindings) {
-            strb.append("\n\t").append(binding);
-            if (mappings.containsKey(binding) && mappings.get(binding).size() > 0) {
-                strb.append("\n\t\t").append("Mappings: ").append(mappings.get(binding));
+        for (String placeholder : bindings.keySet()) {
+            strb.append("\n\t").append(bindings.get(placeholder));
+            if (mappings.containsKey(placeholder) && mappings.get(placeholder).size() > 0) {
+                strb.append("\n\t\t").append("Mappings: ").append(mappings.get(placeholder));
             } else {
                 strb.append("\n\t\t").append("NO MAPPINGS");
             }

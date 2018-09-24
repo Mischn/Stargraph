@@ -45,7 +45,9 @@ public final class AnswerSetUserResponse extends UserResponse {
     private List<FilterEntry> queryFilters;
     private List<FilterResultEntry> filterResults;
 
-    private Map<String, List<EntityEntry>> mappings;
+    private Map<String, String> bindings;
+    private Map<String, Map<String, List<EntityEntry>>> possibleMappings;
+    private Map<String, Map<String, List<EntityEntry>>> mappings;
 
     public AnswerSetUserResponse(String query, InteractionMode interactionMode) {
         super(query, interactionMode);
@@ -83,7 +85,15 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.filterResults = filterResults;
     }
 
-    public void setMappings(Map<String, List<EntityEntry>> mappings) {
+    public void setBindings(Map<String, String> bindings) {
+        this.bindings = bindings;
+    }
+
+    public void setPossibleMappings(Map<String, Map<String, List<EntityEntry>>> possibleMappings) {
+        this.possibleMappings = possibleMappings;
+    }
+
+    public void setMappings(Map<String, Map<String, List<EntityEntry>>> mappings) {
         this.mappings = mappings;
     }
 
@@ -119,7 +129,15 @@ public final class AnswerSetUserResponse extends UserResponse {
         return filterResults;
     }
 
-    public Map<String, List<EntityEntry>> getMappings() {
+    public Map<String, String> getBindings() {
+        return bindings;
+    }
+
+    public Map<String, Map<String, List<EntityEntry>>> getPossibleMappings() {
+        return possibleMappings;
+    }
+
+    public Map<String, Map<String, List<EntityEntry>>> getMappings() {
         return mappings;
     }
 }

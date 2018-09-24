@@ -26,7 +26,9 @@ package net.stargraph.core.search;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.*;
+import net.stargraph.core.KBCore;
+import net.stargraph.core.Namespace;
+import net.stargraph.core.Stargraph;
 import net.stargraph.core.model.ModelCreator;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
@@ -124,6 +126,44 @@ public class EntitySearcher {
         Scores scores = searcher.search(holder);
 
         return scores.stream().map(s -> (PropertyEntity)s.getEntry()).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns a propertyPath for the given id.
+     * @param dbId
+     * @param id
+     * @return
+     */
+    public PropertyPath getPropertyPath(String dbId, String id) {
+        List<PropertyPath> res = getPropertyPaths(dbId, Collections.singletonList(id));
+        if (res != null && !res.isEmpty()) {
+            return res.get(0);
+        }
+        return null;
+    }
+
+    /**
+     * Returns propertyPaths for the given ids.
+     * @param dbId
+     * @param ids
+     * @return
+     */
+    public List<PropertyPath> getPropertyPaths(String dbId, List<String> ids) {
+        logger.info(marker, "Fetching ids={}", ids);
+
+        List<PropertyPath> res = new ArrayList<>();
+        for (String id : ids) {
+            PropertyPath propertyPath = null;
+            for (PropertyPath.PropertyParse propertyParse : PropertyPath.parseId(id)) {
+                if (propertyPath == null) {
+                    propertyPath = new PropertyPath(getPropertyEntity(dbId, propertyParse.propertyId), propertyParse.direction);
+                } else {
+                    propertyPath = propertyPath.extend(getPropertyEntity(dbId, propertyParse.propertyId), propertyParse.direction);
+                }
+            }
+            res.add(propertyPath);
+        }
+        return res;
     }
 
     /**

@@ -42,6 +42,7 @@ import net.stargraph.core.index.Indexer;
 import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.ner.NER;
 import net.stargraph.core.processors.Processors;
+import net.stargraph.core.search.CachedEntitySearcher;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.core.search.Searcher;
 import net.stargraph.data.DataProviderFactory;
@@ -101,7 +102,7 @@ public final class Stargraph {
         this.kbInitSet = new LinkedHashSet<>();
         this.kbCoreMap = new ConcurrentHashMap<>(8);
 
-        this.entitySearcher = new EntitySearcher(this);
+        this.entitySearcher = new CachedEntitySearcher(this);
         this.modelCreator = new ModelCreator(this.entitySearcher);
 
         // Configurable defaults

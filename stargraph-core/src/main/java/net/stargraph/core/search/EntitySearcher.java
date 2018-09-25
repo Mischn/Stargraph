@@ -723,8 +723,8 @@ public class EntitySearcher {
         if (limitToRepresentatives) {
             Map<String, Route> representatives = new HashMap();
             for (Route directN : result) {
-                // a simple approach of combining the property, direction and the target-classname
-                String hashKey = directN.getPropertyPath().getLastProperty().getValue() + directN.getPropertyPath().getLastDirection() + directN.getLastWaypoint().getClass().getSimpleName();
+                // a simple approach of combining the property (use id, not value -> avoid value-lookup), direction and the target-classname
+                String hashKey = directN.getPropertyPath().getLastProperty().getId() + directN.getPropertyPath().getLastDirection() + directN.getLastWaypoint().getClass().getSimpleName();
                 representatives.put(hashKey, directN);
             }
             result = new ArrayList<>(representatives.values());

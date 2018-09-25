@@ -41,10 +41,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public final class IndraRanker extends BaseRanker {
@@ -82,9 +79,17 @@ public final class IndraRanker extends BaseRanker {
             return inputScores;
         }
 
-        List<TextPair> pairs = inputScores.stream()
-                .map(score -> new TextPair(score.getRankableView().getRankableValue(), target.getRankableValue()))
-                .collect(Collectors.toList());
+        Map<String, List<Score>> map = new HashMap<>(); // maps rankable values to the corresponding scores
+        List<TextPair> pairs = new ArrayList<>(); // rankable value <-> rankable value of target
+
+        String targetValue = target.getRankableValue();
+        inputScores.stream().forEach(score -> {
+            String value = score.getRankableView().getRankableValue();
+            map.computeIfAbsent(value, (v) -> new ArrayList<>()).add(score);
+        });
+        for (String v : map.keySet()) {
+            pairs.add(new TextPair(v, targetValue));
+        }
 
         RelatednessRequest request = new RelatednessRequest()
                 .corpus(params.getCorpus())
@@ -97,10 +102,16 @@ public final class IndraRanker extends BaseRanker {
         RelatednessResponse response = webTarget.request()
                 .post(Entity.entity(request, MediaType.APPLICATION_JSON_TYPE), RelatednessResponse.class);
 
-        Scores rescored = new Scores(inputScores.size());
-        List<Score> found = new ArrayList<>();
-        response.getPairs().forEach(p -> {rescored.add(find(inputScores, found, p.t1, p.score));});
-        rescored.sort(true);
+        List<ScoredTextPair> scoredPairs = response.getPairs().stream().collect(Collectors.toList());
+        Comparator<ScoredTextPair> comparator = Comparator.comparingDouble(x -> x.score);
+        scoredPairs.sort(comparator.reversed());
+
+        Scores rescored = new Scores();
+        for (ScoredTextPair pair : scoredPairs) {
+            if (map.containsKey(pair.t1)) {
+                rescored.addAll(map.get(pair.t1).stream().map(s -> new Score(s.getEntry(), pair.score)).collect(Collectors.toList()));
+            }
+        }
 
         return rescored;
     }

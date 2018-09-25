@@ -46,12 +46,12 @@ public class PropertyPath implements Hashable, Rankable {
         if (properties.size() != directions.size()) {
             throw new AssertionError("Properties and directions should have the same size");
         }
-        this.properties = properties;
-        this.directions = directions;
+        this.properties = Objects.requireNonNull(properties);
+        this.directions = Objects.requireNonNull(directions);
     }
 
     public PropertyPath(PropertyEntity property, Direction direction) {
-        this(Arrays.asList(property), Arrays.asList(direction));
+        this(Arrays.asList(Objects.requireNonNull(property)), Arrays.asList(Objects.requireNonNull(direction)));
     }
 
     public PropertyPath extend(PropertyEntity property, Direction direction) {

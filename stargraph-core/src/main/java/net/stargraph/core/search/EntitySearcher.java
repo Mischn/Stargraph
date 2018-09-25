@@ -135,33 +135,18 @@ public class EntitySearcher {
      * @return
      */
     public PropertyPath getPropertyPath(String dbId, String id) {
-        List<PropertyPath> res = getPropertyPaths(dbId, Collections.singletonList(id));
-        if (res != null && !res.isEmpty()) {
-            return res.get(0);
-        }
-        return null;
-    }
-
-    /**
-     * Returns propertyPaths for the given ids.
-     * @param dbId
-     * @param ids
-     * @return
-     */
-    public List<PropertyPath> getPropertyPaths(String dbId, List<String> ids) {
-        logger.info(marker, "Fetching ids={}", ids);
-
-        List<PropertyPath> res = new ArrayList<>();
-        for (String id : ids) {
-            PropertyPath propertyPath = null;
-            for (PropertyPath.PropertyParse propertyParse : PropertyPath.parseId(id)) {
-                if (propertyPath == null) {
-                    propertyPath = new PropertyPath(getPropertyEntity(dbId, propertyParse.propertyId), propertyParse.direction);
-                } else {
-                    propertyPath = propertyPath.extend(getPropertyEntity(dbId, propertyParse.propertyId), propertyParse.direction);
-                }
+        PropertyPath res = null;
+        for (PropertyPath.PropertyParse propertyParse : PropertyPath.parseId(id)) {
+            PropertyEntity propertyEntity = getPropertyEntity(dbId, propertyParse.propertyId);
+            if (propertyEntity == null) {
+                return null;
             }
-            res.add(propertyPath);
+
+            if (res == null) {
+                res = new PropertyPath(propertyEntity, propertyParse.direction);
+            } else {
+                res = res.extend(propertyEntity, propertyParse.direction);
+            }
         }
         return res;
     }

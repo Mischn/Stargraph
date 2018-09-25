@@ -34,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.util.stream.Collectors;
+
 abstract class BaseRanker implements Ranker {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     protected Marker marker = MarkerFactory.getMarker("rank");
@@ -41,9 +43,13 @@ abstract class BaseRanker implements Ranker {
 
     @Override
     public final Scores score(Scores inputScores, Rankable target) {
-        logger.trace(marker, "Target: '{}', input: {}", target.getRankableValue(), inputScores);
+        if (logger.isTraceEnabled()) {
+            logger.trace(marker, "Before ranking (target = '{}'):\n{}", target.getRankableValue(), inputScores.stream().map(s -> s.getRankableView().getRankableValue()).collect(Collectors.joining("\n")));
+        }
         Scores rescore = doScore(inputScores, target);
-        logger.trace(marker, "Target: '{}', output: {}", target.getRankableValue(), rescore);
+        if (logger.isTraceEnabled()) {
+            logger.trace(marker, "After ranking (target = '{}')\n{}", target.getRankableValue(), rescore.stream().map(s -> s.getRankableView().getRankableValue()).collect(Collectors.joining("\n")));
+        }
         return rescore;
     }
 

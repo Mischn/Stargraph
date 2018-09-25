@@ -469,7 +469,7 @@ public class EntitySearcher {
     public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes,limitToRepresentatives);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes, limitToRepresentatives);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()

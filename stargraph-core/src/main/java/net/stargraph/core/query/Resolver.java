@@ -22,7 +22,7 @@ public class Resolver {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     protected Marker marker = MarkerFactory.getMarker("query");
 
-    private static final int PREDICATE_RANGE = 3;
+    private static final int PREDICATE_RANGE = 2;
     private static final long POSSIBLE_PIVOT_LIMIT = 10;
     private static final long POSSIBLE_CLASS_LIMIT = 10;
     private static final long POSSIBLE_PREDICATE_LIMIT = 10;

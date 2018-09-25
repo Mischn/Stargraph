@@ -21,6 +21,7 @@ public class Resolver {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     protected Marker marker = MarkerFactory.getMarker("query");
 
+    private static final int PREDICATE_RANGE = 1;
     private static final long POSSIBLE_PIVOT_LIMIT = 10;
     private static final long POSSIBLE_CLASS_LIMIT = 10;
     private static final long POSSIBLE_PREDICATE_LIMIT = 10;
@@ -271,7 +272,7 @@ public class Resolver {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
         String rankString = binding.getTerm();
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();
-        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, 1);
+        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, PREDICATE_RANGE);
     }
 
 

@@ -7,6 +7,7 @@ import net.stargraph.core.query.nli.DataModelType;
 import net.stargraph.core.query.nli.TriplePattern;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.InstanceEntity;
+import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class Resolver {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     protected Marker marker = MarkerFactory.getMarker("query");
 
-    private static final int PREDICATE_RANGE = 1;
+    private static final int PREDICATE_RANGE = 3;
     private static final long POSSIBLE_PIVOT_LIMIT = 10;
     private static final long POSSIBLE_CLASS_LIMIT = 10;
     private static final long POSSIBLE_PREDICATE_LIMIT = 10;
@@ -59,9 +60,19 @@ public class Resolver {
                 List<Score> scores = new ArrayList<>();
                 for (String id : customMappings.get(placeholder).get(context)) {
                     if (context.equals(DataModelBindingContext.PREDICATE)) {
-                        scores.add(new Score(entitySearcher.getPropertyPath(dbId, id), 1.));
+                        PropertyPath propertyPath = entitySearcher.getPropertyPath(dbId, id);
+                        if (propertyPath == null) {
+                            logger.error(marker, "Unable to lookup custom mapping with id: {}", id);
+                        } else {
+                            scores.add(new Score(propertyPath, 1.));
+                        }
                     } else {
-                        scores.add(new Score(entitySearcher.getInstanceEntity(dbId, id), 1.));
+                        InstanceEntity instanceEntity = entitySearcher.getInstanceEntity(dbId, id);
+                        if (instanceEntity == null) {
+                            logger.error(marker, "Unable to lookup custom mapping with id: {}", id);
+                        } else {
+                            scores.add(new Score(instanceEntity, 1.));
+                        }
                     }
                 }
                 addMappings(placeholder, context, scores);

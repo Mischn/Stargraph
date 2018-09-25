@@ -67,35 +67,37 @@ public final class QueryResourceImpl implements QueryResource {
 
     @Override
     public Response query(String dbId, String q, MappingsBean betterMappings) {
+        if (!core.hasKB(dbId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        Namespace namespace = core.getKBCore(dbId).getNamespace();
+        QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
         try {
-            if (core.hasKB(dbId)) {
-                Namespace namespace = core.getKBCore(dbId).getNamespace();
-                QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
-                if (betterMappings != null) {
+            if (betterMappings != null) {
 
-                    // convert to proper custom mappings
-                    Map<String, Map<DataModelBindingContext, List<String>>> customMappings = new HashMap<>();
-                    for (String placeholder : betterMappings.getMappings().keySet()) {
-                        for (String c : betterMappings.getMappings().get(placeholder).keySet()) {
-                            DataModelBindingContext context = DataModelBindingContext.valueOf(c);
-                            customMappings.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context, betterMappings.getMappings().get(placeholder).get(c));
-                        }
+                // convert to proper custom mappings
+                Map<String, Map<DataModelBindingContext, List<String>>> customMappings = new HashMap<>();
+                for (String placeholder : betterMappings.getMappings().keySet()) {
+                    for (String c : betterMappings.getMappings().get(placeholder).keySet()) {
+                        DataModelBindingContext context = DataModelBindingContext.valueOf(c);
+                        customMappings.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context, betterMappings.getMappings().get(placeholder).get(c));
                     }
-
-                    engine.setCustomMappings(customMappings);
                 }
 
-                QueryResponse queryResponse = engine.query(q);
-                engine.clearCustomMappings();
-
-                return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, dbId, namespace)).build();
+                engine.setCustomMappings(customMappings);
             }
-            return Response.status(Response.Status.NOT_FOUND).build();
+
+            QueryResponse queryResponse = engine.query(q);
+
+            return Response.status(Response.Status.OK).entity(buildUserResponse(queryResponse, dbId, namespace)).build();
         }
         catch (Exception e) {
             logger.error(marker, "Query execution failed: '{}' on '{}'", q, dbId, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            engine.clearCustomMappings();
         }
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
     }
 
 

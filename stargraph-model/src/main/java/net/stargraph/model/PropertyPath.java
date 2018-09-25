@@ -86,9 +86,9 @@ public class PropertyPath implements Hashable, Rankable {
 
     @Override
     public String getId() {
-        StringJoiner sj = new StringJoiner(" ");
+        StringJoiner sj = new StringJoiner(" | ");
         for (int i = 0; i < properties.size(); i++) {
-            String part = String.format("%s%s", (directions.get(i).equals(Direction.OUTGOING))? ">>" : "<<", properties.get(i).getId());
+            String part = String.format("%s%s", (directions.get(i).equals(Direction.INCOMING))? "^" : "", properties.get(i).getId());
             sj.add(part);
         }
         return sj.toString();
@@ -105,12 +105,12 @@ public class PropertyPath implements Hashable, Rankable {
         }
     }
     public static List<PropertyParse> parseId(String id) {
-        String[] parts = id.split("\\s+");
+        String[] parts = id.split("\\s\\|\\s");
         return Stream.of(parts)
                 .map(s -> new PropertyParse(
-                        s.substring(2),
-                        (s.startsWith(">>"))? Direction.OUTGOING : Direction.INCOMING)
-                ).collect(Collectors.toList());
+                        (s.startsWith("^"))? s.substring(1) : s,
+                        (s.startsWith("^"))? Direction.INCOMING : Direction.OUTGOING
+                        )).collect(Collectors.toList());
     }
 
 

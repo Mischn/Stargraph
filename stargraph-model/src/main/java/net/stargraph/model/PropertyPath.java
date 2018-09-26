@@ -26,6 +26,7 @@ package net.stargraph.model;
  * ==========================License-End===============================
  */
 
+import net.stargraph.Utils;
 import net.stargraph.data.processor.Hashable;
 import net.stargraph.rank.Rankable;
 
@@ -79,9 +80,18 @@ public class PropertyPath implements Hashable, Rankable {
     }
 
     @Override
-    public String getRankableValue() {
-        //TODO redefine interface of Rankable to compare multiple strings?
-        return properties.stream().map(p -> p.getRankableValue()).collect(Collectors.joining(" "));
+    public List<List<String>> getRankableValues() {
+
+        // uses cartesian product of rankable values of properties
+        List<List<String>> res = null;
+        for (PropertyEntity property : properties) {
+            if (res == null) {
+                res = property.getRankableValues().stream().map(v -> Arrays.asList(v.get(0))).collect(Collectors.toList());
+            } else {
+                res = Utils.cartesianProduct(res, property.getRankableValues().stream().map(v -> v.get(0)).collect(Collectors.toList()));
+            }
+        }
+        return res;
     }
 
     @Override

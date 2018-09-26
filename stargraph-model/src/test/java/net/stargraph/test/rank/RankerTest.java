@@ -46,7 +46,37 @@ public final class RankerTest {
 
         Scores rescored = ranker.score(scores, createRankable("lambda^3"));
 
-        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValue(), "lambda^3");
+        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValues().get(0).get(0), "lambda^3");
         Assert.assertEquals(rescored.get(0).getValue(), 1.0);
+    }
+
+    @Test
+    public void levenshteinTest2() {
+        LevenshteinRanker ranker = new LevenshteinRanker();
+        Scores scores = new Scores(Arrays.asList(
+                createScore(Arrays.asList(Arrays.asList("Barack Obama"), Arrays.asList("B. Obama")), 1),
+                createScore(Arrays.asList(Arrays.asList("Michelle Obama"), Arrays.asList("First Lady"), Arrays.asList("M. Obama")), 1),
+                createScore(Arrays.asList(Arrays.asList("Donald Trump")), 1)
+        ));
+
+        Scores rescored = ranker.score(scores, createRankable(Arrays.asList(Arrays.asList("1st Lady"), Arrays.asList("Mich. Obama"))));
+        rescored.forEach(s -> System.out.println(s));
+
+        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValues().get(0).get(0), "Michelle Obama");
+    }
+
+    @Test
+    public void levenshteinTest3() {
+        LevenshteinRanker ranker = new LevenshteinRanker();
+        Scores scores = new Scores(Arrays.asList(
+                createScore(Arrays.asList(Arrays.asList("Barack",  "Obama"), Arrays.asList("B.", "Obama")), 1),
+                createScore(Arrays.asList(Arrays.asList("Michelle", "Obama"), Arrays.asList("First", "Lady"), Arrays.asList("M.", "Obama")), 1),
+                createScore(Arrays.asList(Arrays.asList("Donald", "Trump")), 1)
+        ));
+
+        Scores rescored = ranker.score(scores, createRankable(Arrays.asList(Arrays.asList("1st", "Lady"), Arrays.asList("Mich.", "Obama"))));
+        rescored.forEach(s -> System.out.println(s));
+
+        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValues().get(0).get(0), "Michelle");
     }
 }

@@ -1,5 +1,6 @@
 package net.stargraph.core;
 
+import net.stargraph.Utils;
 import net.stargraph.query.Language;
 
 import java.util.*;

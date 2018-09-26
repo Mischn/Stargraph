@@ -3,8 +3,8 @@ package net.stargraph.core.model;
 import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.InstanceEntity;
 
-import java.util.Collection;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class InstanceEntityImpl extends InstanceEntity {
     private EntitySearcher entitySearcher;
@@ -43,6 +43,8 @@ public class InstanceEntityImpl extends InstanceEntity {
             this.value = (this.value == null)? entity.getValue(): this.value;
             this.isClass = (this.isClass == null)? entity.isClass(): this.isClass;
             this.otherValues = (this.otherValues == null)? entity.getOtherValues(): this.otherValues;
+        } else {
+            logger.error(marker, "Could not lookup Instance with id: {}", id);
         }
     }
 
@@ -86,8 +88,15 @@ public class InstanceEntityImpl extends InstanceEntity {
     }
 
     @Override
-    public String getRankableValue() {
-        return getValue(); //TODO include otherValues as well?
+    public List<List<String>> getRankableValues() {
+        List<List<String>> res = new ArrayList<>();
+        if (getValue() != null) {
+            res.add(Arrays.asList(getValue()));
+        }
+        if (getOtherValues() != null) {
+            res.addAll(getOtherValues().stream().map(v -> Arrays.asList(v)).collect(Collectors.toList()));
+        }
+        return res;
     }
 
 //    @Override

@@ -50,7 +50,7 @@ public final class RankerIT {
                 createScore("children", 94), createScore("partner", 51), createScore("father", 1)));
 
         Scores rescored = ranker.score(scores, createRankable("wife"));
-        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValue(), "husband");
+        Assert.assertEquals(rescored.get(0).getRankableView().getRankableValues().get(0).get(0), "husband");
     }
 
     private static String getIndraURL() {

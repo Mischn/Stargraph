@@ -31,6 +31,7 @@ import net.stargraph.data.processor.Hashable;
 import net.stargraph.model.date.TimeRange;
 import net.stargraph.rank.Rankable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -71,8 +72,8 @@ public class PassageExtraction implements Rankable, Hashable {
     }
 
     @Override
-    public String getRankableValue() {
-        return relation;
+    public List<List<String>> getRankableValues() {
+        return Arrays.asList(Arrays.asList(relation));
     }
 
     @Override

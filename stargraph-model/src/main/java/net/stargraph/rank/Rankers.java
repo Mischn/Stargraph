@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.util.Arrays;
+import java.util.List;
+
 public final class Rankers {
     private static Logger logger = LoggerFactory.getLogger(Rankers.class);
     private static Marker marker = MarkerFactory.getMarker("rank");
@@ -86,8 +89,8 @@ public final class Rankers {
     private static Rankable asRankable(String term) {
         return new Rankable() {
             @Override
-            public String getRankableValue() {
-                return term;
+            public List<List<String>> getRankableValues() {
+                return Arrays.asList(Arrays.asList(term));
             }
 
             @Override

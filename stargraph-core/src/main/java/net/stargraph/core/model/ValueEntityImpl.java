@@ -2,6 +2,8 @@ package net.stargraph.core.model;
 
 import net.stargraph.model.ValueEntity;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class ValueEntityImpl extends ValueEntity {
@@ -34,7 +36,7 @@ public class ValueEntityImpl extends ValueEntity {
     }
 
     @Override
-    public String getRankableValue() {
-        return getValue();
+    public List<List<String>> getRankableValues() {
+        return Arrays.asList(Arrays.asList(getValue()));
     }
 }

@@ -4,8 +4,7 @@ import net.stargraph.core.search.EntitySearcher;
 import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.wordnet.WNTuple;
 
-import java.util.Collection;
-import java.util.Objects;
+import java.util.*;
 
 public class PropertyEntityImpl extends PropertyEntity {
     private EntitySearcher entitySearcher;
@@ -47,6 +46,8 @@ public class PropertyEntityImpl extends PropertyEntity {
             this.hypernyms = (this.hypernyms == null)? entity.getHypernyms(): this.hypernyms;
             this.hyponyms = (this.hyponyms == null)? entity.getHyponyms(): this.hyponyms;
             this.synonyms = (this.synonyms == null)? entity.getSynonyms(): this.synonyms;
+        } else {
+            logger.error(marker, "Could not lookup Property with id: {}", id);
         }
     }
 
@@ -94,8 +95,22 @@ public class PropertyEntityImpl extends PropertyEntity {
     }
 
     @Override
-    public String getRankableValue() {
-        return getValue(); //TODO include hypernyms/hyponyms/synonyms as well?
+    public List<List<String>> getRankableValues() {
+        List<List<String>> res = new ArrayList<>();
+        if (getValue() != null) {
+            res.add(Arrays.asList(getValue()));
+        }
+        //TODO activate?
+//        if (getHypernyms() != null) {
+//            res.addAll(getHypernyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
+//        }
+//        if (getHyponyms() != null) {
+//            res.addAll(getHyponyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
+//        }
+//        if (getSynonyms() != null) {
+//            res.addAll(getSynonyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
+//        }
+        return res;
     }
 
 //    @Override

@@ -27,10 +27,11 @@ package net.stargraph.rank;
  */
 
 import java.io.Serializable;
+import java.util.List;
 
 public interface Rankable extends Serializable {
 
-    String getRankableValue();
+    List<List<String>> getRankableValues(); // first entries are alternatives (OR). An alternative is a list of terms (AND) that should match with the target
 
     String getId();
 }

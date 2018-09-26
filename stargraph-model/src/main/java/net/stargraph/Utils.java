@@ -1,4 +1,4 @@
-package net.stargraph.core;
+package net.stargraph;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -31,6 +31,7 @@ import net.stargraph.data.processor.Hashable;
 import net.stargraph.rank.Rankable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -71,8 +72,8 @@ public final class Extraction implements Rankable, Hashable {
     }
 
     @Override
-    public String getRankableValue() {
-        return relation;
+    public List<List<String>> getRankableValues() {
+        return Arrays.asList(Arrays.asList(relation));
     }
 
     @Override

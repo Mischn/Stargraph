@@ -29,28 +29,40 @@ package net.stargraph.test.rank;
 import net.stargraph.rank.Rankable;
 import net.stargraph.rank.Score;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public final class RankTestUtils {
 
-    static Rankable createRankable(String v) {
+    static Rankable createRankable(String value) {
+        return createRankable(Arrays.asList(Arrays.asList(value)));
+    }
+
+    static Rankable createRankable(List<List<String>> values) {
         return new Rankable() {
             @Override
             public String toString() {
-                return v;
+                return values.toString();
             }
 
             @Override
-            public String getRankableValue() {
-                return v;
+            public List<List<String>> getRankableValues() {
+                return values;
             }
 
             @Override
             public String getId() {
-                return v;
+                return values.stream().map(v -> v.stream().collect(Collectors.joining("+"))).collect(Collectors.joining("||"));
             }
         };
     }
 
     static Score createScore(String v, double d) {
         return new Score(createRankable(v), d);
+    }
+
+    static Score createScore(List<List<String>> vss, double d) {
+        return new Score(createRankable(vss), d);
     }
 }

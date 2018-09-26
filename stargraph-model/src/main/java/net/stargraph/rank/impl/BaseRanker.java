@@ -44,11 +44,11 @@ abstract class BaseRanker implements Ranker {
     @Override
     public final Scores score(Scores inputScores, Rankable target) {
         if (logger.isTraceEnabled()) {
-            logger.trace(marker, "Before ranking (target = '{}'):\n{}", target.getRankableValue(), inputScores.stream().map(s -> s.getRankableView().getRankableValue()).collect(Collectors.joining("\n")));
+            logger.trace(marker, "Before ranking (target = '{}'):\n{}", target.getRankableValues(), inputScores.stream().map(s -> s.getRankableView().getRankableValues().toString()).collect(Collectors.joining("\n")));
         }
         Scores rescore = doScore(inputScores, target);
         if (logger.isTraceEnabled()) {
-            logger.trace(marker, "After ranking (target = '{}')\n{}", target.getRankableValue(), rescore.stream().map(s -> s.getRankableView().getRankableValue()).collect(Collectors.joining("\n")));
+            logger.trace(marker, "After ranking (target = '{}')\n{}", target.getRankableValues(), rescore.stream().map(s -> s.getValue() + ": " + s.getRankableView().getRankableValues().toString()).collect(Collectors.joining("\n")));
         }
         return rescore;
     }

@@ -26,7 +26,11 @@ package net.stargraph.rank.impl;
  * ==========================License-End===============================
  */
 
-import net.stargraph.rank.*;
+import net.stargraph.rank.Rankable;
+import net.stargraph.rank.Score;
+import net.stargraph.rank.Scores;
+
+import java.util.List;
 
 public abstract class StringDistanceRanker extends BaseRanker {
 
@@ -42,13 +46,38 @@ public abstract class StringDistanceRanker extends BaseRanker {
         Scores rescored = new Scores(inputScores.size());
 
         inputScores.forEach(score -> {
-            double dist = computeNormStringDistance(score.getRankableView().getRankableValue(), target.getRankableValue());
-            rescored.add(new Score(score.getEntry(), dist));
+            double s = bestAvg(score.getRankableView().getRankableValues(), target.getRankableValues());
+            rescored.add(new Score(score.getEntry(), s));
         });
 
         rescored.sort(true);
 
         return rescored;
+    }
+
+    private double bestAvg(List<List<String>> alternatives1, List<List<String>> alternatives2) {
+        double res = 0;
+        for (List<String> terms1 : alternatives1) {
+            for (List<String> terms2 : alternatives2) {
+                double s = avgPairwise(terms1, terms2);
+                if (s > res) {
+                    res = s;
+                }
+            }
+        }
+        return res;
+    }
+
+    private double avgPairwise(List<String> terms1, List<String> terms2) {
+        double res = 0;
+        int n = 0;
+        for (String term1 : terms1) {
+            for (String term2 : terms2) {
+                res += computeNormStringDistance(term1, term2);
+                n += 1;
+            }
+        }
+        return res *1./n;
     }
 
     private double computeNormStringDistance(CharSequence s1, CharSequence s2) {

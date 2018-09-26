@@ -51,8 +51,6 @@ public abstract class Entity implements Hashable, Rankable {
 
     public abstract String getValue();
 
-    public abstract String getRankableValue();
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

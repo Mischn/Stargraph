@@ -45,6 +45,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public final class IndraRanker extends BaseRanker {
+    private static final Comparator<String> ALPHABETICAL_ORDER = new Comparator<String>() {
+        public int compare(String str1, String str2) {
+            int res = String.CASE_INSENSITIVE_ORDER.compare(str1, str2);
+            if (res == 0) {
+                res = str1.compareTo(str2);
+            }
+            return res;
+        }
+    };
+
     private ModifiableIndraParams params;
     private Client client;
 
@@ -73,24 +83,8 @@ public final class IndraRanker extends BaseRanker {
         return scoredTextPairs.get(0).score;
     }
 
-    @Override
-    Scores doScore(Scores inputScores, Rankable target) {
-        if (inputScores.size() <= 0) {
-            return inputScores;
-        }
 
-        Map<String, List<Score>> map = new HashMap<>(); // maps rankable values to the corresponding scores
-        List<TextPair> pairs = new ArrayList<>(); // rankable value <-> rankable value of target
-
-        String targetValue = target.getRankableValue();
-        inputScores.stream().forEach(score -> {
-            String value = score.getRankableView().getRankableValue();
-            map.computeIfAbsent(value, (v) -> new ArrayList<>()).add(score);
-        });
-        for (String v : map.keySet()) {
-            pairs.add(new TextPair(v, targetValue));
-        }
-
+    private List<ScoredTextPair> scoreTextPairs(List<TextPair> pairs) {
         RelatednessRequest request = new RelatednessRequest()
                 .corpus(params.getCorpus())
                 .language(params.getLanguage())
@@ -102,28 +96,73 @@ public final class IndraRanker extends BaseRanker {
         RelatednessResponse response = webTarget.request()
                 .post(Entity.entity(request, MediaType.APPLICATION_JSON_TYPE), RelatednessResponse.class);
 
-        List<ScoredTextPair> scoredPairs = response.getPairs().stream().collect(Collectors.toList());
-        Comparator<ScoredTextPair> comparator = Comparator.comparingDouble(x -> x.score);
-        scoredPairs.sort(comparator.reversed());
-
-        Scores rescored = new Scores();
-        for (ScoredTextPair pair : scoredPairs) {
-            if (map.containsKey(pair.t1)) {
-                rescored.addAll(map.get(pair.t1).stream().map(s -> new Score(s.getEntry(), pair.score)).collect(Collectors.toList()));
-            }
-        }
-
-        return rescored;
+        return response.getPairs().stream().collect(Collectors.toList());
     }
 
-    private Score find(Scores scores, List<Score> found, String text, double v) {
-        for (Score score : scores) {
-            if (!found.contains(score) && score.getRankableView().getRankableValue().equals(text)) {
-                Score res = new Score(score.getRankableView(), v);
-                found.add(score);
-                return res;
+    private String createHashKey(String term1, String term2) {
+        List<String> terms = Arrays.asList(term1, term2);
+        Collections.sort(terms, ALPHABETICAL_ORDER);
+        return terms.get(0) + "|" + terms.get(1);
+    }
+
+    private double bestAvg(List<List<String>> alternatives1, List<List<String>> alternatives2, Map<String, Double> scoreMap) {
+        double res = 0;
+        for (List<String> terms1 : alternatives1) {
+            for (List<String> terms2 : alternatives2) {
+                double s = avgPairwise(terms1, terms2, scoreMap);
+                if (s > res) {
+                    res = s;
+                }
             }
         }
-        return null;
+        return res;
+    }
+
+    private double avgPairwise(List<String> terms1, List<String> terms2, Map<String, Double> scoreMap) {
+        double res = 0;
+        int n = 0;
+        for (String term1 : terms1) {
+            for (String term2 : terms2) {
+                res += scoreMap.get(createHashKey(term1, term2));
+                n += 1;
+            }
+        }
+        return res *1./n;
+    }
+
+    @Override
+    Scores doScore(Scores inputScores, Rankable target) {
+        if (inputScores.size() <= 0) {
+            return inputScores;
+        }
+
+        // create unique text pairs
+        Map<String, TextPair> uniqueTextPairs = new HashMap<>();
+        List<String> targetTerms = target.getRankableValues().stream().flatMap(List::stream).distinct().collect(Collectors.toList());
+        List<String> checkTerms = inputScores.stream().map(s -> s.getRankableView().getRankableValues()).flatMap(List::stream).flatMap(List::stream).distinct().collect(Collectors.toList());
+        for (String targetTerm : targetTerms) {
+            for (String checkTerm : checkTerms) {
+                uniqueTextPairs.put(createHashKey(checkTerm, targetTerm), new TextPair(checkTerm, targetTerm));
+            }
+        }
+
+        // score Pairs
+        List<ScoredTextPair> scoredPairs = scoreTextPairs(uniqueTextPairs.values().stream().collect(Collectors.toList()));
+
+        // create a lookup table of scores
+        Map<String, Double> scoreMap = new HashMap<>();
+        scoredPairs.forEach(p -> scoreMap.put(createHashKey(p.t1, p.t2), p.score));
+
+
+        Scores rescored = new Scores(inputScores.size());
+
+        inputScores.forEach(score -> {
+            double s = bestAvg(score.getRankableView().getRankableValues(), target.getRankableValues(), scoreMap);
+            rescored.add(new Score(score.getEntry(), s));
+        });
+
+        rescored.sort(true);
+
+        return rescored;
     }
 }

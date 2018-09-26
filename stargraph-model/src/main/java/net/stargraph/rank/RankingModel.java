@@ -28,6 +28,6 @@ package net.stargraph.rank;
 
 public enum RankingModel {
 
-    LEVENSHTEIN, JAROWINKLER, FUZZY, JACCARD, W2V, ESA, GLOVE, LSA
+    LCS, LEVENSHTEIN, JAROWINKLER, FUZZY, JACCARD, W2V, ESA, GLOVE, LSA
 
 }

@@ -26,12 +26,13 @@ package net.stargraph.rank.impl;
  * ==========================License-End===============================
  */
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.beta.similarity.JaroWinklerDistance;
 
 public final class JarowinklerRanker extends StringDistanceRanker {
+    private JaroWinklerDistance jaroWinklerDistance = new JaroWinklerDistance();
 
     @Override
-    double computeStringDistance(CharSequence s1, CharSequence s2) {
-        return StringUtils.getJaroWinklerDistance(s1, s2);
+    public double similarity(CharSequence t1, CharSequence t2) {
+        return jaroWinklerDistance.apply(t1, t2);
     }
 }

@@ -71,6 +71,8 @@ public final class Rankers {
 
     private static Ranker createRanker(ModifiableRankParams params) {
         switch (params.getRankingModel()) {
+            case LCS:
+                return new LCSRanker();
             case JACCARD:
                 return new JaccardRanker();
             case JAROWINKLER:

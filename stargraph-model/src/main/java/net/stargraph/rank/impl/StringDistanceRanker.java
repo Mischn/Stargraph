@@ -35,13 +35,6 @@ import java.util.List;
 public abstract class StringDistanceRanker extends BaseRanker {
 
     @Override
-    public double similarity(CharSequence t1, CharSequence t2) {
-        return computeNormStringDistance(t1, t2);
-    }
-
-
-
-    @Override
     final Scores doScore(Scores inputScores, Rankable target) {
         Scores rescored = new Scores(inputScores.size());
 
@@ -73,16 +66,10 @@ public abstract class StringDistanceRanker extends BaseRanker {
         int n = 0;
         for (String term1 : terms1) {
             for (String term2 : terms2) {
-                res += computeNormStringDistance(term1, term2);
+                res += similarity(term1, term2);
                 n += 1;
             }
         }
         return res *1./n;
     }
-
-    private double computeNormStringDistance(CharSequence s1, CharSequence s2) {
-        return 1.0 / (computeStringDistance(s1, s2) + 1);
-    }
-
-    abstract double computeStringDistance(CharSequence s1, CharSequence s2);
 }

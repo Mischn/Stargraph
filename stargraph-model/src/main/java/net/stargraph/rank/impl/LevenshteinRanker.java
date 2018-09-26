@@ -31,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 public final class LevenshteinRanker extends StringDistanceRanker {
 
     @Override
-    double computeStringDistance(CharSequence s1, CharSequence s2) {
-        return StringUtils.getLevenshteinDistance(s1, s2);
+    public double similarity(CharSequence t1, CharSequence t2) {
+        return 1. - (StringUtils.getLevenshteinDistance(t1, t2) *1./ Math.max(t1.length(), t2.length()));
     }
 }

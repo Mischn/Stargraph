@@ -26,16 +26,50 @@ package net.stargraph.rank.impl;
  * ==========================License-End===============================
  */
 
-import org.apache.commons.text.beta.similarity.FuzzyScore;
+/**
+ * Longest Common Subsequence Ranker
+ */
+public final class LCSRanker extends StringDistanceRanker {
 
-import java.util.Locale;
+    public static String lcs(CharSequence a, CharSequence b) {
+        int[][] lengths = new int[a.length()+1][b.length()+1];
 
-public final class FuzzyRanker extends StringDistanceRanker {
-    private FuzzyScore fuzzyScore = new FuzzyScore(Locale.getDefault());
+        // row 0 and column 0 are initialized to 0 already
+
+        for (int i = 0; i < a.length(); i++)
+            for (int j = 0; j < b.length(); j++)
+                if (a.charAt(i) == b.charAt(j))
+                    lengths[i+1][j+1] = lengths[i][j] + 1;
+                else
+                    lengths[i+1][j+1] =
+                            Math.max(lengths[i+1][j], lengths[i][j+1]);
+
+        // read the substring out from the matrix
+        StringBuffer sb = new StringBuffer();
+        for (int x = a.length(), y = b.length();
+             x != 0 && y != 0; ) {
+            if (lengths[x][y] == lengths[x-1][y])
+                x--;
+            else if (lengths[x][y] == lengths[x][y-1])
+                y--;
+            else {
+                assert a.charAt(x-1) == b.charAt(y-1);
+                sb.append(a.charAt(x-1));
+                x--;
+                y--;
+            }
+        }
+
+        return sb.reverse().toString();
+    }
 
     @Override
     public double similarity(CharSequence t1, CharSequence t2) {
-        double maxScore = ((Math.max(t1.length(), t2.length()) - 1) * 3) + 1; // found by experimenting
-        return fuzzyScore.fuzzyScore(t1, t2) * 1./maxScore;
+        String substr = lcs(t1, t2);
+
+        if (substr.length() <= 0) {
+            return 0.;
+        }
+        return ((substr.length() *1./ t1.length()) + (substr.length() *1./ t2.length())) / 2.;
     }
 }

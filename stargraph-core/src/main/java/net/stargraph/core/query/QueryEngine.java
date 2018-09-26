@@ -363,7 +363,7 @@ public class QueryEngine {
             FilterQueryEngine filterQueryEngine = new FilterQueryEngine();
 
             // re-rank
-            ModifiableRankParams relationRankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.2));
+            ModifiableRankParams relationRankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.2)); //TODO magic number
             if (relationRankParams instanceof ModifiableIndraParams) {
                 core.configureDistributionalParams((ModifiableIndraParams) relationRankParams);
             }

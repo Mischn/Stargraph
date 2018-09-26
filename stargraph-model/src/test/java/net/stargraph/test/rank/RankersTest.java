@@ -1,4 +1,4 @@
-package net.stargraph.rank.impl;
+package net.stargraph.test.rank;
 
 /*-
  * ==========================License-Start=============================
@@ -26,16 +26,35 @@ package net.stargraph.rank.impl;
  * ==========================License-End===============================
  */
 
-import org.apache.commons.text.beta.similarity.FuzzyScore;
+import net.stargraph.rank.Ranker;
+import net.stargraph.rank.impl.*;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.List;
 
-public final class FuzzyRanker extends StringDistanceRanker {
-    private FuzzyScore fuzzyScore = new FuzzyScore(Locale.getDefault());
+public final class RankersTest {
 
-    @Override
-    public double similarity(CharSequence t1, CharSequence t2) {
-        double maxScore = ((Math.max(t1.length(), t2.length()) - 1) * 3) + 1; // found by experimenting
-        return fuzzyScore.fuzzyScore(t1, t2) * 1./maxScore;
+    @Test
+    public void testRankers() {
+        List<Ranker> rankers = Arrays.asList(new LevenshteinRanker(), new FuzzyRanker(), new JarowinklerRanker(), new JaccardRanker(), new LCSRanker());
+        for (Ranker ranker : rankers) {
+            System.out.println("# " + ranker.getClass().getSimpleName() + ":");
+
+            System.out.println("Paris <-> Paris : " + ranker.similarity("Paris", "Paris"));
+            Assert.assertEquals(ranker.similarity("Paris", "Paris"), 1.);
+
+            System.out.println("Paris <-> Baris : " + ranker.similarity("Paris", "Baris"));
+            Assert.assertTrue(ranker.similarity("Paris", "Baris") < ranker.similarity("Paris", "Paris"));
+
+            System.out.println("Paris <-> Peter : " + ranker.similarity("Paris", "Peter"));
+            Assert.assertTrue(ranker.similarity("Paris", "Peter") < ranker.similarity("Paris", "Paris"));
+
+            System.out.println("Paris <-> x : " + ranker.similarity("Paris", "x"));
+            Assert.assertTrue(ranker.similarity("Paris", "x") < ranker.similarity("Paris", "Peter"));
+
+            System.out.println("Paris <-> sssParisss : " + ranker.similarity("Paris", "sssParisss"));
+        }
     }
 }

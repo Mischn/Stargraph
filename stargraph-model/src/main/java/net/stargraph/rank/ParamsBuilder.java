@@ -34,6 +34,10 @@ public final class ParamsBuilder {
         return new ModifiableRankParams();
     }
 
+    public static ModifiableRankParams lcs() {
+        return new ModifiableRankParams(Threshold.auto(), RankingModel.LCS);
+    }
+
     public static ModifiableRankParams levenshtein() {
         return new ModifiableRankParams(Threshold.auto(), RankingModel.LEVENSHTEIN);
     }

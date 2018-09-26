@@ -29,11 +29,10 @@ package net.stargraph.rank.impl;
 import org.apache.commons.text.beta.similarity.JaccardDistance;
 
 public final class JaccardRanker extends StringDistanceRanker {
-
     private JaccardDistance jaccardDistance = new JaccardDistance();
 
     @Override
-    double computeStringDistance(CharSequence s1, CharSequence s2) {
-        return jaccardDistance.apply(s1, s2);
+    public double similarity(CharSequence t1, CharSequence t2) {
+        return 1. - jaccardDistance.apply(t1, t2);
     }
 }

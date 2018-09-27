@@ -366,12 +366,11 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        //TODO activate?
-//        // Re-Rank
-//        if (rankParams instanceof ModifiableIndraParams) {
-//            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-//        }
-//        scores = Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+        // Re-Rank
+        if (rankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+        }
+        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
 
         return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
@@ -397,12 +396,11 @@ public class EntitySearcher {
         // Fetch initial candidates from the search engine
         Scores scores = searcher.search(holder);
 
-        //TODO activate?
-//        // Re-Rank
-//        if (rankParams instanceof ModifiableIndraParams) {
-//            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
-//        }
-//        scores = Rankers.apply(scores, rankParams, searchParams.getSearchTerm());
+        // Re-Rank
+        if (rankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+        }
+        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
 
         return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }

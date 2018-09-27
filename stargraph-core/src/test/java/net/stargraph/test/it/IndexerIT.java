@@ -34,6 +34,7 @@ import net.stargraph.core.Stargraph;
 import net.stargraph.core.index.Indexer;
 import net.stargraph.core.model.ModelCreator;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.search.ModifiableRangeSearchParams;
 import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
@@ -116,11 +117,21 @@ public final class IndexerIT {
     @Test
     public void pivotedSearchTest() {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create("obama");
-        String rankString = "school";
-        ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
+        ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create()
+                .incomingEdges(false)
+                .outgoingEdges(true)
+                .propertyTypes(Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE))
+                .pruningStrategies(Arrays.asList(new ModifiableRangeSearchParams.NoCyclesPruning()))
+                .limitToRepresentatives(true);
+        ModifiableRankParams rankParams = ParamsBuilder.word2vec();
+        if (rankParams instanceof ModifiableIndraParams) {
+            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
+        }
 
-        final InstanceEntity obama = modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace());
-        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(), Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false, false);
+        String rankString = "school";
+        final InstanceEntity pivot = modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace());
+
+        Scores scores = entitySearcher.pivotedSearch(pivot, searchParams, rangeSearchParams, 3, rankString, rankParams, false);
 
         PropertyEntity expected = modelCreator.createProperty("dbp:education", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());

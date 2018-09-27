@@ -32,11 +32,13 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.model.InstanceEntityImpl;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.search.ModifiableRangeSearchParams;
 import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.data.processor.BaseProcessor;
 import net.stargraph.data.processor.Holder;
 import net.stargraph.data.processor.ProcessorException;
-import net.stargraph.model.*;
+import net.stargraph.model.InstanceEntity;
+import net.stargraph.model.ValueEntity;
 import net.stargraph.query.Language;
 import net.stargraph.rank.*;
 
@@ -86,7 +88,12 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(holder.getKBId().getId());
             String rankString = searchStr;
             ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.min(threshold));
-            Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(), Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false, true);
+            ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create()
+                    .incomingEdges(false)
+                    .outgoingEdges(true)
+                    .propertyTypes(Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE));
+
+            Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rangeSearchParams, 1, rankString, rankParams, true);
 
             List<String> otherValues = (entity.getOtherValues() != null)? new ArrayList<>(entity.getOtherValues()) : new ArrayList<>();
             scores.stream()

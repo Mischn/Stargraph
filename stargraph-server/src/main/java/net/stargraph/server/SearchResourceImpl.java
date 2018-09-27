@@ -29,7 +29,7 @@ package net.stargraph.server;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.EntitySearcher;
-import net.stargraph.core.search.SearchQueryGenerator;
+import net.stargraph.core.search.ModifiableRangeSearchParams;
 import net.stargraph.rank.*;
 import net.stargraph.rest.EntityEntry;
 import net.stargraph.rest.SearchResource;
@@ -39,7 +39,6 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import javax.ws.rs.core.Response;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -99,9 +98,14 @@ final class SearchResourceImpl implements SearchResource {
         Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
 
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId).searchSpaceLimit(topk); //TODO use resultLimit instead? or additional parameter?
+        ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create() //TODO additional parameters in request?
+                .incomingEdges(incomingEdges)
+                .outgoingEdges(outgoingEdges)
+                .limitToRepresentatives(true);
+
         String rankString = relationTerm;
         ModifiableRankParams rankParams = ParamsBuilder.get(model);
-        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, Arrays.asList(), Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), true, false);
+        Scores scores = entitySearcher.pivotedSearch(id, searchParams, rangeSearchParams, range, rankString, rankParams, false);
         List<EntityEntry> entityEntries = EntityEntryCreator.createScoredEntityEntries(scores, dbId, namespace);
 
         return Response.status(Response.Status.OK).entity(entityEntries).build();

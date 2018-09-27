@@ -283,7 +283,7 @@ public class Resolver {
         ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
         String rankString = binding.getTerm();
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.min(0.3d)); //TODO magic number
-        return entitySearcher.pivotedPropertySearch(pivot, searchParams, rankString, rankParams, PREDICATE_RANGE);
+        return entitySearcher.pivotedPropertySearch(pivot, searchParams, PREDICATE_RANGE, rankString, rankParams);
     }
 
 

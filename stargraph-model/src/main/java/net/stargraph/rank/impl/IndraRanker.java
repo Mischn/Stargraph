@@ -85,6 +85,10 @@ public final class IndraRanker extends BaseRanker {
 
 
     private List<ScoredTextPair> scoreTextPairs(List<TextPair> pairs) {
+        if (pairs.size() <= 0) {
+            return new ArrayList<>();
+        }
+
         RelatednessRequest request = new RelatednessRequest()
                 .corpus(params.getCorpus())
                 .language(params.getLanguage())

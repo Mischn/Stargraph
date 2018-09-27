@@ -120,7 +120,7 @@ public final class IndexerIT {
         ModifiableRankParams rankParams = ParamsBuilder.word2vec().threshold(Threshold.auto());
 
         final InstanceEntity obama = modelCreator.createInstance("dbr:Barack_Obama", dbId, core.getNamespace());
-        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false, false);
+        Scores scores = entitySearcher.pivotedSearch(obama, searchParams, rankString, rankParams, false, true, 1, Arrays.asList(), Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), false, false);
 
         PropertyEntity expected = modelCreator.createProperty("dbp:education", dbId, core.getNamespace());
         Assert.assertEquals(expected, scores.get(0).getEntry());

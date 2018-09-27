@@ -44,6 +44,40 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class EntitySearcher {
+    public interface PruningStrategy {
+        class Result {
+            private List<Route> rejectRoutes;
+            private List<Route> notTraverseRoutes;
+            private boolean incomingEdges;
+            private boolean outgoingEdges;
+
+            public Result(List<Route> rejectRoutes, List<Route> notTraverseRoutes, boolean incomingEdges, boolean outgoingEdges) {
+                this.rejectRoutes = rejectRoutes;
+                this.notTraverseRoutes = notTraverseRoutes;
+                this.incomingEdges = incomingEdges;
+                this.outgoingEdges = outgoingEdges;
+            }
+
+            public List<Route> getRejectRoutes() {
+                return rejectRoutes;
+            }
+
+            public List<Route> getNotTraverseRoutes() {
+                return notTraverseRoutes;
+            }
+
+            public boolean isIncomingEdges() {
+                return incomingEdges;
+            }
+
+            public boolean isOutgoingEdges() {
+                return outgoingEdges;
+            }
+        }
+
+        Result prune(List<Route> newRoutes, boolean incomingEdges, boolean outgoingEdges);
+    }
+
     private static final int FUZZINESS = 1;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -462,14 +496,14 @@ public class EntitySearcher {
      * @param returnBestMatchEntities
      * @return
      */
-    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(String pivotId, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<PruningStrategy> pruningStrategies, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
-        return pivotedSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, allowCycles, propertyTypes, limitToRepresentatives, returnBestMatchEntities);
+        return pivotedSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rankString, rankParams, incomingEdges, outgoingEdges, range, pruningStrategies, propertyTypes, limitToRepresentatives, returnBestMatchEntities);
     }
-    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
+    public Scores pivotedSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, boolean incomingEdges, boolean outgoingEdges, int range, List<PruningStrategy> pruningStrategies, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, boolean returnBestMatchEntities) {
         KBCore core = stargraph.getKBCore(searchParams.getDbId());
 
-        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, allowCycles, propertyTypes, limitToRepresentatives);
+        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, incomingEdges, outgoingEdges, pruningStrategies, propertyTypes, limitToRepresentatives);
 
         // We have to remap the routes to the propertyPath, the real target of the ranker call.
         Scores propScores = new Scores(neighbours.stream()
@@ -510,7 +544,9 @@ public class EntitySearcher {
 
 
      public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range) {
-         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, false, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), true, false);
+        List<PruningStrategy> pruningStrategies = Arrays.asList(new NoCyclesPruning(), new EdgeDirectionPruning());
+
+         return pivotedSearch(pivot, searchParams, rankString, rankParams, true, true, range, pruningStrategies, Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE), true, false);
      }
 
 
@@ -655,7 +691,7 @@ public class EntitySearcher {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
-    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives) {
+    public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, boolean incomingEdges, boolean outgoingEdges, List<PruningStrategy> pruningStrategies, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
         InstanceEntity myPivot = namespace.shrink(pivot);
 
@@ -672,7 +708,7 @@ public class EntitySearcher {
                 range,
                 incomingEdges,
                 outgoingEdges,
-                allowCycles,
+                pruningStrategies,
                 propertyTypes,
                 limitToRepresentatives,
                 directNeighbours,
@@ -718,7 +754,7 @@ public class EntitySearcher {
         return result;
     }
 
-    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, boolean allowCycles, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
+    private void neighbourSearchRec(Route route, ModifiableSearchParams searchParams, int range, int leftRange, boolean incomingEdges, boolean outgoingEdges, List<PruningStrategy> pruningStrategies, List<SearchQueryGenerator.PropertyType> propertyTypes, boolean limitToRepresentatives, Map<InstanceEntity, List<Route>> directNeighbours, Map<Integer, List<Route>> routes) {
         if (leftRange == 0 || !(route.getLastWaypoint() instanceof InstanceEntity)) {
             return;
         }
@@ -741,27 +777,87 @@ public class EntitySearcher {
             PropertyEntity newProperty = directN.getPropertyPath().getLastProperty();
             PropertyPath.Direction newDirection = directN.getPropertyPath().getLastDirection();
             NodeEntity newWaypoint = directN.getLastWaypoint();
-
-            // don't allow links back to any previously visited waypoints (=cycles)
-            if ((!allowCycles) && (route.getWaypoints().contains(newWaypoint))) {
-                continue;
-            }
-
             Route newRoute = route.extend(newProperty, newDirection, newWaypoint);
-
-//            System.out.println(newRoute.getWaypoints());
-//            System.out.println(newRoute.getPropertyPath());
-
-
-            // add to result
             newRoutes.add(newRoute);
-            routes.computeIfAbsent(range-(leftRange-1), (x) -> new ArrayList<>()).add(newRoute);
+        }
+
+        // prune
+        Set<Route> rejectRoutes = new HashSet<>();
+        Set<Route> notTraverseRoutes = new HashSet<>();
+        boolean incomingEdges2 = incomingEdges;
+        boolean outgoingEdges2 = outgoingEdges;
+
+        if (pruningStrategies != null) {
+            for (PruningStrategy pruningStrategy : pruningStrategies) {
+                PruningStrategy.Result r = pruningStrategy.prune(newRoutes, incomingEdges2, outgoingEdges2);
+                rejectRoutes.addAll(r.getRejectRoutes());
+                notTraverseRoutes.addAll(r.getNotTraverseRoutes());
+                incomingEdges2 = r.isIncomingEdges();
+                outgoingEdges2 = r.isOutgoingEdges();
+            }
+        }
+
+        // add to result
+        for (Route r : newRoutes) {
+            if (rejectRoutes.contains(r)) {
+                logger.debug(marker, "Prune (Reject) {}", r);
+            } else {
+                routes.computeIfAbsent(range - (leftRange - 1), (x) -> new ArrayList<>()).add(r);
+            }
         }
 
         // recursion
-        newRoutes.forEach(r -> {
-            neighbourSearchRec(r, searchParams, range, leftRange-1, incomingEdges, outgoingEdges, allowCycles, propertyTypes, limitToRepresentatives, directNeighbours, routes);
-        });
+        for (Route r : newRoutes) {
+            if (notTraverseRoutes.contains(r)) {
+                logger.debug(marker, "Prune (Not-Traverse) {}", r);
+            } else {
+                neighbourSearchRec(r, searchParams, range, leftRange - 1, incomingEdges2, outgoingEdges2, pruningStrategies, propertyTypes, limitToRepresentatives, directNeighbours, routes);
+            }
+        }
+    }
+
+
+
+
+
+    // PRUNING STRATEGIES
+
+    /**
+     * Doesn't allow links back to any previously visited waypoints (=cycles)
+     */
+    public static class NoCyclesPruning implements PruningStrategy {
+
+        @Override
+        public Result prune(List<Route> newRoutes, boolean incomingEdges, boolean outgoingEdges) {
+            List<Route> rejectRoutes = new ArrayList<>();
+            List<Route> notTraverseRoutes = new ArrayList<>();
+
+            //
+            for (Route route : newRoutes) {
+                if (route.getWaypoints().size() > 1 && route.getWaypoints().subList(0, route.getWaypoints().size()-1).contains(route.getLastWaypoint())) {
+                    rejectRoutes.add(route);
+                    notTraverseRoutes.add(route);
+                }
+            }
+
+            return new Result(rejectRoutes, notTraverseRoutes, incomingEdges, outgoingEdges);
+        }
+    }
+
+    /**
+     * Will disable to use incoming edges after range 1
+     */
+    public static class EdgeDirectionPruning implements PruningStrategy {
+
+        @Override
+        public Result prune(List<Route> newRoutes, boolean incomingEdges, boolean outgoingEdges) {
+            boolean incomingEdges2 = incomingEdges;
+            if (newRoutes.size() > 0 && newRoutes.get(0).getWaypoints().size() >= 1) {
+                incomingEdges2 = false;
+            }
+
+            return new Result(new ArrayList<>(), new ArrayList<>(), incomingEdges2, outgoingEdges);
+        }
     }
 
 }

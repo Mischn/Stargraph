@@ -175,7 +175,7 @@ public final class ModelCreator {
 
     public ValueEntity createProperValue(String value, String dataType, String langTag) {
         dataType = (dataType != null)? dataType : ValueEntityImpl.DEFAULT_DATA_TYPE;
-        String id = (langTag != null)? "\"%s\"@%s^^<%s>".format(value, langTag, dataType) : "\"%s\"^^<%s>".format(value, dataType);
+        String id = (langTag != null)? "\"" + value + "\"@" + langTag + "^^<" + dataType + ">" : "\"" + value + "\"^^<" + dataType + ">";
         return new ValueEntityImpl(id, value, dataType, langTag);
     }
 

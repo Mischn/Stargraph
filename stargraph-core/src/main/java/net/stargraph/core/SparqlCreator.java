@@ -242,6 +242,20 @@ public class SparqlCreator {
         return stmtJoiner.toString();
     }
 
+    public String concatJoin(List<String> statements, boolean lineBreak) {
+        StringJoiner stmtJoiner;
+        if (lineBreak) {
+            stmtJoiner = new StringJoiner("}\n{", "{", "}");
+        } else {
+            stmtJoiner = new StringJoiner("} {", "{", "}");
+        }
+
+        for (String statement : statements) {
+            stmtJoiner.add(statement);
+        }
+        return stmtJoiner.toString();
+    }
+
     public String unionJoin(List<String> statements, boolean lineBreak) {
         StringJoiner stmtJoiner;
         if (lineBreak) {

@@ -246,7 +246,7 @@ public final class SPARQLQueryBuilder {
             }
         });
 
-        return sparqlCreator.unionJoin(resolvedTriplePatterns, true);
+        return sparqlCreator.concatJoin(resolvedTriplePatterns, true);
     }
 
     private boolean isVar(String s) {

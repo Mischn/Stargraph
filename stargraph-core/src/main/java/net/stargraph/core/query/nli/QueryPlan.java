@@ -27,7 +27,12 @@ package net.stargraph.core.query.nli;
  */
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public final class QueryPlan extends ArrayList<TriplePattern> {
 
+    @Override
+    public String toString() {
+        return this.stream().map(e -> e.toString()).collect(Collectors.joining(" . "));
+    }
 }

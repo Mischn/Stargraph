@@ -28,10 +28,10 @@ package net.stargraph.core.query.response;
 
 import net.stargraph.core.query.QueryResponse;
 import net.stargraph.core.query.QueryType;
-import net.stargraph.core.query.SPARQLQueryBuilder;
 import net.stargraph.core.query.filter.FilterResult;
 import net.stargraph.core.query.nli.DataModelBinding;
 import net.stargraph.core.query.nli.DataModelBindingContext;
+import net.stargraph.core.query.nli.QueryPlan;
 import net.stargraph.model.PassageExtraction;
 import net.stargraph.query.InteractionMode;
 import net.stargraph.rank.Score;
@@ -39,6 +39,7 @@ import net.stargraph.rank.Score;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class AnswerSetResponse extends QueryResponse {
 
@@ -48,7 +49,8 @@ public final class AnswerSetResponse extends QueryResponse {
     private List<String> textAnswers;
 
     // Evidences/Explanation
-    private String sparqlQuery;
+    private List<QueryPlan> queryPlans;
+    private List<String> sparqlQueries; // created SPARQL-Queries
     private Score coreEntity;
     private QueryType sparqlQueryType;
     private List<String> docTypes;
@@ -56,16 +58,16 @@ public final class AnswerSetResponse extends QueryResponse {
     private List<FilterResult> filterResults;
 
     private Map<String, DataModelBinding> bindings;
-    private Map<String, Map<DataModelBindingContext, List<Score>>> possibleMappings;
-    private Map<String, Map<DataModelBindingContext, List<Score>>> mappings;
+    private Map<String, Map<DataModelBindingContext, Set<Score>>> possibleMappings;
+    private Map<String, Map<DataModelBindingContext, Set<Score>>> mappings;
 
     public AnswerSetResponse(InteractionMode mode, String userQuery) {
         super(mode, userQuery);
     }
 
-    public AnswerSetResponse(InteractionMode mode, String userQuery, SPARQLQueryBuilder sparqlQueryBuilder) {
+    public AnswerSetResponse(InteractionMode mode, String userQuery, QueryType sparqlQueryType) {
         super(mode, userQuery);
-        this.sparqlQueryType = Objects.requireNonNull(sparqlQueryBuilder).getQueryType();
+        this.sparqlQueryType = Objects.requireNonNull(sparqlQueryType);
     }
 
     public void setEntityAnswers(List<Score> entityAnswers) {
@@ -78,6 +80,14 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public void setTextAnswers(List<String> textAnswers) {
         this.textAnswers = textAnswers;
+    }
+
+    public void setQueryPlans(List<QueryPlan> queryPlans) {
+        this.queryPlans = queryPlans;
+    }
+
+    public void setSparqlQueries(List<String> sparqlQueries) {
+        this.sparqlQueries = sparqlQueries;
     }
 
     public void setCoreEntity(Score coreEntity) {
@@ -100,17 +110,14 @@ public final class AnswerSetResponse extends QueryResponse {
         this.bindings = bindings;
     }
 
-    public void setPossibleMappings(Map<String, Map<DataModelBindingContext, List<Score>>> pivotChoices) {
-        this.possibleMappings = pivotChoices;
+    public void setPossibleMappings(Map<String, Map<DataModelBindingContext, Set<Score>>> possibleMappings) {
+        this.possibleMappings = possibleMappings;
     }
 
-    public void setMappings(Map<String, Map<DataModelBindingContext, List<Score>>> mappings) {
+    public void setMappings(Map<String, Map<DataModelBindingContext, Set<Score>>> mappings) {
         this.mappings = mappings;
     }
 
-    public void setSPARQLQuery(String sparqlQuery) {
-        this.sparqlQuery = Objects.requireNonNull(sparqlQuery);
-    }
 
     public List<Score> getEntityAnswers() {
         return entityAnswers;
@@ -122,6 +129,14 @@ public final class AnswerSetResponse extends QueryResponse {
 
     public List<String> getTextAnswers() {
         return textAnswers;
+    }
+
+    public List<QueryPlan> getQueryPlans() {
+        return queryPlans;
+    }
+
+    public List<String> getSparqlQueries() {
+        return sparqlQueries;
     }
 
     public Score getCoreEntity() {
@@ -140,17 +155,14 @@ public final class AnswerSetResponse extends QueryResponse {
         return bindings;
     }
 
-    public Map<String, Map<DataModelBindingContext, List<Score>>> getPossibleMappings() {
+    public Map<String, Map<DataModelBindingContext, Set<Score>>> getPossibleMappings() {
         return possibleMappings;
     }
 
-    public Map<String, Map<DataModelBindingContext, List<Score>>> getMappings() {
+    public Map<String, Map<DataModelBindingContext, Set<Score>>> getMappings() {
         return mappings;
     }
 
-    public String getSparqlQuery() {
-        return sparqlQuery;
-    }
 
     public List<PassageExtraction> getQueryFilters() {
         return queryFilters;
@@ -166,7 +178,7 @@ public final class AnswerSetResponse extends QueryResponse {
                 "entityAnswers=" + entityAnswers +
                 ", documentAnswers=" + documentAnswers +
                 ", textAnswers=" + textAnswers +
-                ", sparqlQuery='" + sparqlQuery + '\'' +
+                ", queryPlans='" + queryPlans + '\'' +
                 ", coreEntity=" + coreEntity +
                 ", docTypes=" + docTypes +
                 '}';

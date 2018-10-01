@@ -48,6 +48,7 @@ import org.slf4j.MarkerFactory;
 import javax.ws.rs.core.Response;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public final class QueryResourceImpl implements QueryResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -121,29 +122,35 @@ public final class QueryResourceImpl implements QueryResource {
             if (answerSet.getDocumentAnswers() != null) {
                 response.setDocumentAnswers(EntityEntryCreator.createScoredDocumentEntries(answerSet.getDocumentAnswers(), dbId, namespace));
             }
-            response.setTextAnswers(answerSet.getTextAnswers());
-            response.setSparqlQuery(answerSet.getSparqlQuery());
+            if (answerSet.getTextAnswers() != null) {
+                response.setTextAnswers(answerSet.getTextAnswers());
+            }
+
+            if (answerSet.getQueryPlans() != null) {
+                response.setQueryPlans(answerSet.getQueryPlans().stream().map(p -> p.toString()).collect(Collectors.toList()));
+            }
             if (answerSet.getCoreEntity() != null) {
                 response.setCoreEntity(EntityEntryCreator.createScoredEntityEntry(answerSet.getCoreEntity(), dbId, namespace));
             }
-            response.setDocTypes(answerSet.getDocTypes());
-
+            if (answerSet.getDocTypes() != null) {
+                response.setDocTypes(answerSet.getDocTypes());
+            }
             if (answerSet.getQueryFilters() != null) {
                 response.setQueryFilters(createQueryFilters(answerSet.getQueryFilters()));
             }
-
             if (answerSet.getFilterResults() != null) {
                 response.setFilterResults(createFilterResults(answerSet.getFilterResults()));
             }
 
+            if (answerSet.getSparqlQueries() != null) {
+                response.setSparqlQueries(answerSet.getSparqlQueries());
+            }
             if (answerSet.getBindings() != null) {
                 response.setBindings(createBindings(answerSet.getBindings()));
             }
-
             if (answerSet.getPossibleMappings() != null) {
                 response.setPossibleMappings(createMappings(answerSet.getPossibleMappings(), dbId, namespace));
             }
-
             if (answerSet.getMappings() != null) {
                 response.setMappings(createMappings(answerSet.getMappings(), dbId, namespace));
             }
@@ -177,11 +184,12 @@ public final class QueryResourceImpl implements QueryResource {
         return res;
     }
 
-    private static Map<String, Map<String, List<EntityEntry>>> createMappings(Map<String, Map<DataModelBindingContext, List<Score>>> mappings, String dbId, Namespace namespace) {
-        Map<String, Map<String, List<EntityEntry>>> res = new HashMap<>();
+    private static Map<String, Map<String, Set<EntityEntry>>> createMappings(Map<String, Map<DataModelBindingContext, Set<Score>>> mappings, String dbId, Namespace namespace) {
+        Map<String, Map<String, Set<EntityEntry>>> res = new HashMap<>();
         for (String placeholder : mappings.keySet()) {
             for (DataModelBindingContext context : mappings.get(placeholder).keySet()) {
-                List<EntityEntry> entries = EntityEntryCreator.createScoredEntityEntries(mappings.get(placeholder).get(context), dbId, namespace);
+                Set<EntityEntry> entries = new LinkedHashSet<>();
+                EntityEntryCreator.createScoredEntityEntries(mappings.get(placeholder).get(context).stream().collect(Collectors.toList()), dbId, namespace).forEach(x -> entries.add(x));
                 res.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context.name(), entries);
             }
         }

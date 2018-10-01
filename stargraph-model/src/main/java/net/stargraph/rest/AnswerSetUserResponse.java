@@ -30,6 +30,7 @@ import net.stargraph.query.InteractionMode;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class AnswerSetUserResponse extends UserResponse {
 
@@ -39,15 +40,16 @@ public final class AnswerSetUserResponse extends UserResponse {
     private List<String> textAnswers;
 
     // Evidences/Explanation
-    private String sparqlQuery;
+    private List<String> queryPlans;
+    private List<String> sparqlQueries;
     private EntityEntry coreEntity;
     private List<String> docTypes;
     private List<FilterEntry> queryFilters;
     private List<FilterResultEntry> filterResults;
 
     private Map<String, String> bindings;
-    private Map<String, Map<String, List<EntityEntry>>> possibleMappings;
-    private Map<String, Map<String, List<EntityEntry>>> mappings;
+    private Map<String, Map<String, Set<EntityEntry>>> possibleMappings;
+    private Map<String, Map<String, Set<EntityEntry>>> mappings;
 
     public AnswerSetUserResponse(String query, InteractionMode interactionMode) {
         super(query, interactionMode);
@@ -65,8 +67,12 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.textAnswers = textAnswers;
     }
 
-    public void setSparqlQuery(String sparqlQuery) {
-        this.sparqlQuery = sparqlQuery;
+    public void setQueryPlans(List<String> queryPlans) {
+        this.queryPlans = queryPlans;
+    }
+
+    public void setSparqlQueries(List<String> sparqlQueries) {
+        this.sparqlQueries = sparqlQueries;
     }
 
     public void setCoreEntity(EntityEntry coreEntity) {
@@ -89,13 +95,14 @@ public final class AnswerSetUserResponse extends UserResponse {
         this.bindings = bindings;
     }
 
-    public void setPossibleMappings(Map<String, Map<String, List<EntityEntry>>> possibleMappings) {
+    public void setPossibleMappings(Map<String, Map<String, Set<EntityEntry>>> possibleMappings) {
         this.possibleMappings = possibleMappings;
     }
 
-    public void setMappings(Map<String, Map<String, List<EntityEntry>>> mappings) {
+    public void setMappings(Map<String, Map<String, Set<EntityEntry>>> mappings) {
         this.mappings = mappings;
     }
+
 
     public List<EntityEntry> getEntityAnswers() {
         return entityAnswers;
@@ -109,12 +116,16 @@ public final class AnswerSetUserResponse extends UserResponse {
         return textAnswers;
     }
 
-    public EntityEntry getCoreEntity() {
-        return coreEntity;
+    public List<String> getQueryPlans() {
+        return queryPlans;
     }
 
-    public String getSparqlQuery() {
-        return sparqlQuery;
+    public List<String> getSparqlQueries() {
+        return sparqlQueries;
+    }
+
+    public EntityEntry getCoreEntity() {
+        return coreEntity;
     }
 
     public List<String> getDocTypes() {
@@ -133,11 +144,11 @@ public final class AnswerSetUserResponse extends UserResponse {
         return bindings;
     }
 
-    public Map<String, Map<String, List<EntityEntry>>> getPossibleMappings() {
+    public Map<String, Map<String, Set<EntityEntry>>> getPossibleMappings() {
         return possibleMappings;
     }
 
-    public Map<String, Map<String, List<EntityEntry>>> getMappings() {
+    public Map<String, Map<String, Set<EntityEntry>>> getMappings() {
         return mappings;
     }
 }

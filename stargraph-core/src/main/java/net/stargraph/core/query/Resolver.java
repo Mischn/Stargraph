@@ -32,8 +32,8 @@ public class Resolver {
     protected EntitySearcher entitySearcher;
     protected String dbId;
     protected Namespace namespace;
-    protected Map<String, Map<DataModelBindingContext, List<Score>>> possibleMappings; // maps placeholder & context to a list of scored entities
-    protected Map<String, Map<DataModelBindingContext, List<Score>>> mappings; // maps placeholder & context to a list of scored entities
+    protected Map<String, Map<DataModelBindingContext, Set<Score>>> possibleMappings; // maps placeholder & context to a list of scored entities
+    protected Map<String, Map<DataModelBindingContext, Set<Score>>> mappings; // maps placeholder & context to a list of scored entities
 
     public Resolver(EntitySearcher entitySearcher, Namespace namespace, String dbId) {
         this.entitySearcher = entitySearcher;
@@ -83,13 +83,13 @@ public class Resolver {
     private void addPossibleMappings(String placeHolder, DataModelBindingContext context, List<Score> scores) {
         // Expanding the Namespace for all entities
         List<Score> expanded = new Scores(scores.stream().map(s -> new Score(namespace.expand(s.getEntry()), s.getValue())).collect(Collectors.toList()));
-        possibleMappings.computeIfAbsent(placeHolder, (b) -> new HashMap<>()).computeIfAbsent(context, (c) -> new Scores()).addAll(expanded);
+        possibleMappings.computeIfAbsent(placeHolder, (b) -> new HashMap<>()).computeIfAbsent(context, (c) -> new LinkedHashSet<>()).addAll(expanded);
     }
 
     private void addMappings(String placeHolder, DataModelBindingContext context, List<Score> scores) {
         // Expanding the Namespace for all entities
         List<Score> expanded = new Scores(scores.stream().map(s -> new Score(namespace.expand(s.getEntry()), s.getValue())).collect(Collectors.toList()));
-        mappings.computeIfAbsent(placeHolder, (b) -> new HashMap<>()).computeIfAbsent(context, (c) -> new Scores()).addAll(expanded);
+        mappings.computeIfAbsent(placeHolder, (b) -> new HashMap<>()).computeIfAbsent(context, (c) -> new LinkedHashSet<>()).addAll(expanded);
     }
 
     public boolean hasPossibleMappings(String placeHolder, DataModelBindingContext context) {
@@ -100,25 +100,25 @@ public class Resolver {
         return mappings.containsKey(placeHolder) && mappings.get(placeHolder).containsKey(context) && mappings.get(placeHolder).get(context).size() > 0;
     }
 
-    public List<Score> getPossibleMappings(String placeHolder, DataModelBindingContext context) {
+    public Set<Score> getPossibleMappings(String placeHolder, DataModelBindingContext context) {
         if (hasPossibleMappings(placeHolder, context)) {
             return possibleMappings.get(placeHolder).get(context);
         }
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 
-    public List<Score> getMappings(String placeHolder, DataModelBindingContext context) {
+    public Set<Score> getMappings(String placeHolder, DataModelBindingContext context) {
         if (hasMappings(placeHolder, context)) {
             return mappings.get(placeHolder).get(context);
         }
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 
-    public Map<String, Map<DataModelBindingContext, List<Score>>> getPossibleMappings() {
+    public Map<String, Map<DataModelBindingContext, Set<Score>>> getPossibleMappings() {
         return possibleMappings;
     }
 
-    public Map<String, Map<DataModelBindingContext, List<Score>>> getMappings() {
+    public Map<String, Map<DataModelBindingContext, Set<Score>>> getMappings() {
         return mappings;
     }
 
@@ -292,7 +292,7 @@ public class Resolver {
         resolveInstance(binding, context, POSSIBLE_PIVOT_LIMIT, 1);
 
         if (hasMappings(binding.getPlaceHolder(), context)) {
-            return (InstanceEntity) getMappings(binding.getPlaceHolder(), context).get(0).getEntry();
+            return (InstanceEntity) getMappings(binding.getPlaceHolder(), context).iterator().next().getEntry();
         }
         return null;
     }

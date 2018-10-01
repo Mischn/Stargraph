@@ -46,10 +46,10 @@ public final class SPARQLQueryBuilder {
     private final QueryType queryType;
     private final QueryPlan queryPlan;
     private final Map<String, DataModelBinding> bindings; // maps placeholder to a DataModelBinding
-    private Map<String, Map<DataModelBindingContext, List<Score>>> mappings; // maps placeholder & context to a list of scored entities
+    private Map<String, Map<DataModelBindingContext, Set<Score>>> mappings; // maps placeholder & context to a list of scored entities
     private Namespace namespace;
 
-    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlan queryPlan, Map<String, DataModelBinding> bindings, Map<String, Map<DataModelBindingContext, List<Score>>> mappings) {
+    public SPARQLQueryBuilder(Stargraph stargraph, String dbId, QueryType queryType, QueryPlan queryPlan, Map<String, DataModelBinding> bindings, Map<String, Map<DataModelBindingContext, Set<Score>>> mappings) {
         this.sparqlCreator = new SparqlCreator();
         this.classURIs = stargraph.getClassRelations(dbId);
         this.queryType = Objects.requireNonNull(queryType);
@@ -74,14 +74,14 @@ public final class SPARQLQueryBuilder {
 
     // MAPPINGS
 
-    public List<Score> getMapping(DataModelBinding binding, DataModelBindingContext context) {
+    public Set<Score> getMapping(DataModelBinding binding, DataModelBindingContext context) {
         if (mappings.containsKey(binding.getPlaceHolder()) && mappings.get(binding.getPlaceHolder()).containsKey(context)) {
             return mappings.get(binding.getPlaceHolder()).get(context);
         }
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 
-    public Map<String, Map<DataModelBindingContext, List<Score>>> getMappings() {
+    public Map<String, Map<DataModelBindingContext, Set<Score>>> getMappings() {
         return mappings;
     }
 
@@ -136,7 +136,7 @@ public final class SPARQLQueryBuilder {
                 throw new AssertionError("Subject should not be a type");
             } else {
                 DataModelBinding binding = getBinding(subjectPlaceholder);
-                List<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
+                Set<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
                     sMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
@@ -154,7 +154,7 @@ public final class SPARQLQueryBuilder {
                 throw new AssertionError("Object should not be a type");
             } else {
                 DataModelBinding binding = getBinding(objectPlaceholder);
-                List<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
+                Set<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
                     oMappings = Arrays.asList(getUnmappedURI(binding));
                 } else {
@@ -200,7 +200,7 @@ public final class SPARQLQueryBuilder {
                 resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
             } else {
                 DataModelBinding binding = getBinding(propertyPlaceholder);
-                List<Score> mappings = getMapping(binding, DataModelBindingContext.PREDICATE);
+                Set<Score> mappings = getMapping(binding, DataModelBindingContext.PREDICATE);
                 if (mappings.isEmpty()) {
                     sparqlCreator.resetNewVarCounter();
 

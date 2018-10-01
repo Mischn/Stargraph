@@ -167,8 +167,18 @@ public class QueryEngine {
     private QueryResponse nliQuery(String userQuery, Language language) {
         QuestionAnalyzer analyzer = this.analyzers.getQuestionAnalyzer(language);
         QuestionAnalysis analysis = analyzer.analyse(userQuery);
-
         QueryPlannerPattern queryPlannerPattern = analysis.getQueryPlannerPattern();
+
+        AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, analysis.getQueryType());
+        answerSet.setBindings(analysis.getBindings());
+        answerSet.setQueryPlans(queryPlannerPattern.getQueryPlans());
+
+        Map<String, Map<DataModelBindingContext, Set<Score>>> mappings = new HashMap<>();
+        Map<String, Map<DataModelBindingContext, Set<Score>>> possibleMappings = new HashMap<>();
+        Set<Score> entityAnswers = new LinkedHashSet<>();
+        List<String> sparqlQueries = new ArrayList<>();
+
+
         for (QueryPlan queryPlan : queryPlannerPattern.getQueryPlans()) {
             logger.info(marker, "##### Resolve query plan: #####\n{}\n", queryPlan);
             logger.info(marker, "Resolve triples:");
@@ -189,36 +199,47 @@ public class QueryEngine {
             logger.info(marker, queryBuilder.toString());
 
             String sparqlQueryStr = queryBuilder.build();
+            sparqlQueries.add(sparqlQueryStr);
 
             logger.info(marker, "SPARQLQueryString:");
             logger.info(marker, sparqlQueryStr);
 
             Map<String, List<NodeEntity>> vars = graphSearcher.select(sparqlQueryStr);
-            if (!vars.isEmpty()) {
-                AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, queryBuilder);
-
-                Set<Score> entityAnswers = vars.get("VAR_1").stream()
+            if (vars.containsKey("VAR_1")) {
+                Set<Score> eAnswers = vars.get("VAR_1").stream() // convention, answer must be bound to the first var
                         .map(e -> new Score(namespace.expand(e), 1)).collect(Collectors.toSet());
 
-                answerSet.setEntityAnswers(new ArrayList<>(entityAnswers)); // convention, answer must be bound to the first var
-
-                answerSet.setBindings(analysis.getBindings());
-                answerSet.setPossibleMappings(resolver.getPossibleMappings());
-                answerSet.setMappings(resolver.getMappings());
-
-                answerSet.setSPARQLQuery(sparqlQueryStr);
-
-                System.out.println("-----> " + answerSet.getMappings());
-                //
-                //if (triplePattern.getTypes().contains("VARIABLE TYPE CLASS")) {
-                //    entities = core.getEntitySearcher().searchByTypes(new HashSet<String>(Arrays.asList(triplePattern.objectLabel.split(" "))), true, 100);
-                //}
-
-                return answerSet;
+                entityAnswers.addAll(eAnswers);
             }
+
+            // add possible mappings
+            for (String placeholder : resolver.getPossibleMappings().keySet()) {
+                for (DataModelBindingContext context : resolver.getPossibleMappings().get(placeholder).keySet()) {
+                    Set<Score> scores = resolver.getPossibleMappings().get(placeholder).get(context);
+                    possibleMappings.computeIfAbsent(placeholder, p -> new HashMap<>()).computeIfAbsent(context, c -> new LinkedHashSet<>()).addAll(scores);
+                }
+            }
+
+            // add mappings
+            for (String placeholder : resolver.getMappings().keySet()) {
+                for (DataModelBindingContext context : resolver.getMappings().get(placeholder).keySet()) {
+                    Set<Score> scores = resolver.getMappings().get(placeholder).get(context);
+                    mappings.computeIfAbsent(placeholder, p -> new HashMap<>()).computeIfAbsent(context, c -> new LinkedHashSet<>()).addAll(scores);
+                }
+            }
+
+            // TODO ?
+            //if (triplePattern.getTypes().contains("VARIABLE TYPE CLASS")) {
+            //    entities = core.getEntitySearcher().searchByTypes(new HashSet<String>(Arrays.asList(triplePattern.objectLabel.split(" "))), true, 100);
+            //}
         }
 
-        return new NoResponse(NLI, userQuery);
+        answerSet.setMappings(mappings);
+        answerSet.setPossibleMappings(possibleMappings);
+        answerSet.setEntityAnswers(entityAnswers.stream().collect(Collectors.toList()));
+        answerSet.setSparqlQueries(sparqlQueries);
+
+        return answerSet;
     }
 
     private QueryResponse entitySimilarityQuery(String userQuery, Language language) {
@@ -236,7 +257,7 @@ public class QueryEngine {
         resolver.resolveInstance(coreEntityBinding, context, 10, 1);
 
         if (resolver.hasMappings(coreEntityBinding.getPlaceHolder(), context)) {
-            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).get(0);
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).iterator().next();
 
             ModifiableSearchParams searchParams = ModifiableSearchParams.create(dbId);
             Scores entityScores = entitySearcher.similarInstanceSearch((InstanceEntity) coreEntityScore.getEntry(), searchParams, docTypes);
@@ -272,7 +293,7 @@ public class QueryEngine {
         resolver.resolveInstance(coreEntityBinding, context, 10, 1);
 
         if (resolver.hasMappings(coreEntityBinding.getPlaceHolder(), context)) {
-            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).get(0);
+            Score coreEntityScore = resolver.getMappings(coreEntityBinding.getPlaceHolder(), context).iterator().next();
 
             List<Document> documents = entitySearcher.getDocumentsForResourceEntity(dbId, ((InstanceEntity) coreEntityScore.getEntry()).getId(), definitionDocTypes);
             if (!documents.isEmpty()) {

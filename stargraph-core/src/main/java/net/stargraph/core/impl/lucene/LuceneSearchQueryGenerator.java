@@ -4,7 +4,6 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
-import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
@@ -103,7 +102,7 @@ public class LuceneSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, PropertyTypes propertyTypes) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

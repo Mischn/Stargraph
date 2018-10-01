@@ -139,7 +139,7 @@ public class ElasticSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<PropertyType> propertyTypes) {
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, PropertyTypes propertyTypes) {
         throw new UnsupportedOperationException("Not implemented");
 
         // THIS WAS THE OLD VERSION WHEN USING THE FACT INDEX (Note: There was a clear performance-loss when both inSubject and inObject are enabled together.)

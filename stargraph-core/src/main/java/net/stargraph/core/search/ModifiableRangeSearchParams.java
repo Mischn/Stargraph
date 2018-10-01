@@ -9,7 +9,7 @@ import java.util.List;
 public class ModifiableRangeSearchParams {
     private boolean incomingEdges;
     private boolean outgoingEdges;
-    private List<SearchQueryGenerator.PropertyType> propertyTypes;
+    private SearchQueryGenerator.PropertyTypes propertyTypes;
     private List<PruningStrategy> pruningStrategies;
     private boolean limitToRepresentatives; // This will drastically limit the search space for some linked data graphs
 
@@ -17,7 +17,7 @@ public class ModifiableRangeSearchParams {
         // defaults
         this.incomingEdges = true;
         this.outgoingEdges = true;
-        this.propertyTypes = Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE);
+        this.propertyTypes = SearchQueryGenerator.PropertyTypes.ALL;
         this.pruningStrategies = Arrays.asList();
         this.limitToRepresentatives = false;
     }
@@ -32,7 +32,7 @@ public class ModifiableRangeSearchParams {
         return this;
     }
 
-    public final ModifiableRangeSearchParams propertyTypes(List<SearchQueryGenerator.PropertyType> propertyTypes) {
+    public final ModifiableRangeSearchParams propertyTypes(SearchQueryGenerator.PropertyTypes propertyTypes) {
         this.propertyTypes = propertyTypes;
         return this;
     }
@@ -55,7 +55,7 @@ public class ModifiableRangeSearchParams {
         return outgoingEdges;
     }
 
-    public List<SearchQueryGenerator.PropertyType> getPropertyTypes() {
+    public SearchQueryGenerator.PropertyTypes getPropertyTypes() {
         return propertyTypes;
     }
 
@@ -76,7 +76,7 @@ public class ModifiableRangeSearchParams {
         ModifiableRangeSearchParams res = new ModifiableRangeSearchParams();
         res.incomingEdges = incomingEdges;
         res.outgoingEdges = outgoingEdges;
-        res.propertyTypes = new ArrayList<>(propertyTypes);
+        res.propertyTypes = propertyTypes;
         res.pruningStrategies = new ArrayList<>(pruningStrategies);
         res.limitToRepresentatives = limitToRepresentatives;
         return res;

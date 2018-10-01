@@ -91,7 +91,7 @@ public final class ValueGeneratorProcessor extends BaseProcessor {
             ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create()
                     .incomingEdges(false)
                     .outgoingEdges(true)
-                    .propertyTypes(Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE));
+                    .propertyTypes(SearchQueryGenerator.PropertyTypes.NON_TYPE_ONLY);
 
             Scores scores = entitySearcher.pivotedSearch(entity, searchParams, rangeSearchParams, 1, rankString, rankParams, true);
 

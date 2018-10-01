@@ -33,9 +33,10 @@ import net.stargraph.rank.ModifiableSearchString;
 import java.util.List;
 
 public interface SearchQueryGenerator {
-    public static enum PropertyType {
-        TYPE,
-        NON_TYPE
+    public static enum PropertyTypes {
+        TYPE_ONLY,
+        NON_TYPE_ONLY,
+        ALL
     }
 
     // return resource entities that match any of the given ids
@@ -70,5 +71,5 @@ public interface SearchQueryGenerator {
     SearchQueryHolder findSimilarDocuments(ModifiableSearchParams searchParams, ModifiableSearchString searchString, List<String> docTypes, boolean entityDocument);
 
     // return facts that represent an arbitrary relationship with the pivot being either a subject or an object
-    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes);
+    SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, PropertyTypes propertyTypes);
 }

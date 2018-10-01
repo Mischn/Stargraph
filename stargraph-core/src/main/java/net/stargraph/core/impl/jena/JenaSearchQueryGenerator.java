@@ -30,16 +30,12 @@ import net.stargraph.core.Namespace;
 import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.BaseSearchQueryGenerator;
-import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.rank.ModifiableSearchParams;
 import net.stargraph.rank.ModifiableSearchString;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
@@ -95,7 +91,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
                 + "}"
                 + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
 
-        return new JenaQueryHolder(query, searchParams);
+        return new JenaQueryHolder(new JenaSPARQLQuery(query), searchParams);
     }
 
     @Override
@@ -119,12 +115,16 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     }
 
     @Override
-    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, List<SearchQueryGenerator.PropertyType> propertyTypes) {
-        assert (propertyTypes.size() > 0);
-
+    public SearchQueryHolder findPivotFacts(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean inSubject, boolean inObject, PropertyTypes propertyTypes) {
         Namespace namespace = getNamespace();
 
         String id = namespace.expandURI(pivot.getId());
+
+        // just for better performance
+        if (inSubject && !inObject) {
+            return new JenaQueryHolder(new JenaPivotedPropertyQuery(id, propertyTypes, classURIs), searchParams);
+        }
+
 
         String pattern = "?s ?p ?o .";
 
@@ -136,8 +136,8 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         Map<String, List<String>> varBindingsType = new HashMap<>();
         varBindingsType.put("?p", classURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
 
-        String nonTypePropertyFilter = (!propertyTypes.contains(PropertyType.TYPE))? " . " + sparqlCreator.createEqualsFilterStr(varBindingsType, true) : "";
-        if (!propertyTypes.contains(PropertyType.NON_TYPE) && propertyTypes.contains(PropertyType.TYPE)) {
+        String nonTypePropertyFilter = (propertyTypes.equals(PropertyTypes.NON_TYPE_ONLY))? " . " + sparqlCreator.createEqualsFilterStr(varBindingsType, true) : "";
+        if (propertyTypes.equals(PropertyTypes.TYPE_ONLY)) {
             varBindingsS.put("?p", varBindingsType.get("?p"));
             varBindingsO.put("?p", varBindingsType.get("?p"));
         }
@@ -169,7 +169,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
                     + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         }
 
-        return new JenaQueryHolder(query, searchParams);
+        return new JenaQueryHolder(new JenaSPARQLQuery(query), searchParams);
     }
 
     @Override

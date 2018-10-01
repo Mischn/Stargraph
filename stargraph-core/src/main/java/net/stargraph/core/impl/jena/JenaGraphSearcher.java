@@ -29,11 +29,17 @@ package net.stargraph.core.impl.jena;
 import net.stargraph.StarGraphException;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.graph.BaseGraphModel;
+import net.stargraph.core.search.SearchQueryGenerator;
 import net.stargraph.core.search.SearchQueryHolder;
 import net.stargraph.model.*;
+import net.stargraph.rank.ModifiableSearchParams;
 import net.stargraph.rank.Score;
 import net.stargraph.rank.Scores;
 import org.apache.jena.graph.Node;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,11 +92,9 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
         return false;
     }
 
-    @Override
-    public Scores search(SearchQueryHolder holder) {
-        JenaQueryHolder jenaQueryHolder = (JenaQueryHolder)holder;
-        String modelId = jenaQueryHolder.getSearchParams().getKbId().getModel();
-        String sparqlQuery = jenaQueryHolder.getQuery();
+    private Scores doSPARQLQuery(JenaSPARQLQuery jenaSPARQLQuery, ModifiableSearchParams searchParams) {
+        String modelId = searchParams.getKbId().getModel();
+        String sparqlQuery = jenaSPARQLQuery.getSparqlQuery();
 
         Scores scores = new Scores();
         sparqlQuery(sparqlQuery, new SparqlIteration() {
@@ -111,17 +115,17 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         }
                         scores.add(new Score(route, 0.0));
                     } else
-                    // assume that '?s', '?p', '?o' variables are available in the query
-                    if (varMap.containsKey("s") && varMap.containsKey("p") && varMap.containsKey("o")) {
-                        InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"));
-                        PropertyEntity predicate = asProperty(varMap.get("p"));
-                        NodeEntity object = asEntity(varMap.get("o"));
+                        // assume that '?s', '?p', '?o' variables are available in the query
+                        if (varMap.containsKey("s") && varMap.containsKey("p") && varMap.containsKey("o")) {
+                            InstanceEntity subject = (InstanceEntity) asEntity(varMap.get("s"));
+                            PropertyEntity predicate = asProperty(varMap.get("p"));
+                            NodeEntity object = asEntity(varMap.get("o"));
 
-                        Fact fact = new Fact(holder.getSearchParams().getKbId(), subject, predicate, object);
-                        scores.add(new Score(fact, 0.0));
-                    } else {
-                        throw new StarGraphException("?s ?p ?o / ?s ?p<n> ?x<n> ?o  variables need to be available in the query");
-                    }
+                            Fact fact = new Fact(searchParams.getKbId(), subject, predicate, object);
+                            scores.add(new Score(fact, 0.0));
+                        } else {
+                            throw new StarGraphException("?s ?p ?o / ?s ?p<n> ?x<n> ?o  variables need to be available in the query");
+                        }
 
                 } else if (modelId.equals(BuiltInModel.ENTITY.modelId)) {
                     // assume that '?e' variable is available in the query
@@ -146,6 +150,65 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
         });
 
         return scores;
+    }
+
+    // this should be a little bit faster than using the doSPARQLQuery function
+    private Scores doJenaPivotedPropertyQuery(JenaPivotedPropertyQuery jenaPivotedPropertyQuery, ModifiableSearchParams searchParams) {
+        logger.debug(marker, "Executing JenaPivotedPropertyQuery for id: {}", jenaPivotedPropertyQuery.getSubjectId());
+
+        Scores scores = new Scores();
+        long startTime = System.currentTimeMillis();
+        try {
+            graphModel.doRead(new BaseGraphModel.ReadTransaction() {
+                @Override
+                public void readTransaction(Model model) {
+                    Resource resource = model.getResource(jenaPivotedPropertyQuery.getSubjectId());
+
+                    StmtIterator it = resource.listProperties();
+                    while (it.hasNext() && ((searchParams.getSearchSpaceLimit() < 0)? true: scores.size() < searchParams.getSearchSpaceLimit())) {
+                        Statement statement = it.nextStatement();
+                        try {
+                            PropertyEntity predicate = asProperty(statement.getPredicate().asNode());
+                            if (jenaPivotedPropertyQuery.getPropertyTypes().equals(SearchQueryGenerator.PropertyTypes.TYPE_ONLY) && !jenaPivotedPropertyQuery.getClassProperties().contains(predicate.getId())) {
+                                continue;
+                            }
+                            if (jenaPivotedPropertyQuery.getPropertyTypes().equals(SearchQueryGenerator.PropertyTypes.NON_TYPE_ONLY) && jenaPivotedPropertyQuery.getClassProperties().contains(predicate.getId())) {
+                                continue;
+                            }
+
+                            InstanceEntity subject = (InstanceEntity) asEntity(statement.getSubject().asNode());
+                            NodeEntity object = asEntity(statement.getObject().asNode());
+
+                            Fact fact = new Fact(searchParams.getKbId(), subject, predicate, object);
+                            scores.add(new Score(fact, 0.0));
+                        } catch (Exception e) {
+                            System.out.println("ERROR: Could not parse " + statement);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            logger.error(marker, e.getMessage());
+        } finally {
+            long millis = System.currentTimeMillis() - startTime;
+            logger.info(marker, "JenaPivotedPropertyQuery query took {}s", millis / 1000.0);
+        }
+
+        return scores;
+    }
+
+
+    @Override
+    public Scores search(SearchQueryHolder holder) {
+        JenaQueryHolder jenaQueryHolder = (JenaQueryHolder)holder;
+
+        if (jenaQueryHolder.getQuery() instanceof JenaSPARQLQuery) {
+            return doSPARQLQuery((JenaSPARQLQuery) jenaQueryHolder.getQuery(), jenaQueryHolder.getSearchParams());
+        } else if (jenaQueryHolder.getQuery() instanceof JenaPivotedPropertyQuery) {
+            return doJenaPivotedPropertyQuery((JenaPivotedPropertyQuery) jenaQueryHolder.getQuery(), jenaQueryHolder.getSearchParams());
+        } else {
+            throw new AssertionError("Unknown Jena query type");
+        }
     }
 
     @Override

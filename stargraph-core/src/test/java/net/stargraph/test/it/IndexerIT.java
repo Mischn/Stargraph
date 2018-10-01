@@ -120,7 +120,7 @@ public final class IndexerIT {
         ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create()
                 .incomingEdges(false)
                 .outgoingEdges(true)
-                .propertyTypes(Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE))
+                .propertyTypes(SearchQueryGenerator.PropertyTypes.NON_TYPE_ONLY)
                 .pruningStrategies(Arrays.asList(new ModifiableRangeSearchParams.NoCyclesPruning()))
                 .limitToRepresentatives(true);
         ModifiableRankParams rankParams = ParamsBuilder.word2vec();

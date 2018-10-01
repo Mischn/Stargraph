@@ -26,29 +26,5 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.rank.ModifiableSearchParams;
-
-import java.util.Objects;
-
-public final class JenaQueryHolder implements SearchQueryHolder<JenaQuery> {
-
-    private ModifiableSearchParams searchParams;
-    private JenaQuery jenaQuery;
-
-    public JenaQueryHolder(JenaQuery jenaQuery, ModifiableSearchParams searchParams) {
-        this.searchParams = Objects.requireNonNull(searchParams);
-        this.jenaQuery = jenaQuery;
-    }
-
-    @Override
-    public JenaQuery getQuery() {
-        return jenaQuery;
-    }
-
-    @Override
-    public ModifiableSearchParams getSearchParams() {
-        return searchParams;
-    }
-
+public interface JenaQuery {
 }

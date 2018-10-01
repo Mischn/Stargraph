@@ -512,7 +512,7 @@ public class EntitySearcher {
                 .incomingEdges(true)
                 .outgoingEdges(true)
                 .limitToRepresentatives(true)
-                .propertyTypes(Arrays.asList(SearchQueryGenerator.PropertyType.NON_TYPE))
+                .propertyTypes(SearchQueryGenerator.PropertyTypes.NON_TYPE_ONLY)
                 .pruningStrategies(Arrays.asList(new ModifiableRangeSearchParams.NoCyclesPruning(), new ModifiableRangeSearchParams.EdgeDirectionPruning()));
 
          return pivotedSearch(pivot, searchParams, rangeSearchParams, range, rankString, rankParams, false);
@@ -522,7 +522,7 @@ public class EntitySearcher {
 //    public Scores pivotedClassSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, String rankString, ModifiableRankParams rankParams, int range, boolean returnClassMembers) {
 //        KBCore core = stargraph.getKBCore(searchParams.getDbId());
 //
-//        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, false, Arrays.asList(SearchQueryGenerator.PropertyType.TYPE, SearchQueryGenerator.PropertyType.NON_TYPE), null);
+//        List<Route> neighbours = neighbourSearch(pivot, searchParams.clone().resultLimit(-1), range, true, true, false, Arrays.asList(SearchQueryGenerator.PropertyTypes.TYPE, SearchQueryGenerator.PropertyTypes.NON_TYPE), null);
 //
 //        // filter for resource entities
 //        neighbours = neighbours.stream().filter(n -> n.getLastWaypoint() instanceof InstanceEntity).collect(Collectors.toList());

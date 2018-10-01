@@ -26,29 +26,30 @@ package net.stargraph.core.impl.jena;
  * ==========================License-End===============================
  */
 
-import net.stargraph.core.search.SearchQueryHolder;
-import net.stargraph.rank.ModifiableSearchParams;
+import net.stargraph.core.search.SearchQueryGenerator;
 
-import java.util.Objects;
+import java.util.List;
 
-public final class JenaQueryHolder implements SearchQueryHolder<JenaQuery> {
+public class JenaPivotedPropertyQuery implements JenaQuery {
+    private String subjectId;
+    private SearchQueryGenerator.PropertyTypes propertyTypes;
+    private List<String> classProperties;
 
-    private ModifiableSearchParams searchParams;
-    private JenaQuery jenaQuery;
-
-    public JenaQueryHolder(JenaQuery jenaQuery, ModifiableSearchParams searchParams) {
-        this.searchParams = Objects.requireNonNull(searchParams);
-        this.jenaQuery = jenaQuery;
+    public JenaPivotedPropertyQuery(String subjectId, SearchQueryGenerator.PropertyTypes propertyTypes, List<String> classProperties) {
+        this.subjectId = subjectId;
+        this.propertyTypes = propertyTypes;
+        this.classProperties = classProperties;
     }
 
-    @Override
-    public JenaQuery getQuery() {
-        return jenaQuery;
+    public String getSubjectId() {
+        return subjectId;
     }
 
-    @Override
-    public ModifiableSearchParams getSearchParams() {
-        return searchParams;
+    public SearchQueryGenerator.PropertyTypes getPropertyTypes() {
+        return propertyTypes;
     }
 
+    public List<String> getClassProperties() {
+        return classProperties;
+    }
 }

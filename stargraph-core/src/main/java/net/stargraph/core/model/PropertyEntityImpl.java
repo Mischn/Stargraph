@@ -5,6 +5,7 @@ import net.stargraph.model.PropertyEntity;
 import net.stargraph.model.wordnet.WNTuple;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PropertyEntityImpl extends PropertyEntity {
     private EntitySearcher entitySearcher;
@@ -107,9 +108,9 @@ public class PropertyEntityImpl extends PropertyEntity {
 //        if (getHyponyms() != null) {
 //            res.addAll(getHyponyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
 //        }
-//        if (getSynonyms() != null) {
-//            res.addAll(getSynonyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
-//        }
+        if (getSynonyms() != null) {
+            res.addAll(getSynonyms().stream().map(s -> Arrays.asList(s.getWord())).collect(Collectors.toList()));
+        }
         return res;
     }
 

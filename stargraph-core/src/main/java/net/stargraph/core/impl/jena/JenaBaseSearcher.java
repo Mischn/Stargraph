@@ -64,23 +64,16 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
     private final Namespace namespace;
     private final ModelCreator modelCreator;
 
-    private final HashMap<String, InstanceEntity> entityMap; // for avoiding redundant lookups
-    private final HashMap<String, PropertyEntity> propertyMap; // for avoiding redundant lookups
-
     public JenaBaseSearcher(Stargraph stargraph, String dbId, BaseGraphModel model) {
         super(stargraph, dbId, model);
         this.modelCreator = stargraph.getModelCreator();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
-        this.entityMap = new HashMap<>();
-        this.propertyMap = new HashMap<>();
     }
 
     public JenaBaseSearcher(Stargraph stargraph, String dbId) {
         super(stargraph, dbId);
         this.modelCreator = stargraph.getModelCreator();
         this.namespace = stargraph.getKBCore(dbId).getNamespace();
-        this.entityMap = new HashMap<>();
-        this.propertyMap = new HashMap<>();
     }
 
     public static HashMap<String, Node> getVarMap(Binding binding) {
@@ -95,22 +88,11 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
         return res;
     }
 
-    protected void clearMaps() {
-        this.entityMap.clear();
-        this.propertyMap.clear();
-    }
-
     public NodeEntity asEntity(Node node) {
         if (!node.isLiteral()) {
             String id = node.getURI();
 
-            InstanceEntity instanceEntity;
-            if (entityMap.containsKey(id)) {
-                instanceEntity = entityMap.get(id);
-            } else {
-                instanceEntity = modelCreator.createInstance(id, dbId, namespace);
-                entityMap.put(id, instanceEntity);
-            }
+            InstanceEntity instanceEntity = modelCreator.createInstance(id, dbId, namespace);
             return instanceEntity;
         } else {
             LiteralLabel lit = node.getLiteral();
@@ -122,13 +104,7 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
         if (!node.isLiteral()) {
             String id = node.getURI();
 
-            PropertyEntity propertyEntity;
-            if (propertyMap.containsKey(id)) {
-                propertyEntity = propertyMap.get(id);
-            } else {
-                propertyEntity = modelCreator.createProperty(id, dbId, namespace);
-                propertyMap.put(id, propertyEntity);
-            }
+            PropertyEntity propertyEntity = modelCreator.createProperty(id, dbId, namespace);
             return propertyEntity;
         } else {
             throw new IllegalArgumentException("Node should not be a literal.");
@@ -136,7 +112,6 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
     }
 
     public void sparqlQuery(String sparqlQuery, SparqlIteration sparqlIteration) {
-        clearMaps();
         logger.debug(marker, "Executing: {}", sparqlQuery);
 
         long startTime = System.currentTimeMillis();
@@ -156,7 +131,6 @@ public abstract class JenaBaseSearcher extends GraphSearcher {
         } catch (Exception e) {
             logger.error(marker, e.getMessage());
         } finally {
-            clearMaps();
             long millis = System.currentTimeMillis() - startTime;
             logger.info(marker, "SPARQL query took {}s", millis / 1000.0);
         }

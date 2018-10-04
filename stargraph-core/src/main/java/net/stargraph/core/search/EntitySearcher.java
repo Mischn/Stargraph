@@ -660,6 +660,10 @@ public class EntitySearcher {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
+    public List<Route> neighbourSearch(String pivotId, ModifiableSearchParams searchParams, ModifiableRangeSearchParams rangeSearchParams, int range) {
+        Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
+        return neighbourSearch(modelCreator.createInstance(pivotId, searchParams.getDbId(), namespace), searchParams, rangeSearchParams, range);
+    }
     public List<Route> neighbourSearch(InstanceEntity pivot, ModifiableSearchParams searchParams, ModifiableRangeSearchParams rangeSearchParams, int range) {
         Namespace namespace = stargraph.getKBCore(searchParams.getDbId()).getNamespace();
         InstanceEntity myPivot = namespace.shrink(pivot);

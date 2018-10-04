@@ -68,6 +68,10 @@ public class Route implements Hashable {
         return waypoints;
     }
 
+    public NodeEntity getFirstWaypoint() {
+        return waypoints.get(0);
+    }
+
     public NodeEntity getLastWaypoint() {
         return waypoints.get(waypoints.size() - 1);
     }

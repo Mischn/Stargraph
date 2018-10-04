@@ -26,8 +26,8 @@ public class Resolver {
     private static final long POSSIBLE_PIVOT_LIMIT = 10;
     private static final long POSSIBLE_CLASS_LIMIT = 10;
     private static final long POSSIBLE_PREDICATE_LIMIT = 10;
-    private static final long USED_CLASS_LIMIT = 3;
-    private static final long USED_PREDICATE_LIMIT = 6;
+    private static final long USED_CLASS_LIMIT = 1;
+    private static final long USED_PREDICATE_LIMIT = 1;
 
     protected EntitySearcher entitySearcher;
     protected String dbId;

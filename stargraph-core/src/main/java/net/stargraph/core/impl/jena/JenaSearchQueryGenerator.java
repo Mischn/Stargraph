@@ -163,10 +163,7 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
                     + "}"
                     + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
         } else {
-            query = "SELECT ?s ?p ?o {"
-                    + "?s ?p ?o ."
-                    + "}"
-                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
+            query = "SELECT {}";
         }
 
         return new JenaQueryHolder(new JenaSPARQLQuery(query), searchParams);

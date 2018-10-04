@@ -39,14 +39,18 @@ public class EntityEntry {
     private String id;
     private String value;
     private List<String> otherValues;
+    private String literalDataType;
+    private String literalLanguage;
     private double score;
 
-    public EntityEntry(String dbId, EntityType type, String id, String value, List<String> otherValues, double score) {
+    public EntityEntry(String dbId, EntityType type, String id, String value, List<String> otherValues, String literalDataType, String literalLanguage, double score) {
         this.dbId = dbId;
         this.type = type;
         this.id = id;
         this.value = value;
         this.otherValues = otherValues;
+        this.literalDataType = literalDataType;
+        this.literalLanguage = literalLanguage;
         this.score = score;
     }
 
@@ -68,6 +72,14 @@ public class EntityEntry {
 
     public List<String> getOtherValues() {
         return otherValues;
+    }
+
+    public String getLiteralDataType() {
+        return literalDataType;
+    }
+
+    public String getLiteralLanguage() {
+        return literalLanguage;
     }
 
     public double getScore() {

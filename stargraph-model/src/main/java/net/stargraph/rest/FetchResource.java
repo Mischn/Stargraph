@@ -53,4 +53,9 @@ public interface FetchResource {
     @GET
     @Path("{kbId}/fetch/documents")
     Response getDocuments(@PathParam("kbId") String dbId, @QueryParam("entityId") String entityId, @DefaultValue("null") @QueryParam("docTypes") List<String> docTypes, @DefaultValue("false") @QueryParam("inOrder") boolean inOrder);
+
+    @GET
+    @Path("{kbId}/fetch/linked")
+    Response getLinkedNodes(@PathParam("kbId") String dbId, @QueryParam("entityId") String entityId, @DefaultValue("true") @QueryParam("incoming") boolean incoming, @DefaultValue("true") @QueryParam("outgoing") boolean outgoing);
+
 }

@@ -37,6 +37,8 @@ public class EntityEntryCreator {
                 (entityScore.getEntry() instanceof ValueEntity)? entityScore.getRankableView().getId() : namespace.expandURI(entityScore.getRankableView().getId()),
                 (entityScore.getEntry() instanceof Entity)? ((Entity)entityScore.getEntry()).getValue() : null,
                 (entityScore.getEntry() instanceof InstanceEntity)? new ArrayList<>(((InstanceEntity)entityScore.getEntry()).getOtherValues()) : new ArrayList<>(),
+                (entityScore.getEntry() instanceof ValueEntity)? ((ValueEntity)entityScore.getEntry()).getDataType() : null,
+                (entityScore.getEntry() instanceof ValueEntity)? ((ValueEntity)entityScore.getEntry()).getLanguage() : null,
                 entityScore.getValue()
         );
     }

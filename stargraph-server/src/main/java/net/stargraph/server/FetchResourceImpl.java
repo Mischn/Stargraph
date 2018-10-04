@@ -29,11 +29,15 @@ package net.stargraph.server;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.core.search.ModifiableRangeSearchParams;
 import net.stargraph.model.Document;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.PropertyEntity;
+import net.stargraph.model.Route;
+import net.stargraph.rank.ModifiableSearchParams;
 import net.stargraph.rest.DocumentEntry;
 import net.stargraph.rest.EntityEntry;
+import net.stargraph.rest.FactEntry;
 import net.stargraph.rest.FetchResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,4 +116,31 @@ final class FetchResourceImpl implements FetchResource {
 
         return Response.status(Response.Status.OK).entity(documentEntries).build();
     }
+
+    @Override
+    public Response getLinkedNodes(String dbId, String entityId, boolean incoming, boolean outgoing) {
+        Namespace namespace = stargraph.getKBCore(dbId).getNamespace();
+
+        List<Route> inRoutes = (incoming)? entitySearcher.neighbourSearch(entityId, ModifiableSearchParams.create(dbId), ModifiableRangeSearchParams.create().incomingEdges(true).outgoingEdges(false), 1): new ArrayList<>();
+        List<Route> outRoutes = (outgoing)? entitySearcher.neighbourSearch(entityId, ModifiableSearchParams.create(dbId), ModifiableRangeSearchParams.create().incomingEdges(false).outgoingEdges(true), 1) : new ArrayList<>();
+
+        // convert routes to FactEntries
+        List<FactEntry> factEntries = new ArrayList<>();
+        inRoutes.stream().map(r -> new FactEntry(
+                EntityEntryCreator.createLabeledEntityEntry(r.getLastWaypoint(), dbId, namespace),
+                EntityEntryCreator.createPropertyEntityEntry(r.getPropertyPath().getLastProperty(), dbId, namespace),
+                EntityEntryCreator.createLabeledEntityEntry(r.getFirstWaypoint(), dbId, namespace)
+        )).forEach(e -> factEntries.add(e));
+
+        outRoutes.stream().map(r -> new FactEntry(
+                EntityEntryCreator.createLabeledEntityEntry(r.getFirstWaypoint(), dbId, namespace),
+                EntityEntryCreator.createPropertyEntityEntry(r.getPropertyPath().getLastProperty(), dbId, namespace),
+                EntityEntryCreator.createLabeledEntityEntry(r.getLastWaypoint(), dbId, namespace)
+        )).forEach(e -> factEntries.add(e));
+
+
+        return Response.status(Response.Status.OK).entity(factEntries).build();
+    }
+
+
 }

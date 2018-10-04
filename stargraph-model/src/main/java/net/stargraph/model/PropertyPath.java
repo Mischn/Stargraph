@@ -27,14 +27,12 @@ package net.stargraph.model;
  */
 
 import net.stargraph.Utils;
-import net.stargraph.data.processor.Hashable;
-import net.stargraph.rank.Rankable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PropertyPath implements Hashable, Rankable {
+public class PropertyPath extends Entity {
     public enum Direction {
         OUTGOING,
         INCOMING
@@ -43,7 +41,48 @@ public class PropertyPath implements Hashable, Rankable {
     private List<PropertyEntity> properties;
     private List<Direction> directions;
 
+
+
+    private static String constructId(List<PropertyEntity> properties, List<Direction> directions) {
+        StringJoiner sj = new StringJoiner(" | ");
+        for (int i = 0; i < properties.size(); i++) {
+            String part = String.format("%s%s", (directions.get(i).equals(Direction.INCOMING))? "^" : "", properties.get(i).getId());
+            sj.add(part);
+        }
+        return sj.toString();
+    }
+
+    private static String constructValue(List<PropertyEntity> properties, List<Direction> directions) {
+        StringJoiner sj = new StringJoiner(" | ");
+        for (int i = 0; i < properties.size(); i++) {
+            String part = String.format("%s%s", (directions.get(i).equals(Direction.INCOMING))? "^" : "", properties.get(i).getValue());
+            sj.add(part);
+        }
+        return sj.toString();
+    }
+
+    public static class PropertyParse {
+        public String propertyId;
+        public Direction direction;
+
+        public PropertyParse(String propertyId, Direction direction) {
+            this.propertyId = propertyId;
+            this.direction = direction;
+        }
+    }
+    public static List<PropertyParse> parseId(String id) {
+        String[] parts = id.split("\\s\\|\\s");
+        return Stream.of(parts)
+                .map(s -> new PropertyParse(
+                        (s.startsWith("^"))? s.substring(1) : s,
+                        (s.startsWith("^"))? Direction.INCOMING : Direction.OUTGOING
+                )).collect(Collectors.toList());
+    }
+
+
+
     public PropertyPath(List<PropertyEntity> properties, List<Direction> directions) {
+        super(constructId(properties, directions));
         if (properties.size() != directions.size()) {
             throw new AssertionError("Properties and directions should have the same size");
         }
@@ -80,6 +119,11 @@ public class PropertyPath implements Hashable, Rankable {
     }
 
     @Override
+    public String getValue() {
+        return constructValue(properties, directions);
+    }
+
+    @Override
     public List<List<String>> getRankableValues() {
 
         // uses cartesian product of rankable values of properties
@@ -94,55 +138,10 @@ public class PropertyPath implements Hashable, Rankable {
         return res;
     }
 
-    @Override
-    public String getId() {
-        StringJoiner sj = new StringJoiner(" | ");
-        for (int i = 0; i < properties.size(); i++) {
-            String part = String.format("%s%s", (directions.get(i).equals(Direction.INCOMING))? "^" : "", properties.get(i).getId());
-            sj.add(part);
-        }
-        return sj.toString();
-    }
-
-
-    public static class PropertyParse {
-        public String propertyId;
-        public Direction direction;
-
-        public PropertyParse(String propertyId, Direction direction) {
-            this.propertyId = propertyId;
-            this.direction = direction;
-        }
-    }
-    public static List<PropertyParse> parseId(String id) {
-        String[] parts = id.split("\\s\\|\\s");
-        return Stream.of(parts)
-                .map(s -> new PropertyParse(
-                        (s.startsWith("^"))? s.substring(1) : s,
-                        (s.startsWith("^"))? Direction.INCOMING : Direction.OUTGOING
-                        )).collect(Collectors.toList());
-    }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PropertyPath that = (PropertyPath) o;
-
-        return getId() != null ? getId().equals(that.getId()) : that.getId() == null;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getId());
-    }
-
-    @Override
-    public String toString() {
-        return "PropertyPath{" +
-                "id='" + getId() + '\'' +
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "PropertyPath{" +
+//                "id='" + getId() + '\'' +
+//                '}';
+//    }
 }

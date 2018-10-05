@@ -480,8 +480,11 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-
         Scores rankedScores = Rankers.apply(propScores, rankParams, rankString);
+
+        // Re-Rank again using heuristics about property-paths
+        rankedScores = rerankPropertyPaths(rankedScores);
+
         Scores result = rankedScores;
 
         if (returnBestMatchEntities) {
@@ -504,7 +507,29 @@ public class EntitySearcher {
     }
 
 
+    public static Scores rerankPropertyPaths(Scores scores) {
+        final double RANGE_WEIGHT = 0.2;
+        final double INVERSE_WEIGHT = 0.1;
+        final double OLD_WEIGHT = 1. - (RANGE_WEIGHT + INVERSE_WEIGHT);
 
+        // Re-Rank based on heuristics
+        Scores res = new Scores();
+        for (Score score : scores) {
+
+            // the smaller range, the better
+            double rangeScore = 1. / ((PropertyPath)score.getEntry()).getProperties().size();
+
+            // the less inverse directions the better
+            long nrIncoming = ((PropertyPath)score.getEntry()).getDirections().stream().filter(d -> d.equals(PropertyPath.Direction.INCOMING)).count();
+            double inverseScore = 1. / (nrIncoming+1);
+
+            double s = (OLD_WEIGHT * score.getValue()) + (RANGE_WEIGHT * rangeScore) + (INVERSE_WEIGHT * inverseScore);
+            res.add(new Score(score.getEntry(), s));
+        }
+
+        res.sort(true);
+        return res;
+    }
 
 
      public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, String rankString, ModifiableRankParams rankParams) {

@@ -26,6 +26,7 @@ public class Resolver {
     private static final long POSSIBLE_PIVOT_LIMIT = 10;
     private static final long POSSIBLE_CLASS_LIMIT = 10;
     private static final long POSSIBLE_PREDICATE_LIMIT = 10;
+    private static final long USED_PIVOT_LIMIT = 1;
     private static final long USED_CLASS_LIMIT = 1;
     private static final long USED_PREDICATE_LIMIT = 1;
 
@@ -179,16 +180,16 @@ public class Resolver {
                 resolveClass(triple.getO());
             }
         } else if (triple.getP().getModelType() == DataModelType.PROPERTY || triple.getP().getModelType() == DataModelType.CLASS) {
-            InstanceEntity pivot = null;
+            List<InstanceEntity> pivots = null;
 
             if (triple.getS().getModelType() == DataModelType.INSTANCE || triple.getS().getModelType().equals(DataModelType.CLASS)) {
-                pivot = resolvePivot(triple.getS());
+                pivots = resolvePivot(triple.getS()).stream().map(s -> (InstanceEntity)s.getEntry()).collect(Collectors.toList());
             } else if (triple.getO().getModelType() == DataModelType.INSTANCE || triple.getO().getModelType().equals(DataModelType.CLASS)) {
-                pivot = resolvePivot(triple.getO());
+                pivots = resolvePivot(triple.getO()).stream().map(s -> (InstanceEntity)s.getEntry()).collect(Collectors.toList());
             }
 
-            if (pivot != null) {
-                resolvePredicate(pivot, triple.getP());
+            if (pivots != null && pivots.size() > 0) {
+                resolvePredicate(pivots, triple.getP());
             }
         } else {
             resolveDefault(triple);
@@ -206,30 +207,29 @@ public class Resolver {
 
 
 
-    public void resolveClass(DataModelBinding binding) {
+    public Set<Score> resolveClass(DataModelBinding binding) {
         DataModelBindingContext context = DataModelBindingContext.NON_PREDICATE;
 
         if (hasMappings(binding.getPlaceHolder(), context)) {
             logger.debug(marker, "Class was already resolved to {}", getMappings(binding.getPlaceHolder(), context));
-            return;
+            return getMappings(binding.getPlaceHolder(), context);
         }
 
         final int PRE_LIMIT = 50;
-        Scores scores;
+        Scores scores = new Scores();
 
         // check for concrete URI
         InstanceEntity resolvedUri = resolveUri(binding.getTerm());
         if (resolvedUri != null) {
-            scores = new Scores();
             scores.add(new Score(resolvedUri, 1));
         } else {
             logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
-            scores = searchClass(binding, context);
+            scores.addAll(searchClass(binding, context));
             logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
 
             // re-rank classes
             logger.debug(marker, "Rescore classes");
-            scores = rescoreClasses(new Scores(scores.stream().limit(PRE_LIMIT).collect(Collectors.toList()))); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
+            scores = rescoreClasses(limitScores(scores, PRE_LIMIT)); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
             logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
         }
 
@@ -239,8 +239,11 @@ public class Resolver {
 
             logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_CLASS_LIMIT));
             addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_CLASS_LIMIT));
+
+            return getMappings(binding.getPlaceHolder(), context);
         } else {
             logger.error(marker, "Could not resolve class for {}", binding);
+            return Collections.emptySet();
         }
     }
 
@@ -254,25 +257,26 @@ public class Resolver {
 
 
 
-    public void resolvePredicate(InstanceEntity pivot, DataModelBinding binding) {
+    public Set<Score> resolvePredicate(List<InstanceEntity> pivots, DataModelBinding binding) {
         DataModelBindingContext context = DataModelBindingContext.PREDICATE;
 
         if (hasMappings(binding.getPlaceHolder(), context)) {
             logger.debug(marker, "Predicate was already resolved to {}", getMappings(binding.getPlaceHolder(), context));
-            return;
+            return getMappings(binding.getPlaceHolder(), context);
         }
 
-        Scores scores;
+        Scores scores = new Scores();
 
         // check for concrete URI
         InstanceEntity resolvedUri = resolveUri(binding.getTerm());
         if (resolvedUri != null) {
-            scores = new Scores();
             scores.add(new Score(resolvedUri, 1));
         } else {
-            logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
-            scores = searchPredicate(pivot, binding, context);
-            logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+            for (InstanceEntity pivot : pivots) {
+                logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
+                scores.addAll(searchPredicate(pivot, binding, context));
+                logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+            }
         }
 
         if (scores.size() > 0) {
@@ -281,8 +285,11 @@ public class Resolver {
 
             logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_PREDICATE_LIMIT));
             addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_PREDICATE_LIMIT));
+
+            return getMappings(binding.getPlaceHolder(), context);
         } else {
             logger.error(marker, "Could not resolve predicate for {}", binding);
+            return Collections.emptySet();
         }
     }
 
@@ -294,33 +301,27 @@ public class Resolver {
     }
 
 
-    public InstanceEntity resolvePivot(DataModelBinding binding) {
+    public Set<Score> resolvePivot(DataModelBinding binding) {
         DataModelBindingContext context = DataModelBindingContext.NON_PREDICATE;
-        resolveInstance(binding, context, POSSIBLE_PIVOT_LIMIT, 1);
-
-        if (hasMappings(binding.getPlaceHolder(), context)) {
-            return (InstanceEntity) getMappings(binding.getPlaceHolder(), context).iterator().next().getEntry();
-        }
-        return null;
+        return resolveInstance(binding, context, POSSIBLE_PIVOT_LIMIT, USED_PIVOT_LIMIT);
     }
 
 
-    public void resolveInstance(DataModelBinding binding, DataModelBindingContext context, long possibleLimit, long usedLimit) {
+    public Set<Score> resolveInstance(DataModelBinding binding, DataModelBindingContext context, long possibleLimit, long usedLimit) {
         if (hasMappings(binding.getPlaceHolder(), context)) {
             logger.debug(marker, "Instance was already resolved to {}", getMappings(binding.getPlaceHolder(), context));
-            return;
+            return getMappings(binding.getPlaceHolder(), context);
         }
 
-        Scores scores;
+        Scores scores = new Scores();
 
         // check for concrete URI
         InstanceEntity resolvedUri = resolveUri(binding.getTerm());
         if (resolvedUri != null) {
-            scores = new Scores();
             scores.add(new Score(resolvedUri, 1));
         } else {
             logger.debug(marker, "Resolve instance, searching for term '{}'", binding.getTerm());
-            scores = searchInstance(binding.getTerm(), context);
+            scores.addAll(searchInstance(binding.getTerm(), context));
             logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
         }
 
@@ -330,8 +331,11 @@ public class Resolver {
 
             logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, usedLimit));
             addMappings(binding.getPlaceHolder(), context, limitScores(scores, usedLimit));
+
+            return getMappings(binding.getPlaceHolder(), context);
         } else {
             logger.error(marker, "Could not resolve instance for {}", binding);
+            return Collections.emptySet();
         }
     }
 

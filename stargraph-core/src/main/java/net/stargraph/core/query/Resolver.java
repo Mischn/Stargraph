@@ -171,25 +171,36 @@ public class Resolver {
     }
 
 
-
-
-
     public void resolveTriple(TriplePattern.BoundTriple triple) {
         logger.debug(marker, "Resolve triple {}", triple);
 
-        if (triple.getP().getModelType() != DataModelType.TYPE) {
-            // Probably is: 'I (C|P) V' or 'V (C|P) I'
-            logger.debug(marker, "Assume 'I (C|P) V' or 'V (C|P) I' pattern");
+        if (triple.getP().getModelType() == DataModelType.TYPE) {
+            if (triple.getO().getModelType() == DataModelType.INSTANCE || triple.getO().getModelType().equals(DataModelType.CLASS)) {
+                resolveClass(triple.getO());
+            }
+        } else if (triple.getP().getModelType() == DataModelType.PROPERTY || triple.getP().getModelType() == DataModelType.CLASS) {
+            InstanceEntity pivot = null;
 
-            InstanceEntity pivot = resolvePivot((triple.getS().getModelType() == DataModelType.INSTANCE)? triple.getS() : triple.getO());
-            resolvePredicate(pivot, triple.getP());
+            if (triple.getS().getModelType() == DataModelType.INSTANCE || triple.getS().getModelType().equals(DataModelType.CLASS)) {
+                pivot = resolvePivot(triple.getS());
+            } else if (triple.getO().getModelType() == DataModelType.INSTANCE || triple.getO().getModelType().equals(DataModelType.CLASS)) {
+                pivot = resolvePivot(triple.getO());
+            }
+
+            if (pivot != null) {
+                resolvePredicate(pivot, triple.getP());
+            }
+        } else {
+            resolveDefault(triple);
         }
-        else {
-            // Probably is: 'V T C' or 'C T V'
-            logger.debug(marker, "Assume 'V T C' or 'C T V' pattern");
+    }
 
-            DataModelBinding binding = triple.getS().getModelType() == DataModelType.VARIABLE ? triple.getO() : triple.getS();
-            resolveClass(binding);
+    private void resolveDefault(TriplePattern.BoundTriple triple) {
+        if (triple.getS().getModelType() == DataModelType.INSTANCE || triple.getS().getModelType().equals(DataModelType.CLASS)) {
+            resolvePivot(triple.getS());
+        }
+        if (triple.getO().getModelType() == DataModelType.INSTANCE || triple.getO().getModelType().equals(DataModelType.CLASS)) {
+            resolvePivot(triple.getO());
         }
     }
 
@@ -203,35 +214,33 @@ public class Resolver {
             return;
         }
 
-        if (binding.getModelType() == DataModelType.CLASS) {
-            final int PRE_LIMIT = 50;
-            Scores scores;
+        final int PRE_LIMIT = 50;
+        Scores scores;
 
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
-                scores = searchClass(binding, context);
-                logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+        // check for concrete URI
+        InstanceEntity resolvedUri = resolveUri(binding.getTerm());
+        if (resolvedUri != null) {
+            scores = new Scores();
+            scores.add(new Score(resolvedUri, 1));
+        } else {
+            logger.debug(marker, "Resolve class, searching for term '{}'", binding.getTerm());
+            scores = searchClass(binding, context);
+            logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
 
-                // re-rank classes
-                logger.debug(marker, "Rescore classes");
-                scores = rescoreClasses(new Scores(scores.stream().limit(PRE_LIMIT).collect(Collectors.toList()))); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
-                logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
-            }
+            // re-rank classes
+            logger.debug(marker, "Rescore classes");
+            scores = rescoreClasses(new Scores(scores.stream().limit(PRE_LIMIT).collect(Collectors.toList()))); // Limit, because otherwise, the SPARQL-Query gets too long -> StackOverflow
+            logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+        }
 
-            if (scores.size() > 0) {
-                logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, POSSIBLE_CLASS_LIMIT));
-                addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, POSSIBLE_CLASS_LIMIT));
+        if (scores.size() > 0) {
+            logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, POSSIBLE_CLASS_LIMIT));
+            addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, POSSIBLE_CLASS_LIMIT));
 
-                logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_CLASS_LIMIT));
-                addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_CLASS_LIMIT));
-            } else {
-                logger.error(marker, "Could not resolve class for {}", binding);
-            }
+            logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_CLASS_LIMIT));
+            addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_CLASS_LIMIT));
+        } else {
+            logger.error(marker, "Could not resolve class for {}", binding);
         }
     }
 
@@ -253,29 +262,27 @@ public class Resolver {
             return;
         }
 
-        if (binding.getModelType() == DataModelType.CLASS || binding.getModelType() == DataModelType.PROPERTY) {
-            Scores scores;
+        Scores scores;
 
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
-                scores = searchPredicate(pivot, binding, context);
-                logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
-            }
+        // check for concrete URI
+        InstanceEntity resolvedUri = resolveUri(binding.getTerm());
+        if (resolvedUri != null) {
+            scores = new Scores();
+            scores.add(new Score(resolvedUri, 1));
+        } else {
+            logger.debug(marker, "Resolve predicate for pivot {}, searching for term '{}'", pivot, binding.getTerm());
+            scores = searchPredicate(pivot, binding, context);
+            logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+        }
 
-            if (scores.size() > 0) {
-                logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, POSSIBLE_PREDICATE_LIMIT));
-                addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, POSSIBLE_PREDICATE_LIMIT));
+        if (scores.size() > 0) {
+            logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, POSSIBLE_PREDICATE_LIMIT));
+            addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, POSSIBLE_PREDICATE_LIMIT));
 
-                logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_PREDICATE_LIMIT));
-                addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_PREDICATE_LIMIT));
-            } else {
-                logger.error(marker, "Could not resolve predicate for {}", binding);
-            }
+            logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, USED_PREDICATE_LIMIT));
+            addMappings(binding.getPlaceHolder(), context, limitScores(scores, USED_PREDICATE_LIMIT));
+        } else {
+            logger.error(marker, "Could not resolve predicate for {}", binding);
         }
     }
 
@@ -304,29 +311,27 @@ public class Resolver {
             return;
         }
 
-        if (binding.getModelType() == DataModelType.INSTANCE) {
-            Scores scores;
+        Scores scores;
 
-            // check for concrete URI
-            InstanceEntity resolvedUri = resolveUri(binding.getTerm());
-            if (resolvedUri != null) {
-                scores = new Scores();
-                scores.add(new Score(resolvedUri, 1));
-            } else {
-                logger.debug(marker, "Resolve instance, searching for term '{}'", binding.getTerm());
-                scores = searchInstance(binding.getTerm(), context);
-                logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
-            }
+        // check for concrete URI
+        InstanceEntity resolvedUri = resolveUri(binding.getTerm());
+        if (resolvedUri != null) {
+            scores = new Scores();
+            scores.add(new Score(resolvedUri, 1));
+        } else {
+            logger.debug(marker, "Resolve instance, searching for term '{}'", binding.getTerm());
+            scores = searchInstance(binding.getTerm(), context);
+            logger.debug(marker, "Results:\n{}", scores.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
+        }
 
-            if (scores.size() > 0) {
-                logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, possibleLimit));
-                addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, possibleLimit));
+        if (scores.size() > 0) {
+            logger.debug(marker, "Possible mappings for binding {}: {}", binding, limitScores(scores, possibleLimit));
+            addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, possibleLimit));
 
-                logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, usedLimit));
-                addMappings(binding.getPlaceHolder(), context, limitScores(scores, usedLimit));
-            } else {
-                logger.error(marker, "Could not resolve instance for {}", binding);
-            }
+            logger.debug(marker, "Used mappings for binding {}: {}", binding, limitScores(scores, usedLimit));
+            addMappings(binding.getPlaceHolder(), context, limitScores(scores, usedLimit));
+        } else {
+            logger.error(marker, "Could not resolve instance for {}", binding);
         }
     }
 

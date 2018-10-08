@@ -31,12 +31,13 @@ public enum DataModelType {
     CLASS,
     COMPLEX_CLASS,
     PROPERTY,
-    VARIABLE,
     VALUE,
     OPERATION,
     POS,
     TEMPORAL,
-    TYPE,
     STOP,
-    ATCLASS
+    ATCLASS,
+    VARIABLE,
+    TYPE,
+    EQUALS
 }

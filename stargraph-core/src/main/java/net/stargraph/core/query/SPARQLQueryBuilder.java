@@ -167,7 +167,16 @@ public final class SPARQLQueryBuilder {
             // Property
             String propertyPlaceholder = components[1];
 
-            if (isVar(propertyPlaceholder)) {
+            if (isEquals(propertyPlaceholder)) {
+                Map<String, List<String>> varBinds = new HashMap<>();
+                if (isVar(subjectPlaceholder)) {
+                    varBinds.put(subjectPlaceholder, oMappings);
+                    resolvedTriplePatterns.add(sparqlCreator.createBindStr(varBinds, Arrays.asList(subjectPlaceholder)));
+                } else {
+                    varBinds.put(objectPlaceholder, sMappings);
+                    resolvedTriplePatterns.add(sparqlCreator.createBindStr(varBinds, Arrays.asList(objectPlaceholder)));
+                }
+            } else if (isVar(propertyPlaceholder)) {
                 List<String> strs = new ArrayList<>();
                 for (int i = 0; i < varRange; i++) {
                     sparqlCreator.resetNewVarCounter();
@@ -251,6 +260,10 @@ public final class SPARQLQueryBuilder {
 
     private boolean isVar(String s) {
         return s.startsWith("?VAR");
+    }
+
+    private boolean isEquals(String s) {
+        return s.startsWith("EQUALS");
     }
 
     private boolean isType(String s) {

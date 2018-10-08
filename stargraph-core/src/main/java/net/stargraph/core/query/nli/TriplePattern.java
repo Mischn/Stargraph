@@ -86,6 +86,9 @@ public final class TriplePattern {
         if (placeHolder.startsWith("TYPE")) {
             return new DataModelBinding(DataModelType.TYPE, placeHolder, placeHolder);
         }
+        if (placeHolder.startsWith("EQUALS")) {
+            return new DataModelBinding(DataModelType.EQUALS, placeHolder, placeHolder);
+        }
 
         if (bindings.containsKey(placeHolder)) {
             return bindings.get(placeHolder);

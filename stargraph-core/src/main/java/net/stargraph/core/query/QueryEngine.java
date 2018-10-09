@@ -74,6 +74,7 @@ public class QueryEngine {
     protected Language language;
     protected InteractionModeSelector modeSelector;
     protected Resolver resolver; // currently, all interactions share this one resolver. Could be customized for each interaction mode
+    protected List<QueryPlan> customQueryPlans;
     protected Map<String, Map<DataModelBindingContext, List<String>>> customMappings;
 
     public QueryEngine(String dbId, Stargraph stargraph) {
@@ -88,10 +89,34 @@ public class QueryEngine {
         this.modeSelector = new InteractionModeSelector(stargraph.createPOSAnnotatorFactory().create(), language);
         this.resolver = new Resolver(entitySearcher, namespace, dbId);
         this.customMappings = new ConcurrentHashMap<>();
+        this.customQueryPlans = new ArrayList<>();
+    }
+
+    public void setCustomQueryPlans(List<String> customQueryPlans) {
+        logger.info(marker, "Set custom query plans: {}", customQueryPlans);
+
+        this.customQueryPlans.clear();
+        for (String customQueryPlan : customQueryPlans) {
+            QueryPlan queryPlan = new QueryPlan();
+            for (String part : customQueryPlan.split("\\s*\\.\\s*")) {
+                if (part.trim().length() > 0) {
+                    queryPlan.add(new TriplePattern(part.trim()));
+                }
+            }
+            if (queryPlan.size() > 0) {
+                this.customQueryPlans.add(queryPlan);
+            }
+        }
     }
 
     public void setCustomMappings(Map<String, Map<DataModelBindingContext, List<String>>> customMappings) {
+        logger.info(marker, "Set custom mappings: {}", customMappings);
+
         this.customMappings = customMappings;
+    }
+
+    public void clearCustomQueryPlans() {
+        this.customQueryPlans.clear();
     }
 
     public void clearCustomMappings() {
@@ -167,11 +192,19 @@ public class QueryEngine {
     private QueryResponse nliQuery(String userQuery, Language language) {
         QuestionAnalyzer analyzer = this.analyzers.getQuestionAnalyzer(language);
         QuestionAnalysis analysis = analyzer.analyse(userQuery);
-        QueryPlannerPattern queryPlannerPattern = analysis.getQueryPlannerPattern();
 
         AnswerSetResponse answerSet = new AnswerSetResponse(NLI, userQuery, analysis.getQueryType());
         answerSet.setBindings(analysis.getBindings());
-        answerSet.setQueryPlans(queryPlannerPattern.getQueryPlans());
+
+        // Query Plans
+        QueryPlannerPattern queryPlannerPattern = analysis.getQueryPlannerPattern();
+        List<QueryPlan> queryPlans = queryPlannerPattern.getQueryPlans();
+        if (customQueryPlans != null && customQueryPlans.size() > 0) {
+            logger.info(marker, "Using custom query plans:\n{}", customQueryPlans);
+            queryPlans = customQueryPlans;
+        }
+        answerSet.setQueryPlans(queryPlans);
+
 
         Map<String, Map<DataModelBindingContext, Set<Score>>> mappings = new HashMap<>();
         Map<String, Map<DataModelBindingContext, Set<Score>>> possibleMappings = new HashMap<>();
@@ -179,7 +212,7 @@ public class QueryEngine {
         List<String> sparqlQueries = new ArrayList<>();
 
 
-        for (QueryPlan queryPlan : queryPlannerPattern.getQueryPlans()) {
+        for (QueryPlan queryPlan : queryPlans) {
             logger.info(marker, "##### Resolve query plan: #####\n{}\n", queryPlan);
             logger.info(marker, "Resolve triples:");
 

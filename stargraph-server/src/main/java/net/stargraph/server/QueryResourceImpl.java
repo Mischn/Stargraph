@@ -67,7 +67,7 @@ public final class QueryResourceImpl implements QueryResource {
     }
 
     @Override
-    public Response query(String dbId, String q, MappingsBean betterMappings) {
+    public Response query(String dbId, String q, BetterQueryBean betterQueryBean) {
         if (!core.hasKB(dbId)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -75,18 +75,27 @@ public final class QueryResourceImpl implements QueryResource {
         Namespace namespace = core.getKBCore(dbId).getNamespace();
         QueryEngine engine = engines.computeIfAbsent(dbId, (k) -> new QueryEngine(k, core));
         try {
-            if (betterMappings != null) {
+            if (betterQueryBean != null) {
 
-                // convert to proper custom mappings
-                Map<String, Map<DataModelBindingContext, List<String>>> customMappings = new HashMap<>();
-                for (String placeholder : betterMappings.getMappings().keySet()) {
-                    for (String c : betterMappings.getMappings().get(placeholder).keySet()) {
-                        DataModelBindingContext context = DataModelBindingContext.valueOf(c);
-                        customMappings.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context, betterMappings.getMappings().get(placeholder).get(c));
-                    }
+                // query plans
+                if (betterQueryBean.getQueryPlans() != null) {
+                    engine.setCustomQueryPlans(betterQueryBean.getQueryPlans());
                 }
 
-                engine.setCustomMappings(customMappings);
+                // mappings
+                if (betterQueryBean.getMappings() != null) {
+
+                    // convert to proper custom mappings
+                    Map<String, Map<DataModelBindingContext, List<String>>> customMappings = new HashMap<>();
+                    for (String placeholder : betterQueryBean.getMappings().keySet()) {
+                        for (String c : betterQueryBean.getMappings().get(placeholder).keySet()) {
+                            DataModelBindingContext context = DataModelBindingContext.valueOf(c);
+                            customMappings.computeIfAbsent(placeholder, (k) -> new HashMap<>()).put(context, betterQueryBean.getMappings().get(placeholder).get(c));
+                        }
+                    }
+
+                    engine.setCustomMappings(customMappings);
+                }
             }
 
             QueryResponse queryResponse = engine.query(q);
@@ -97,6 +106,7 @@ public final class QueryResourceImpl implements QueryResource {
             logger.error(marker, "Query execution failed: '{}' on '{}'", q, dbId, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         } finally {
+            engine.clearCustomQueryPlans();
             engine.clearCustomMappings();
         }
     }

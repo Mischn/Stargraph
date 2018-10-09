@@ -46,13 +46,14 @@ public interface QueryResource {
     @POST
     @Path("{kbId}/query")
     @Consumes(MediaType.APPLICATION_JSON)
-    Response query(@PathParam("kbId") String dbId, @QueryParam("q") String q, MappingsBean betterMappings);
+    Response query(@PathParam("kbId") String dbId, @QueryParam("q") String q, BetterQueryBean betterMappings);
 
 
-    class MappingsBean {
+    class BetterQueryBean {
         private Map<String, Map<String, List<String>>> mappings;
+        private List<String> queryPlans;
 
-        public MappingsBean() {}
+        public BetterQueryBean() {}
 
         @SuppressWarnings("unused") // used by jackson serializer
         public Map<String, Map<String, List<String>>> getMappings() {
@@ -60,14 +61,27 @@ public interface QueryResource {
         }
 
         @SuppressWarnings("unused") // used by jackson serializer
+        public List<String> getQueryPlans() {
+            return queryPlans;
+        }
+
+        @SuppressWarnings("unused") // used by jackson serializer
         public void setMappings(Map<String, Map<String, List<String>>> mappings) {
             this.mappings = mappings;
         }
+
+        public void setQueryPlans(List<String> queryPlans) {
+            this.queryPlans = queryPlans;
+        }
+
+        @SuppressWarnings("unused") // used by jackson serializer
+
 
         @Override
         public String toString() {
             return "MappingsBean{" +
                     "mappings=" + mappings +
+                    "queryPlans=" + queryPlans +
                     '}';
         }
     }

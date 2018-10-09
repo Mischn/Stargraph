@@ -52,8 +52,6 @@ public class Resolver {
     // MAPPINGS
 
     public void setCustomMappings(Map<String, Map<DataModelBindingContext, List<String>>> customMappings) {
-        logger.info(marker, "Set custom mappings: {}", customMappings);
-
         this.mappings.clear();
 
         for (String placeholder : customMappings.keySet()) {

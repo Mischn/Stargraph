@@ -219,10 +219,8 @@ public class QueryEngine {
             resolver.reset();
             resolver.setCustomMappings(customMappings);
 
-            queryPlan.forEach(triplePattern -> {
-                resolver.resolveTriple(triplePattern.toBoundTriple(analysis.getBindings()));
-            });
 
+            resolver.resolveTriples(queryPlan.stream().map(triplePattern -> triplePattern.toBoundTriple(analysis.getBindings())).collect(Collectors.toList()));
             SPARQLQueryBuilder queryBuilder = new SPARQLQueryBuilder(stargraph, dbId, analysis.getQueryType(),
                     queryPlan,
                     analysis.getBindings(),

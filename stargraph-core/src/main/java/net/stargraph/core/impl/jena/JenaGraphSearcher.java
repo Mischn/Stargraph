@@ -133,7 +133,7 @@ public final class JenaGraphSearcher extends JenaBaseSearcher {
                         throw new StarGraphException("?e variable need to be available in the query");
                     }
 
-                    InstanceEntity entity = (InstanceEntity) asEntity(varMap.get("e"));
+                    NodeEntity entity = asEntity(varMap.get("e"));
                     scores.add(new Score(entity, 0.0));
                 } else if (modelId.equals(BuiltInModel.PROPERTY.modelId)) {
                     // assume that '?p' variable is available in the query

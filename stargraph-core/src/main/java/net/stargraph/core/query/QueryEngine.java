@@ -87,7 +87,7 @@ public class QueryEngine {
         this.namespace = core.getNamespace();
         this.language = core.getLanguage();
         this.modeSelector = new InteractionModeSelector(stargraph.createPOSAnnotatorFactory().create(), language);
-        this.resolver = new Resolver(entitySearcher, namespace, dbId);
+        this.resolver = new Resolver(stargraph, dbId);
         this.customMappings = new ConcurrentHashMap<>();
         this.customQueryPlans = new ArrayList<>();
     }

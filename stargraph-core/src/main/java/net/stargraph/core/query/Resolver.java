@@ -1,11 +1,13 @@
 package net.stargraph.core.query;
 
 import net.stargraph.core.Namespace;
-import net.stargraph.core.query.nli.DataModelBinding;
-import net.stargraph.core.query.nli.DataModelBindingContext;
-import net.stargraph.core.query.nli.DataModelType;
-import net.stargraph.core.query.nli.TriplePattern;
+import net.stargraph.core.Stargraph;
+import net.stargraph.core.impl.jena.JenaGraphSearcher;
+import net.stargraph.core.impl.jena.JenaQueryHolder;
+import net.stargraph.core.impl.jena.JenaSPARQLQuery;
+import net.stargraph.core.query.nli.*;
 import net.stargraph.core.search.EntitySearcher;
+import net.stargraph.model.BuiltInModel;
 import net.stargraph.model.InstanceEntity;
 import net.stargraph.model.PropertyPath;
 import net.stargraph.rank.*;
@@ -20,8 +22,9 @@ import java.util.stream.Collectors;
 
 public class Resolver {
     protected Logger logger = LoggerFactory.getLogger(getClass());
-    protected Marker marker = MarkerFactory.getMarker("query");
+    protected Marker marker = MarkerFactory.getMarker("resolver");
 
+    protected Stargraph stargraph;
     protected EntitySearcher entitySearcher;
     protected String dbId;
     protected Namespace namespace;
@@ -29,17 +32,26 @@ public class Resolver {
     protected Map<String, Map<DataModelBindingContext, Set<Score>>> mappings; // maps placeholder & context to a list of scored entities
 
     // individual resolvers
-    protected final InstanceResolver instanceResolver = new InstanceResolver();
-    protected final ClassResolver classResolver = new ClassResolver();
-    protected final PredicateResolver predicateResolver = new PredicateResolver();
-    protected final PivotedPredicateResolver pivotedPredicateResolver = new PivotedPredicateResolver();
+    protected final InstanceResolver instanceResolver;
+    protected final ClassResolver classResolver;
+    protected final PredicateResolver predicateResolver;
+    protected final PivotedPredicateResolver pivotedPredicateResolver;
+    protected final VariableResolver variableResolver;
 
-    public Resolver(EntitySearcher entitySearcher, Namespace namespace, String dbId) {
-        this.entitySearcher = entitySearcher;
+    public Resolver(Stargraph stargraph, String dbId) {
+        this.stargraph = stargraph;
         this.dbId = dbId;
-        this.namespace = namespace;
+        this.entitySearcher = stargraph.getEntitySearcher();
+        this.namespace = stargraph.getKBCore(dbId).getNamespace();
         this.possibleMappings = new ConcurrentHashMap<>();
         this.mappings = new ConcurrentHashMap<>();
+
+        // resolvers
+        this.instanceResolver = new InstanceResolver();
+        this.classResolver = new ClassResolver();
+        this.predicateResolver = new PredicateResolver();
+        this.pivotedPredicateResolver = new PivotedPredicateResolver();
+        this.variableResolver = new VariableResolver();
     }
 
     public void reset() {
@@ -126,18 +138,18 @@ public class Resolver {
 
     // OTHERS //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private boolean resolvable(DataModelType modelType) {
+    private boolean shouldBeResolved(DataModelType modelType) {
         return !Arrays.asList(DataModelType.VARIABLE, DataModelType.TYPE, DataModelType.EQUALS).contains(modelType);
     }
 
     private boolean isResolved(TriplePattern.BoundTriple triple) {
-        if (resolvable(triple.getS().getModelType()) && !isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
+        if (shouldBeResolved(triple.getS().getModelType()) && !isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
             return false;
         }
-        if (resolvable(triple.getP().getModelType()) && !isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
+        if (shouldBeResolved(triple.getP().getModelType()) && !isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
             return false;
         }
-        if (resolvable(triple.getO().getModelType()) && !isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
+        if (shouldBeResolved(triple.getO().getModelType()) && !isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
             return false;
         }
         return true;
@@ -154,33 +166,40 @@ public class Resolver {
     }
 
     public void resolveTriples(List<TriplePattern.BoundTriple> triples) {
-        logger.debug(marker, "Resolve triples {}", triples);
-        List<TriplePattern.BoundTriple> unresolvedTriples = new ArrayList<>(triples);
+        logger.debug(marker, "RESOLVE TRIPLES {}", triples);
 
         // a best-effort heuristic in which order to resolve the triples
         boolean loop = true;
-        while (loop) {
-            boolean loop2 = true;
-            while (loop2) {
-                while (resolveNextDependant(unresolvedTriples)) {
+        while(loop) {
+            boolean loop1 = true;
+            while (loop1) {
+                boolean loop2 = true;
+                while (loop2) {
+                    boolean loop3 = true;
+                    while (loop3) {
+                        loop3 = resolveNextDependant(triples);
+                    }
+                    loop2 = resolveNextInstance(triples);
                 }
-                loop2 = resolveNextInstance(unresolvedTriples);
+                loop1 = resolveNextSO(triples);
             }
-            loop = resolveNextSO(unresolvedTriples);
+            loop = resolveAVariable(triples);
         }
-        resolveAll(unresolvedTriples);
+        resolveAll(triples);
     }
 
-    private boolean resolveNextDependant(List<TriplePattern.BoundTriple> unresolvedTriples) {
-        logger.debug(marker, "Resolving-Step: Resolve next dependant");
+    private boolean resolveNextDependant(List<TriplePattern.BoundTriple> triples) {
+        logger.debug(marker, "# Resolving-Step: Try resolve a dependant");
 
-        for (int i = 0; i < unresolvedTriples.size(); i++) {
-            TriplePattern.BoundTriple triple = unresolvedTriples.get(i);
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
 
             // Resolve predicate:
             // ???   [TO_BE_RESOLVED]   [resolved]
             // [resolved]   [TO_BE_RESOLVED]   ???
-            if (!isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE) && resolvable(triple.getP().getModelType())) {
+            if (!isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE) && shouldBeResolved(triple.getP().getModelType())) {
                 if (isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) || isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
 
                     DataModelBinding pivotBinding = isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)? triple.getS() : triple.getO();
@@ -190,14 +209,11 @@ public class Resolver {
                             .map(s -> (InstanceEntity)s.getEntry())
                             .collect(Collectors.toList());
 
+                        pivotedPredicateResolver.setTriple(triple);
                         pivotedPredicateResolver.setBinding(triple.getP());
                         pivotedPredicateResolver.setContext(DataModelBindingContext.PREDICATE);
                         pivotedPredicateResolver.setPivots(pivots);
                         pivotedPredicateResolver.resolve();
-
-                        if (isResolved(triple)) {
-                            unresolvedTriples.remove(i);
-                        }
 
                         if (isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
                             return true;
@@ -205,7 +221,11 @@ public class Resolver {
                 }
             }
 
-            //TODO resolve other dependant structures
+            // Resolve target:
+            // [TO_BE_RESOLVED]   ?VAR   [resolved]
+            // [resolved]   ?VAR   [TO_BE_RESOLVED]
+            //TODO implement DNA search
+
 
             // Resolve class member
             // [TO_BE_RESOLVED]   TYPE   [resolved]
@@ -219,7 +239,7 @@ public class Resolver {
             // [resolved]   EQUALS   [TO_BE_RESOLVED]
             // [TO_BE_RESOLVED]   EQUALS   [resolved]
             if (triple.getP().getModelType().equals(DataModelType.EQUALS)) {
-                if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getS().getModelType()) && isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
+                if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getS().getModelType()) && isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
 
                     // just copy mappings from o to s
                     Set<Score> mappings = getMappings(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE);
@@ -227,7 +247,7 @@ public class Resolver {
                     addMappings(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE, new ArrayList<>(mappings));
                     addPossibleMappings(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE, new ArrayList<>(mappings));
                 }
-                if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getO().getModelType()) && isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
+                if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getO().getModelType()) && isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
 
                     // just copy mappings from s to o
                     Set<Score> mappings = getMappings(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE);
@@ -241,38 +261,96 @@ public class Resolver {
         return false;
     }
 
-    private boolean resolveNextInstance(List<TriplePattern.BoundTriple> unresolvedTriples) {
-        logger.debug(marker, "Resolving-Step: Resolve next instance");
+    private TriplePattern.BoundTriple getVarResolverTriple(List<TriplePattern.BoundTriple> triples, DataModelBinding varBinding) {
+        for (TriplePattern.BoundTriple triple : triples) {
 
-        for (int i = 0; i < unresolvedTriples.size(); i++) {
-            TriplePattern.BoundTriple triple = unresolvedTriples.get(i);
+            // must have two resolved elements and one unresolved variable
+            boolean sResolved = isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE);
+            boolean pResolved = isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE);
+            boolean oResolved = isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE);
+            long nrResolved = Arrays.asList(sResolved, pResolved, oResolved).stream().filter(b -> b).count();
 
-            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getS().getModelType()) && triple.getS().getModelType().equals(DataModelType.INSTANCE)) {
-                logger.debug(marker, "Resolve triple: {}", triple);
+            if (nrResolved == 2 && triple.getS().getModelType().equals(DataModelType.VARIABLE) && !sResolved) {
+                return triple;
+            }
+            if (nrResolved == 2 && triple.getP().getModelType().equals(DataModelType.VARIABLE) && !pResolved) {
+                return triple;
+            }
+            if (nrResolved == 2 && triple.getO().getModelType().equals(DataModelType.VARIABLE) && !oResolved) {
+                return triple;
+            }
+        }
+        return null;
+    }
 
+    private boolean resolveAVariable(List<TriplePattern.BoundTriple> triples) {
+        logger.debug(marker, "# Resolving-Step: Try resolve a VARIABLE");
+
+
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
+
+            DataModelBinding binding = null;
+            TriplePattern.BoundTriple resolverTriple = null;
+            if (triple.getS().getModelType().equals(DataModelType.VARIABLE) && !isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
+                resolverTriple = getVarResolverTriple(triples, triple.getS());
+                binding = triple.getS();
+            }
+
+            if (resolverTriple == null) {
+                if (triple.getP().getModelType().equals(DataModelType.VARIABLE) && !isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
+                    resolverTriple = getVarResolverTriple(triples, triple.getP());
+                    binding = triple.getP();
+                }
+            }
+
+            if (resolverTriple == null) {
+                if (triple.getO().getModelType().equals(DataModelType.VARIABLE) && !isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
+                    resolverTriple = getVarResolverTriple(triples, triple.getO());
+                    binding = triple.getO();
+                }
+            }
+
+            if (resolverTriple != null) {
+                variableResolver.setTriple(resolverTriple);
+                variableResolver.setBinding(binding);
+                variableResolver.resolve();
+
+                if (isResolved(binding.getPlaceHolder(), variableResolver.getContext())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
+    private boolean resolveNextInstance(List<TriplePattern.BoundTriple> triples) {
+        logger.debug(marker, "# Resolving-Step: Try resolve an INSTANCE");
+
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
+
+            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getS().getModelType()) && triple.getS().getModelType().equals(DataModelType.INSTANCE)) {
+                instanceResolver.setTriple(triple);
                 instanceResolver.setBinding(triple.getS());
                 instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                 instanceResolver.resolve();
-
-                if (isResolved(triple)) {
-                    unresolvedTriples.remove(i);
-                }
 
                 if (isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
                     return true;
                 }
             }
 
-            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getO().getModelType()) && triple.getO().getModelType().equals(DataModelType.INSTANCE)) {
-                logger.debug(marker, "Resolve triple: {}", triple);
-
+            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getO().getModelType()) && triple.getO().getModelType().equals(DataModelType.INSTANCE)) {
+                instanceResolver.setTriple(triple);
                 instanceResolver.setBinding(triple.getO());
                 instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                 instanceResolver.resolve();
-
-                if (isResolved(triple)) {
-                    unresolvedTriples.remove(i);
-                }
 
                 if (isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
                     return true;
@@ -282,23 +360,20 @@ public class Resolver {
         return false;
     }
 
-    private boolean resolveNextSO(List<TriplePattern.BoundTriple> unresolvedTriples) {
-        logger.debug(marker, "Resolving-Step: Resolve next subject or object");
+    private boolean resolveNextSO(List<TriplePattern.BoundTriple> triples) {
+        logger.debug(marker, "# Resolving-Step: Try resolve a subject or object");
 
         // subjects
-        for (int i = 0; i < unresolvedTriples.size(); i++) {
-            TriplePattern.BoundTriple triple = unresolvedTriples.get(i);
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
 
-            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getS().getModelType())) {
-                logger.debug(marker, "Resolve triple: {}", triple);
-
+            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getS().getModelType())) {
+                instanceResolver.setTriple(triple);
                 instanceResolver.setBinding(triple.getS());
                 instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                 instanceResolver.resolve();
-
-                if (isResolved(triple)) {
-                    unresolvedTriples.remove(i);
-                }
 
                 if (isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
                     return true;
@@ -307,24 +382,22 @@ public class Resolver {
         }
 
         // objects
-        for (int i = 0; i < unresolvedTriples.size(); i++) {
-            TriplePattern.BoundTriple triple = unresolvedTriples.get(i);
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
 
-            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getO().getModelType())) {
-                logger.debug(marker, "Resolve triple: {}", triple);
-
+            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getO().getModelType())) {
                 if (triple.getP().getModelType().equals(DataModelType.TYPE)) {
+                    classResolver.setTriple(triple);
                     classResolver.setBinding(triple.getO());
                     classResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                     classResolver.resolve();
                 } else {
+                    instanceResolver.setTriple(triple);
                     instanceResolver.setBinding(triple.getO());
                     instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                     instanceResolver.resolve();
-                }
-
-                if (isResolved(triple)) {
-                    unresolvedTriples.remove(i);
                 }
 
                 if (isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
@@ -336,36 +409,38 @@ public class Resolver {
         return false;
     }
 
-    private void resolveAll(List<TriplePattern.BoundTriple> unresolvedTriples) {
-        logger.debug(marker, "Resolving-Step: Resolve all");
+    private void resolveAll(List<TriplePattern.BoundTriple> triples) {
+        logger.debug(marker, "# Resolving-Step: Resolve all");
 
-        for (int i = unresolvedTriples.size() - 1; i >= 0; i--) {
-            TriplePattern.BoundTriple triple = unresolvedTriples.get(i);
+        for (TriplePattern.BoundTriple triple : triples) {
+            if (isResolved(triple)) {
+                continue;
+            }
 
-            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getS().getModelType())) {
+            if (!isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getS().getModelType())) {
+                instanceResolver.setTriple(triple);
                 instanceResolver.setBinding(triple.getS());
                 instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                 instanceResolver.resolve();
             }
-            if (!isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE) && resolvable(triple.getP().getModelType())) {
+            if (!isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE) && shouldBeResolved(triple.getP().getModelType())) {
+                predicateResolver.setTriple(triple);
                 predicateResolver.setBinding(triple.getP());
                 predicateResolver.setContext(DataModelBindingContext.PREDICATE);
                 predicateResolver.resolve();
             }
-            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && resolvable(triple.getO().getModelType())) {
+            if (!isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) && shouldBeResolved(triple.getO().getModelType())) {
                 if (triple.getP().getModelType().equals(DataModelType.TYPE)) {
+                    classResolver.setTriple(triple);
                     classResolver.setBinding(triple.getO());
                     classResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                     classResolver.resolve();
                 } else {
+                    instanceResolver.setTriple(triple);
                     instanceResolver.setBinding(triple.getO());
                     instanceResolver.setContext(DataModelBindingContext.NON_PREDICATE);
                     instanceResolver.resolve();
                 }
-            }
-
-            if (isResolved(triple)) {
-                unresolvedTriples.remove(i);
             }
         }
     }
@@ -387,6 +462,10 @@ public class Resolver {
     // SINGLE RESOLVER IMPLEMENTATIONS /////////////////////////////////////////////////////////////////////////////////
 
     private abstract class SingleResolver {
+        protected Logger logger = LoggerFactory.getLogger(getClass());
+        protected Marker marker = MarkerFactory.getMarker("single-resolver");
+
+        protected TriplePattern.BoundTriple triple; // the triple in which binding occurs (optional)
         protected DataModelBinding binding;
         protected DataModelBindingContext context;
         protected long possibleLimit = 10;
@@ -414,12 +493,20 @@ public class Resolver {
             }
         }
 
+        public void setTriple(TriplePattern.BoundTriple triple) {
+            this.triple = triple;
+        }
+
         public void setBinding(DataModelBinding binding) {
             this.binding = binding;
         }
 
         public void setContext(DataModelBindingContext context) {
             this.context = context;
+        }
+
+        public DataModelBindingContext getContext() {
+            return context;
         }
 
         public void setPossibleLimit(long possibleLimit) {
@@ -431,9 +518,14 @@ public class Resolver {
         }
 
         public Set<Score> resolve() {
+            if (triple != null) {
+                logger.debug(marker, "Try to resolve {} from triple {}", binding, triple);
+            } else {
+                logger.debug(marker, "Try to resolve {}", binding);
+            }
 
             if (hasMappings(binding.getPlaceHolder(), context)) {
-                logger.debug(marker, "{} in context '{}' was already resolved to {}", binding, context, getMappings(binding.getPlaceHolder(), context));
+                logger.debug(marker, "{} was already resolved to {}", binding, getMappings(binding.getPlaceHolder(), context));
                 return getMappings(binding.getPlaceHolder(), context);
             }
 
@@ -444,17 +536,17 @@ public class Resolver {
             if (resolvedUri != null) {
                 scoreSet.add(new Score(resolvedUri, 1));
             } else {
-                logger.debug(marker, "Resolve {} in context '{}'", binding, context);
+                logger.debug(marker, "Resolve {}", binding);
                 scoreSet.addAll(findResults());
                 logger.debug(marker, "Results:\n{}", scoreSet.stream().map(s -> s.toString()).collect(Collectors.joining("\n")));
             }
 
             Scores scores = new Scores(scoreSet);
             if (scores.size() > 0) {
-                logger.debug(marker, "Possible mappings for {} in context '{}': {}", binding, context, limitScores(scores, possibleLimit));
+                logger.debug(marker, "Possible mappings for {}: {}", binding, limitScores(scores, possibleLimit));
                 addPossibleMappings(binding.getPlaceHolder(), context, limitScores(scores, possibleLimit));
 
-                logger.debug(marker, "Used mappings for {} in context '{}': {}", binding, context, limitScores(scores, usedLimit));
+                logger.debug(marker, "Used mappings for {}: {}", binding, limitScores(scores, usedLimit));
                 addMappings(binding.getPlaceHolder(), context, limitScores(scores, usedLimit));
 
                 return getMappings(binding.getPlaceHolder(), context);
@@ -556,6 +648,42 @@ public class Resolver {
             }
 
             return scores;
+        }
+    }
+
+    private class VariableResolver extends SingleResolver {
+        private JenaGraphSearcher jenaGraphSearcher;
+
+        public VariableResolver() {
+            this.jenaGraphSearcher = (JenaGraphSearcher)stargraph.getKBCore(dbId).getGraphSearcher();
+        }
+
+        @Override
+        protected Scores findResults() {
+            boolean asPredicate = triple.getP().getPlaceHolder().equals(binding.getPlaceHolder());
+
+            Map<String, DataModelBinding> bindings = new HashMap<>();
+            bindings.put(triple.getS().getPlaceHolder(), triple.getS());
+            bindings.put(triple.getP().getPlaceHolder(), triple.getP());
+            bindings.put(triple.getO().getPlaceHolder(), triple.getO());
+
+            QueryPlan queryPlan = new QueryPlan();
+            queryPlan.add(triple.getTriplePattern());
+            SPARQLQueryBuilder sparqlQueryBuilder = new SPARQLQueryBuilder(stargraph, dbId, QueryType.SELECT, queryPlan, bindings, getMappings());
+            String sparqlQueryStr = sparqlQueryBuilder.build();
+
+            BuiltInModel model;
+            if (asPredicate) {
+                sparqlQueryStr = sparqlQueryStr.replace(binding.getPlaceHolder(), "?p");
+                model = BuiltInModel.PROPERTY;
+                context = DataModelBindingContext.PREDICATE;
+            } else {
+                sparqlQueryStr = sparqlQueryStr.replace(binding.getPlaceHolder(), "?e");
+                model = BuiltInModel.ENTITY;
+                context = DataModelBindingContext.NON_PREDICATE;
+            }
+
+            return jenaGraphSearcher.search(new JenaQueryHolder(new JenaSPARQLQuery(sparqlQueryStr), ModifiableSearchParams.create(dbId).model(model)));
         }
     }
 }

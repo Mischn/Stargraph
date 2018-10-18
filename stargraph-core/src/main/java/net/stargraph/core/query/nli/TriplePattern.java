@@ -28,19 +28,31 @@ package net.stargraph.core.query.nli;
 
 import net.stargraph.StarGraphException;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public final class TriplePattern {
     public static class BoundTriple {
+        TriplePattern triplePattern;
         private DataModelBinding s;
         private DataModelBinding p;
         private DataModelBinding o;
 
-        public BoundTriple(DataModelBinding s, DataModelBinding p, DataModelBinding o) {
+        public BoundTriple(TriplePattern triplePattern, DataModelBinding s, DataModelBinding p, DataModelBinding o) {
+            this.triplePattern = triplePattern;
             this.s = s;
             this.p = p;
             this.o = o;
+        }
+
+        public List<DataModelBinding> getBindings() {
+            return Arrays.asList(this.s, this.p, this.o);
+        }
+
+        public TriplePattern getTriplePattern() {
+            return triplePattern;
         }
 
         public DataModelBinding getS() {
@@ -76,7 +88,7 @@ public final class TriplePattern {
 
     public BoundTriple toBoundTriple(Map<String, DataModelBinding> bindings) {
         String[] components = pattern.split("\\s");
-        return new BoundTriple(map(components[0], bindings), map(components[1], bindings), map(components[2], bindings));
+        return new BoundTriple(this, map(components[0], bindings), map(components[1], bindings), map(components[2], bindings));
     }
 
     private DataModelBinding map(String placeHolder, Map<String, DataModelBinding> bindings) {

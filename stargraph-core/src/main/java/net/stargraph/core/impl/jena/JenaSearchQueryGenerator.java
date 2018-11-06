@@ -72,24 +72,41 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
     @Override
     public SearchQueryHolder findClassFacts(List<String> subjIdList, List<String> objIdList, ModifiableSearchParams searchParams) {
         Namespace namespace = getNamespace();
-        
-        String pattern = "?s ?p ?o .";
 
-        Map<String, List<String>> varBindings = new HashMap<>();
+        sparqlCreator.resetNewVarCounter();
+        List<String> statements = new ArrayList<>();
+
+        String subjStmt = null;
         if (subjIdList != null && subjIdList.size() > 0) {
-            List<String> expandedSubjIdList = subjIdList.stream().map(namespace::expandURI).collect(Collectors.toList());
-            varBindings.put("?s", expandedSubjIdList.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
-        }
-        if (objIdList != null && objIdList.size() > 0) {
-            List<String> expandedObjIdList = objIdList.stream().map(namespace::expandURI).collect(Collectors.toList());
-            varBindings.put("?o", expandedObjIdList.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
-        }
-        varBindings.put("?p", classURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
 
-        String query = "SELECT ?s ?p ?o {"
-                + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings, Arrays.asList("?s", "?p", "?o")), false)
-                + "}"
-                + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
+            // add new binding statement
+            subjStmt = sparqlCreator.varBindingStmt("?s", subjIdList.stream().map(x -> namespace.expandURI(x)).collect(Collectors.toList()));
+        }
+
+        String objStmt = null;
+        if (objIdList != null && objIdList.size() > 0) {
+
+            // add new binding statement
+            objStmt = sparqlCreator.varBindingStmt("?o", objIdList.stream().map(x -> namespace.expandURI(x)).collect(Collectors.toList()));
+        }
+
+        for (String classUri : classURIs.stream().map(u -> namespace.expandURI(u)).collect(Collectors.toList())) {
+            List<String> stmts = new ArrayList<>();
+
+            String predRepr = SparqlCreator.formatURI(classUri);
+            if (subjStmt != null) {
+                stmts.add(subjStmt);
+            }
+            if (objStmt != null) {
+                stmts.add(objStmt);
+            }
+            stmts.add(sparqlCreator.createStmt("?s", predRepr, "?o"));
+            stmts.add(sparqlCreator.createBindStmt("?p", Arrays.asList(classUri)));
+
+            statements.add(sparqlCreator.stmtJoin(stmts, false));
+        }
+
+        String query = "SELECT ?s ?p ?o { " + sparqlCreator.stmtUnionJoin(statements, true) + "} " + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
 
         return new JenaQueryHolder(new JenaSPARQLQuery(query), searchParams);
     }
@@ -126,45 +143,38 @@ public class JenaSearchQueryGenerator extends BaseSearchQueryGenerator {
         }
 
 
-        String pattern = "?s ?p ?o .";
 
-        Map<String, List<String>> varBindingsS = new HashMap<>();
-        varBindingsS.put("?s", Arrays.asList("<" + id + ">"));
-        Map<String, List<String>> varBindingsO = new HashMap<>();
-        varBindingsO.put("?o", Arrays.asList("<" + id + ">"));
+        sparqlCreator.resetNewVarCounter();
+        List<String> statements = new ArrayList<>();
 
-        Map<String, List<String>> varBindingsType = new HashMap<>();
-        varBindingsType.put("?p", classURIs.stream().map(s -> "<" + s + ">").collect(Collectors.toList()));
+        String subjRepr = "?s";
+        if (inSubject) {
+            subjRepr = SparqlCreator.formatURI(id);
+        }
 
-        String nonTypePropertyFilter = (propertyTypes.equals(PropertyTypes.NON_TYPE_ONLY))? " . " + sparqlCreator.createEqualsFilterStr(varBindingsType, true) : "";
+        String objRepr = "?o";
+        if (inObject) {
+            objRepr = SparqlCreator.formatURI(id);
+        }
+
         if (propertyTypes.equals(PropertyTypes.TYPE_ONLY)) {
-            varBindingsS.put("?p", varBindingsType.get("?p"));
-            varBindingsO.put("?p", varBindingsType.get("?p"));
+            for (String classUri : classURIs.stream().map(u -> namespace.expandURI(u)).collect(Collectors.toList())) {
+                List<String> stmts = new ArrayList<>();
+
+                String predRepr = SparqlCreator.formatURI(classUri);
+                stmts.add(sparqlCreator.createStmt(subjRepr, predRepr, objRepr));
+                stmts.add(sparqlCreator.createBindStmt("?p", Arrays.asList(classUri)));
+
+                statements.add(sparqlCreator.stmtJoin(stmts, false));
+            }
+        } else if (propertyTypes.equals(PropertyTypes.NON_TYPE_ONLY)) {
+            statements.add(sparqlCreator.createStmt(subjRepr, "?p", objRepr));
+            statements.add(sparqlCreator.createEqualsFilterStmt("?p", classURIs.stream().map(u -> namespace.expandURI(u)).collect(Collectors.toList()), true));
+        } else {
+            statements.add(sparqlCreator.createStmt(subjRepr, "?p", objRepr));
         }
 
-        String query;
-        if (inSubject && inObject) {
-            query = "SELECT ?s ?p ?o {"
-                    + "{"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
-                    + "} UNION {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
-                    + "}"
-                    + "}"
-                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
-        } else if (inSubject) {
-            query = "SELECT ?s ?p ?o {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsS, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
-                    + "}"
-                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
-        } else if (inObject) {
-            query = "SELECT ?s ?p ?o {"
-                    + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindingsO, Arrays.asList("?s", "?p", "?o")).stream().map(s -> s + nonTypePropertyFilter).collect(Collectors.toList()), false)
-                    + "}"
-                    + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
-        } else {
-            query = "SELECT {}";
-        }
+        String query = "SELECT ?s ?p ?o { " + sparqlCreator.stmtUnionJoin(statements, true) + "} " + sparqlCreator.createLimit(searchParams.getSearchSpaceLimit());
 
         return new JenaQueryHolder(new JenaSPARQLQuery(query), searchParams);
     }

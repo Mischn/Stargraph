@@ -30,11 +30,8 @@ import net.stargraph.StarGraphException;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.SparqlCreator;
 import net.stargraph.core.Stargraph;
-import net.stargraph.core.query.nli.DataModelBinding;
-import net.stargraph.core.query.nli.DataModelBindingContext;
-import net.stargraph.core.query.nli.QueryPlan;
-import net.stargraph.core.query.nli.TriplePattern;
-import net.stargraph.model.PropertyPath;
+import net.stargraph.core.query.nli.*;
+import net.stargraph.model.Entity;
 import net.stargraph.rank.Score;
 
 import java.util.*;
@@ -117,167 +114,83 @@ public final class SPARQLQueryBuilder {
         final int varRange = 1; //TODO experiment with this value
         final int typeRange = 1; //TODO experiment with this value
 
+        List<String> statements = new ArrayList<>();
         sparqlCreator.resetNewVarCounter();
 
-
-        List<String> resolvedTriplePatterns = new ArrayList<>();
-
         queryPlan.forEach(triplePattern -> {
-            String[] components = triplePattern.getPattern().split("\\s");
+            TriplePattern.BoundTriple triple = triplePattern.toBoundTriple(bindings);
 
-            List<String> sMappings = new ArrayList<>();
-            List<String> oMappings = new ArrayList<>();
-
-            // Subject
-            String subjectPlaceholder = components[0];
-            if (isVar(subjectPlaceholder)) {
-                sMappings = Arrays.asList(subjectPlaceholder);
-            } else if (isType(subjectPlaceholder)) {
-                throw new AssertionError("Subject should not be a type");
+            // SUBJECT
+            String subjRepr;
+            DataModelBinding subj = triple.getS();
+            if (subj.getModelType().equals(DataModelType.VARIABLE)) {
+                subjRepr = subj.getPlaceHolder();
             } else {
-                DataModelBinding binding = getBinding(subjectPlaceholder);
-                Set<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
+                Set<Score> mappings = getMapping(subj, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
-                    sMappings = Arrays.asList(getUnmappedURI(binding));
+                    subjRepr = getUnmappedURI(subj);
                 } else {
-                    for (Score mapping : mappings) {
-                        sMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
-                    }
+                    // introduce a new variable for the subject
+                    subjRepr = sparqlCreator.getNewVar("S");
+
+                    // add new binding statement
+                    statements.add(sparqlCreator.varBindingStmt(subjRepr, mappings.stream().map(x -> namespace.expandURI(x.getRankableView().getId())).collect(Collectors.toList())));
                 }
             }
 
-            // Object
-            String objectPlaceholder = components[2];
-            if (isVar(objectPlaceholder)) {
-                oMappings = Arrays.asList(objectPlaceholder);
-            } else if (isType(objectPlaceholder)) {
-                throw new AssertionError("Object should not be a type");
+            // OBJECT
+            String objRepr;
+            DataModelBinding obj = triple.getO();
+            if (obj.getModelType().equals(DataModelType.VARIABLE)) {
+                objRepr = obj.getPlaceHolder();
             } else {
-                DataModelBinding binding = getBinding(objectPlaceholder);
-                Set<Score> mappings = getMapping(binding, DataModelBindingContext.NON_PREDICATE);
+                Set<Score> mappings = getMapping(obj, DataModelBindingContext.NON_PREDICATE);
                 if (mappings.isEmpty()) {
-                    oMappings = Arrays.asList(getUnmappedURI(binding));
+                    objRepr = getUnmappedURI(obj);
                 } else {
-                    for (Score mapping : mappings) {
-                        oMappings.add(String.format("<%s>", unmap(mapping.getRankableView().getId())));
-                    }
+                    // introduce a new variable for the object
+                    objRepr = sparqlCreator.getNewVar("O");
+
+                    // add new binding statement
+                    statements.add(sparqlCreator.varBindingStmt(objRepr, mappings.stream().map(x -> namespace.expandURI(x.getRankableView().getId())).collect(Collectors.toList())));
                 }
             }
 
-            // Property
-            String propertyPlaceholder = components[1];
-
-            if (isEquals(propertyPlaceholder)) {
-                Map<String, List<String>> varBinds = new HashMap<>();
-                if (isVar(subjectPlaceholder)) {
-                    varBinds.put(subjectPlaceholder, oMappings);
-                    resolvedTriplePatterns.add(sparqlCreator.createBindStr(varBinds, Arrays.asList(subjectPlaceholder)));
-                } else {
-                    varBinds.put(objectPlaceholder, sMappings);
-                    resolvedTriplePatterns.add(sparqlCreator.createBindStr(varBinds, Arrays.asList(objectPlaceholder)));
+            // PREDICATE
+            String stmt = null;
+            DataModelBinding pred = triple.getP();
+            if (pred.getModelType().equals(DataModelType.VARIABLE)) {
+                List<String> stmts = new ArrayList<>();
+                for (String predRepr : sparqlCreator.createPreds("V", "T", varRange)) {
+                    stmts.add(sparqlCreator.createStmt(subjRepr, predRepr, objRepr));
                 }
-            } else if (isVar(propertyPlaceholder)) {
-                List<String> strs = new ArrayList<>();
-                for (int i = 0; i < varRange; i++) {
-                    sparqlCreator.resetNewVarCounter();
-
-                    SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", i+1, "?o", "?p", "?v");
-
-                    Map<String, List<String>> varMappings = new HashMap<>();
-                    varMappings.put("?s", sMappings);
-                    varMappings.put("?o", oMappings);
-
-                    strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
-                }
-                resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
-            } else if (isType(propertyPlaceholder)) {
-                List<String> strs = new ArrayList<>();
-                for (int i = 0; i < typeRange; i++) {
-                    sparqlCreator.resetNewVarCounter();
-
-                    SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", i+1, "?o", "?p", "?t");
-
-                    Map<String, List<String>> varMappings = new HashMap<>();
-                    varMappings.put("?s", sMappings);
-                    varMappings.put("?o", oMappings);
-                    for (String v : pathPattern.getPropertyVars()) {
-                        varMappings.put(v, classURIs.stream().map(u -> String.format("<%s>", u)).collect(Collectors.toList()));
-                    }
-
-                    strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
-                }
-                resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
+                stmt = sparqlCreator.stmtUnionJoin(stmts, false);
+            } else if (pred.getModelType().equals(DataModelType.TYPE)) {
+                String predRepr = sparqlCreator.createPred(classURIs.stream().map(u -> namespace.expandURI(u)).collect(Collectors.toList()), typeRange);
+                stmt = sparqlCreator.createStmt(subjRepr, predRepr, objRepr);
+            } else if (pred.getModelType().equals(DataModelType.EQUALS)) {
+                // TODO
+                throw new UnsupportedOperationException("Not supported yet!");
             } else {
-                DataModelBinding binding = getBinding(propertyPlaceholder);
-                Set<Score> mappings = getMapping(binding, DataModelBindingContext.PREDICATE);
+                Set<Score> mappings = getMapping(pred, DataModelBindingContext.PREDICATE);
+                String predRepr;
                 if (mappings.isEmpty()) {
-                    sparqlCreator.resetNewVarCounter();
-
-                    String pattern = "?s ?p ?o .";
-
-                    Map<String, List<String>> varMappings = new HashMap<>();
-                    varMappings.put("?s", sMappings);
-                    varMappings.put("?o", oMappings);
-                    varMappings.put("?p", Arrays.asList(getUnmappedURI(binding)));
-
-                    resolvedTriplePatterns.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
+                    predRepr = getUnmappedURI(pred);
                 } else {
-                    List<String> strs = new ArrayList<>();
-                    for (Score mapping : mappings) {
-                        sparqlCreator.resetNewVarCounter();
-
-                        if (mapping.getEntry() instanceof PropertyPath) {
-                            PropertyPath propertyPath = (PropertyPath) mapping.getEntry();
-
-                            List<String> propertyMappings = propertyPath.getProperties().stream().map(p -> String.format("<%s>", unmap(p.getId()))).collect(Collectors.toList());
-                            List<Boolean> inverseProperties = propertyPath.getDirections().stream().map(d -> d.equals(PropertyPath.Direction.INCOMING)).collect(Collectors.toList());
-
-                            SparqlCreator.PathPattern pathPattern = sparqlCreator.createPathPattern("?s", propertyMappings, inverseProperties, "?o", "?pp");
-
-                            Map<String, List<String>> varMappings = new HashMap<>();
-                            varMappings.put("?s", sMappings);
-                            varMappings.put("?o", oMappings);
-
-                            strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pathPattern.getPattern(), varMappings), false));
-                        } else {
-                            String pattern = "?s ?p ?o .";
-
-                            Map<String, List<String>> varMappings = new HashMap<>();
-                            varMappings.put("?s", sMappings);
-                            varMappings.put("?o", oMappings);
-                            varMappings.put("?p", Arrays.asList(String.format("<%s>", unmap(mapping.getRankableView().getId()))));
-
-                            strs.add(sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varMappings), false));
-                        }
-                    }
-                    resolvedTriplePatterns.add(sparqlCreator.unionJoin(strs, true));
+                    predRepr = sparqlCreator.createPred(mappings.stream().map(s -> (Entity) s.getEntry()).map(e -> namespace.expand(e)).collect(Collectors.toList()));
                 }
+                stmt = sparqlCreator.createStmt(subjRepr, predRepr, objRepr);
             }
+
+            statements.add(stmt);
         });
 
-        return sparqlCreator.concatJoin(resolvedTriplePatterns, true);
-    }
-
-    private boolean isVar(String s) {
-        return s.startsWith("?VAR");
-    }
-
-    private boolean isEquals(String s) {
-        return s.startsWith("EQUALS");
-    }
-
-    private boolean isType(String s) {
-        return s.startsWith("TYPE");
+        return sparqlCreator.stmtJoin(statements, true);
     }
 
     private String getUnmappedURI(DataModelBinding binding) {
         return String.format(":%s", binding.getTerm().replaceAll("\\s", "_"));
     }
-
-    private String unmap(String uri) {
-        return namespace != null ? namespace.expandURI(uri) : uri;
-    }
-
 
     @Override
     public String toString() {
@@ -287,8 +200,12 @@ public final class SPARQLQueryBuilder {
             strb.append("\n\t").append(triplePattern);
         }
         strb.append("\n\n").append("Bindings & Mappings:");
-        for (String placeholder : bindings.keySet()) {
-            strb.append("\n\t").append(bindings.get(placeholder));
+        for (String placeholder : mappings.keySet()) {
+            if (bindings.containsKey(placeholder)) {
+                strb.append("\n\t").append(bindings.get(placeholder));
+            } else {
+                strb.append("\n\t").append(placeholder);
+            }
             if (mappings.containsKey(placeholder) && mappings.get(placeholder).size() > 0) {
                 strb.append("\n\t\t").append("Mappings: ").append(mappings.get(placeholder));
             } else {

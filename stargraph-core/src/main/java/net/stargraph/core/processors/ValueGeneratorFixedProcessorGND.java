@@ -47,7 +47,6 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Can be placed in the workflow to create passages.
@@ -70,15 +69,15 @@ public final class ValueGeneratorFixedProcessorGND extends BaseProcessor {
     }
 
     private String createSPARQLQuery(String entityUri, Language language, List<String> properties) {
-        String pattern = "?s ?p ?t .";
-
-        Map<String, List<String>> varBindings = new HashMap<>();
-        varBindings.put("?s", Arrays.asList("<" + entityUri + ">"));
-        varBindings.put("?p", properties.stream().map(p -> "<" + p + ">").collect(Collectors.toList()));
+        List<String> statements = new ArrayList<>();
+        String subjStr = SparqlCreator.formatURI(entityUri);
+        String predStr = sparqlCreator.createPred(properties, 1);
+        String objStr = "?o";
+        statements.add(sparqlCreator.createStmt(subjStr, predStr, objStr));
+        statements.add(sparqlCreator.createLangFilterStmt("?t", Arrays.asList(language), true));
 
         return "SELECT ?t { "
-                + sparqlCreator.unionJoin(sparqlCreator.resolvePatternToStr(pattern, varBindings), false) + " "
-                + sparqlCreator.createLangFilter("?t", Arrays.asList(language), true)
+                + sparqlCreator.stmtJoin(statements, false)
                 + " }";
     }
 

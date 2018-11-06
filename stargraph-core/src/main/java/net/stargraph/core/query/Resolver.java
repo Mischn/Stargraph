@@ -202,22 +202,24 @@ public class Resolver {
             if (!isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE) && shouldBeResolved(triple.getP().getModelType())) {
                 if (isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE) || isResolved(triple.getO().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)) {
 
-                    DataModelBinding pivotBinding = isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE)? triple.getS() : triple.getO();
+                    boolean sPivots = isResolved(triple.getS().getPlaceHolder(), DataModelBindingContext.NON_PREDICATE);
+                    DataModelBinding pivotBinding = sPivots ? triple.getS() : triple.getO();
 
                     List<InstanceEntity> pivots = getMappings(pivotBinding.getPlaceHolder(), DataModelBindingContext.NON_PREDICATE).stream()
                             .filter(s -> s.getEntry() instanceof InstanceEntity)
-                            .map(s -> (InstanceEntity)s.getEntry())
+                            .map(s -> (InstanceEntity) s.getEntry())
                             .collect(Collectors.toList());
 
-                        pivotedPredicateResolver.setTriple(triple);
-                        pivotedPredicateResolver.setBinding(triple.getP());
-                        pivotedPredicateResolver.setContext(DataModelBindingContext.PREDICATE);
-                        pivotedPredicateResolver.setPivots(pivots);
-                        pivotedPredicateResolver.resolve();
+                    pivotedPredicateResolver.setTriple(triple);
+                    pivotedPredicateResolver.setBinding(triple.getP());
+                    pivotedPredicateResolver.setContext(DataModelBindingContext.PREDICATE);
+                    pivotedPredicateResolver.setSubjectPivots(sPivots);
+                    pivotedPredicateResolver.setPivots(pivots);
+                    pivotedPredicateResolver.resolve();
 
-                        if (isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
-                            return true;
-                        }
+                    if (isResolved(triple.getP().getPlaceHolder(), DataModelBindingContext.PREDICATE)) {
+                        return true;
+                    }
                 }
             }
 
@@ -227,12 +229,15 @@ public class Resolver {
             //TODO implement DNA search
 
 
-            // Resolve class member
-            // [TO_BE_RESOLVED]   TYPE   [resolved]
-
 
             // Resolve class
             // [resolved]   TYPE   [TO_BE_RESOLVED]
+
+
+
+            // Resolve class member
+            // [TO_BE_RESOLVED]   TYPE   [resolved]
+
 
 
             // Resolve equality
@@ -628,7 +633,12 @@ public class Resolver {
     private class PivotedPredicateResolver extends SingleResolver {
         private static final int RANGE = 2;
 
+        private boolean subjectPivots;
         private List<InstanceEntity> pivots;
+
+        public void setSubjectPivots(boolean subjectPivots) {
+            this.subjectPivots = subjectPivots;
+        }
 
         public void setPivots(List<InstanceEntity> pivots) {
             this.pivots = pivots;
@@ -644,7 +654,7 @@ public class Resolver {
 
             // for all pivots
             for (InstanceEntity pivot : pivots) {
-                scores.addAll(entitySearcher.pivotedPropertySearch(pivot, searchParams, RANGE, rankString, rankParams));
+                scores.addAll(entitySearcher.pivotedPropertySearch(pivot, searchParams, subjectPivots, RANGE, rankString, rankParams));
             }
 
             return scores;

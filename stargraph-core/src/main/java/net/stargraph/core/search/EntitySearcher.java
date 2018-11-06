@@ -532,10 +532,10 @@ public class EntitySearcher {
     }
 
 
-     public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, int range, String rankString, ModifiableRankParams rankParams) {
+     public Scores pivotedPropertySearch(InstanceEntity pivot, ModifiableSearchParams searchParams, boolean subjectPivots, int range, String rankString, ModifiableRankParams rankParams) {
         ModifiableRangeSearchParams rangeSearchParams = ModifiableRangeSearchParams.create()
-                .incomingEdges(true)
-                .outgoingEdges(true)
+                .incomingEdges(!subjectPivots)
+                .outgoingEdges(subjectPivots)
                 .limitToRepresentatives(true)
                 .propertyTypes(SearchQueryGenerator.PropertyTypes.NON_TYPE_ONLY)
                 .pruningStrategies(Arrays.asList(new ModifiableRangeSearchParams.NoCyclesPruning(), new ModifiableRangeSearchParams.EdgeDirectionPruning()));

@@ -15,7 +15,7 @@ public class ModifiableRangeSearchParams {
 
     private ModifiableRangeSearchParams() {
         // defaults
-        this.incomingEdges = true;
+        this.incomingEdges = false;
         this.outgoingEdges = true;
         this.propertyTypes = SearchQueryGenerator.PropertyTypes.ALL;
         this.pruningStrategies = Arrays.asList();

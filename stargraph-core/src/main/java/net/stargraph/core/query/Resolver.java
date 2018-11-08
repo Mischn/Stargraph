@@ -38,6 +38,12 @@ public class Resolver {
     protected final PivotedPredicateResolver pivotedPredicateResolver;
     protected final VariableResolver variableResolver;
 
+
+    private static final int MAX_RANGE = 1;
+    private static final int DEFAULT_POSSIBLE_LIMIT = 10;
+    private static final int DEFAULT_USED_LIMIT = 1;
+
+
     public Resolver(Stargraph stargraph, String dbId) {
         this.stargraph = stargraph;
         this.dbId = dbId;
@@ -473,8 +479,8 @@ public class Resolver {
         protected TriplePattern.BoundTriple triple; // the triple in which binding occurs (optional)
         protected DataModelBinding binding;
         protected DataModelBindingContext context;
-        protected long possibleLimit = 10;
-        protected long usedLimit = 1;
+        protected long possibleLimit = DEFAULT_POSSIBLE_LIMIT;
+        protected long usedLimit = DEFAULT_USED_LIMIT;
 
         protected abstract Scores findResults();
 
@@ -631,10 +637,9 @@ public class Resolver {
     }
 
     private class PivotedPredicateResolver extends SingleResolver {
-        private static final int RANGE = 2;
-
         private boolean subjectPivots;
         private List<InstanceEntity> pivots;
+        private int range = MAX_RANGE;
 
         public void setSubjectPivots(boolean subjectPivots) {
             this.subjectPivots = subjectPivots;
@@ -654,7 +659,7 @@ public class Resolver {
 
             // for all pivots
             for (InstanceEntity pivot : pivots) {
-                scores.addAll(entitySearcher.pivotedPropertySearch(pivot, searchParams, subjectPivots, RANGE, rankString, rankParams));
+                scores.addAll(entitySearcher.pivotedPropertySearch(pivot, searchParams, subjectPivots, range, rankString, rankParams));
             }
 
             return scores;

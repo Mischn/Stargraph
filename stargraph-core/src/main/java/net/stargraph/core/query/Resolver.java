@@ -666,6 +666,7 @@ public class Resolver {
 
         public VariableResolver() {
             this.jenaGraphSearcher = (JenaGraphSearcher)stargraph.getKBCore(dbId).getGraphSearcher();
+            this.usedLimit = -1; // do not use a limit for variables
         }
 
         @Override

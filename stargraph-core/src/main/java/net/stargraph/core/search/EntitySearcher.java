@@ -30,6 +30,7 @@ import net.stargraph.core.KBCore;
 import net.stargraph.core.Namespace;
 import net.stargraph.core.Stargraph;
 import net.stargraph.core.model.ModelCreator;
+import net.stargraph.core.rank.RankersExt;
 import net.stargraph.model.*;
 import net.stargraph.rank.*;
 import org.slf4j.Logger;
@@ -135,19 +136,51 @@ public class EntitySearcher {
      * @return
      */
     public PropertyPath getPropertyPath(String dbId, String id) {
-        PropertyPath res = null;
-        for (PropertyPath.PropertyParse propertyParse : PropertyPath.parseId(id)) {
-            PropertyEntity propertyEntity = getPropertyEntity(dbId, propertyParse.propertyId);
-            if (propertyEntity == null) {
-                return null;
+        List<PropertyPath> res = getPropertyPaths(dbId, Collections.singletonList(id));
+        if (res != null && !res.isEmpty()) {
+            return res.get(0);
+        }
+        return null;
+    }
+
+    /**
+     * Returns propertyPaths for the given ids.
+     * @param dbId
+     * @param ids
+     * @return
+     */
+    public List<PropertyPath> getPropertyPaths(String dbId, List<String> ids) {
+        List<PropertyPath> res = new ArrayList<>();
+
+        List<List<PropertyPath.PropertyParse>> parses = ids.stream().map(id -> PropertyPath.parseId(id)).collect(Collectors.toList());
+        Set<String> propertyIds = new HashSet<>(); // all property-IDs from all property-paths
+        parses.stream().forEach(ps -> propertyIds.addAll(ps.stream().map(p -> p.propertyId).collect(Collectors.toList())));
+
+        // get all properties from all property-paths
+        HashMap<String, PropertyEntity> properties = new HashMap<>();
+        getPropertyEntities(dbId, new ArrayList<>(propertyIds)).forEach(p -> properties.put(p.getId(), p));
+
+        // create property path instances
+        for (List<PropertyPath.PropertyParse> propertyParses : parses) {
+            PropertyPath propertyPath = null;
+
+            for (PropertyPath.PropertyParse propertyParse : propertyParses) {
+                PropertyEntity propertyEntity = properties.get(propertyParse.propertyId);
+                if (propertyEntity == null) {
+                    propertyPath = null;
+                    break;
+                }
+
+                if (propertyPath == null) {
+                    propertyPath = new PropertyPath(propertyEntity, propertyParse.direction);
+                } else {
+                    propertyPath = propertyPath.extend(propertyEntity, propertyParse.direction);
+                }
             }
 
-            if (res == null) {
-                res = new PropertyPath(propertyEntity, propertyParse.direction);
-            } else {
-                res = res.extend(propertyEntity, propertyParse.direction);
-            }
+            res.add(propertyPath);
         }
+
         return res;
     }
 
@@ -370,7 +403,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
+        scores = RankersExt.apply(this, scores, rankParams, searchString.getRankableStr());
 
         return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
@@ -400,7 +433,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
+        scores = RankersExt.apply(this, scores, rankParams, searchString.getRankableStr());
 
         return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
@@ -431,7 +464,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        scores = Rankers.apply(scores, rankParams, searchString.getRankableStr());
+        scores = RankersExt.apply(this, scores, rankParams, searchString.getRankableStr());
 
         return new Scores(scores.stream().limit((searchParams.getResultLimit() < 0)? Long.MAX_VALUE : searchParams.getResultLimit()).collect(Collectors.toList()));
     }
@@ -480,7 +513,7 @@ public class EntitySearcher {
         if (rankParams instanceof ModifiableIndraParams) {
             core.configureDistributionalParams((ModifiableIndraParams) rankParams);
         }
-        Scores rankedScores = Rankers.apply(propScores, rankParams, rankString);
+        Scores rankedScores = RankersExt.apply(this, propScores, rankParams, rankString);
 
         // Re-Rank again using heuristics about property-paths
         rankedScores = rerankPropertyPaths(rankedScores);
@@ -589,7 +622,7 @@ public class EntitySearcher {
 //        if (rankParams instanceof ModifiableIndraParams) {
 //            core.configureDistributionalParams((ModifiableIndraParams) rankParams);
 //        }
-//        Scores rankedScores = Rankers.apply(classScores, rankParams, rankString);
+//        Scores rankedScores = RankersExt.apply(this, classScores, rankParams, rankString);
 //        Scores result = rankedScores;
 //
 //        if (returnClassMembers) {

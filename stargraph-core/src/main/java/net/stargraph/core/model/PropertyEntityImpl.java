@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 public class PropertyEntityImpl extends PropertyEntity {
     private EntitySearcher entitySearcher;
     private String dbId;
+    private boolean lookedUp = false;
 
     private String value; // may be null
     private Collection<WNTuple> hypernyms; // may be null
@@ -34,6 +35,25 @@ public class PropertyEntityImpl extends PropertyEntity {
         this.synonyms = Objects.requireNonNull(synonyms);
     }
 
+    private void set(PropertyEntity entity) {
+        this.value = (this.value == null)? entity.getValue(): this.value;
+        this.hypernyms = (this.hypernyms == null)? entity.getHypernyms(): this.hypernyms;
+        this.hyponyms = (this.hyponyms == null)? entity.getHyponyms(): this.hyponyms;
+        this.synonyms = (this.synonyms == null)? entity.getSynonyms(): this.synonyms;
+    }
+
+    public static void bulkLookup(EntitySearcher entitySearcher, String dbId, List<PropertyEntityImpl> propertyEntities) {
+        if (entitySearcher == null || dbId == null) {
+            return;
+        }
+
+        List<PropertyEntityImpl> lookupEntities = propertyEntities.stream().filter(e -> !e.lookedUp).collect(Collectors.toList());
+        List<PropertyEntity> lookedupEntities = entitySearcher.getPropertyEntities(dbId, lookupEntities.stream().map(e -> e.getId()).collect(Collectors.toList()));
+        for (PropertyEntity entity : lookedupEntities) {
+            lookupEntities.stream().filter(e -> e.getId().equals(entity.getId())).forEach(e -> e.set(entity));
+        }
+    }
+
     private void lookup() {
         if (entitySearcher == null || dbId == null) {
             logger.error(marker, "Lookup was requested, but entitySearcher or dbId were null");
@@ -43,10 +63,8 @@ public class PropertyEntityImpl extends PropertyEntity {
         logger.debug(marker, "Lookup {} '{}'", getClass().getSimpleName(), id);
         PropertyEntity entity = entitySearcher.getPropertyEntity(dbId, id);
         if (entity != null) {
-            this.value = (this.value == null)? entity.getValue(): this.value;
-            this.hypernyms = (this.hypernyms == null)? entity.getHypernyms(): this.hypernyms;
-            this.hyponyms = (this.hyponyms == null)? entity.getHyponyms(): this.hyponyms;
-            this.synonyms = (this.synonyms == null)? entity.getSynonyms(): this.synonyms;
+            set(entity);
+            lookedUp = true;
         } else {
             logger.error(marker, "Could not lookup Property with id: {}", id);
         }
@@ -61,6 +79,10 @@ public class PropertyEntityImpl extends PropertyEntity {
         cloned.hyponyms = hyponyms;
         cloned.synonyms = synonyms;
         return cloned;
+    }
+
+    public String getDbId() {
+        return dbId;
     }
 
     @Override

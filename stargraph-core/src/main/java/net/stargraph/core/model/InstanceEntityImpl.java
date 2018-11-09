@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public class InstanceEntityImpl extends InstanceEntity {
     private EntitySearcher entitySearcher;
     private String dbId;
+    private boolean lookedUp = false;
 
     private String value; // may be null
     private Boolean isClass; // may be null
@@ -31,6 +32,24 @@ public class InstanceEntityImpl extends InstanceEntity {
         this.otherValues = Objects.requireNonNull(otherValues);
     }
 
+    private void set(InstanceEntity entity) {
+        this.value = (this.value == null)? entity.getValue(): this.value;
+        this.isClass = (this.isClass == null)? entity.isClass(): this.isClass;
+        this.otherValues = (this.otherValues == null)? entity.getOtherValues(): this.otherValues;
+    }
+
+    public static void bulkLookup(EntitySearcher entitySearcher, String dbId, List<InstanceEntityImpl> instanceEntities) {
+        if (entitySearcher == null || dbId == null) {
+            return;
+        }
+
+        List<InstanceEntityImpl> lookupEntities = instanceEntities.stream().filter(e -> !e.lookedUp).collect(Collectors.toList());
+        List<InstanceEntity> lookedupEntities = entitySearcher.getInstanceEntities(dbId, lookupEntities.stream().map(e -> e.getId()).collect(Collectors.toList()));
+        for (InstanceEntity entity : lookedupEntities) {
+            lookupEntities.stream().filter(e -> e.getId().equals(entity.getId())).forEach(e -> e.set(entity));
+        }
+    }
+
     private void lookup() {
         if (entitySearcher == null || dbId == null) {
             logger.error(marker, "Lookup was requested, but entitySearcher or dbId were null");
@@ -40,9 +59,8 @@ public class InstanceEntityImpl extends InstanceEntity {
         logger.debug(marker, "Lookup {} '{}'", getClass().getSimpleName(), id);
         InstanceEntity entity = entitySearcher.getInstanceEntity(dbId, id);
         if (entity != null) {
-            this.value = (this.value == null)? entity.getValue(): this.value;
-            this.isClass = (this.isClass == null)? entity.isClass(): this.isClass;
-            this.otherValues = (this.otherValues == null)? entity.getOtherValues(): this.otherValues;
+            set(entity);
+            lookedUp = true;
         } else {
             logger.error(marker, "Could not lookup Instance with id: {}", id);
         }
@@ -56,6 +74,10 @@ public class InstanceEntityImpl extends InstanceEntity {
         cloned.isClass = isClass;
         cloned.otherValues = otherValues;
         return cloned;
+    }
+
+    public String getDbId() {
+        return dbId;
     }
 
     @Override
